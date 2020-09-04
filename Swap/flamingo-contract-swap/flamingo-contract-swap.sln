@@ -5,6 +5,10 @@ VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "flamingo-contract-swap", "flamingo-contract-swap\flamingo-contract-swap.csproj", "{56E0E672-43DB-441E-A223-5AC158AAD487}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapFactory", "FlamingoSwapFactory\FlamingoSwapFactory.csproj", "{958C253C-4188-45FE-9BAE-2F440121E986}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapPair", "FlamingoSwapPair\FlamingoSwapPair.csproj", "{B3C9F843-1172-4A3C-A36B-681AF68907F8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{56E0E672-43DB-441E-A223-5AC158AAD487}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{56E0E672-43DB-441E-A223-5AC158AAD487}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{56E0E672-43DB-441E-A223-5AC158AAD487}.Release|Any CPU.Build.0 = Release|Any CPU
+		{958C253C-4188-45FE-9BAE-2F440121E986}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{958C253C-4188-45FE-9BAE-2F440121E986}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{958C253C-4188-45FE-9BAE-2F440121E986}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{958C253C-4188-45FE-9BAE-2F440121E986}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
