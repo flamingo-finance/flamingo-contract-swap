@@ -5,15 +5,21 @@ using Neo.SmartContract.Framework.Services.Neo;
 
 namespace FlamingoSwapFactory
 {
-    class FlamingoSwapFactoryContract : SmartContract
+    partial class FlamingoSwapFactoryContract : SmartContract
     {
 
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
+
         /// <summary>
-        /// 收益地址StoreKey
+        /// 收益地址的StoreKey
         /// </summary>
         private const string FeeToKey = "FeeTo";
+
+        /// <summary>
+        /// 交易对Map的StoreKey
+        /// </summary>
+        private const string ExchangeMapKey = "ExchangeMap";
 
 
         #region 通知
@@ -31,40 +37,34 @@ namespace FlamingoSwapFactory
         public static event Action<byte[], byte[]> onRemoveExchange;
 
 
-
-        //public delegate void deleTest(byte[] v);
-        //[DisplayName("test")]
-        //public static event deleTest onTest;
-        //public delegate void deleTest2(BigInteger v);
-        //[DisplayName("test2")]
-        //public static event deleTest2 onTest2;
-        //public delegate void deleSetExchangeFee(byte[] tokenHash, byte[] assetHash, BigInteger ratio);
-        //[DisplayName("setExchangeFee")]
-        //public static event deleSetExchangeFee onSetExchangeFee;
         #endregion
 
         public static object Main(string method, object[] args)
         {
             if (Runtime.Trigger == TriggerType.Verification)
             {
-                return false;
+                return Runtime.CheckWitness(superAdmin);
             }
             if (Runtime.Trigger == TriggerType.Application)
             {
-                byte[] tokenHash = (byte[])args[0];
-                byte[] assetHash = (byte[])args[1];
-                if (method == "createExchange")
+                if (method == "createExchangePair")
                 {
+                    byte[] tokenA = (byte[])args[0];
+                    byte[] tokenB = (byte[])args[1];
                     byte[] exchangeContractHash = (byte[])args[2];
-                    return CreateExchangePair(tokenHash, assetHash, exchangeContractHash);
+                    return CreateExchangePair(tokenA, tokenB, exchangeContractHash);
                 }
-                if (method == "removeExchange")
+                if (method == "removeExchangePair")
                 {
-                    return RemoveExchangePair(tokenHash, assetHash);
+                    byte[] tokenA = (byte[])args[0];
+                    byte[] tokenB = (byte[])args[1];
+                    return RemoveExchangePair(tokenA, tokenB);
                 }
-                if (method == "getExchange")
+                if (method == "getExchangePair")
                 {
-                    return GetExchange(tokenHash, assetHash);
+                    byte[] tokenA = (byte[])args[0];
+                    byte[] tokenB = (byte[])args[1];
+                    return GetExchangePair(tokenA, tokenB);
                 }
                 if (method == "setFeeTo")
                 {
@@ -92,24 +92,23 @@ namespace FlamingoSwapFactory
         /// <summary>
         /// 增加nep5资产的exchange合约映射
         /// </summary>
-        /// <param name="tokenA">Nep5 token</param>
-        /// <param name="tokenB">Nep5 token</param>
+        /// <param name="tokenA">Nep5 tokenA</param>
+        /// <param name="tokenB">Nep5 tokenB</param>
         /// <param name="exchangeContractHash"></param>
         /// <returns></returns>
         public static bool CreateExchangePair(byte[] tokenA, byte[] tokenB, byte[] exchangeContractHash)
         {
-            if (!Runtime.CheckWitness(superAdmin))
-                throw new InvalidOperationException("Forbidden");
-            if (tokenA == tokenB)
-                throw new InvalidOperationException("Identical Addresses");
-            var pair = GetTokenPair(tokenA, tokenB);
-            if (pair.Token0.AsBigInteger() == 0)
-                throw new InvalidOperationException("Zero Address");
-            StorageMap exchangeMap = Storage.CurrentContext.CreateMap("exchange");
+            Assert(Runtime.CheckWitness(superAdmin), "Forbidden");
+            Assert(tokenA != tokenB, "Identical Address", tokenA);
+            AssertAddress(tokenA, nameof(tokenA));
+            AssertAddress(tokenB, nameof(tokenB));
+            AssertAddress(exchangeContractHash, nameof(exchangeContractHash));
 
+            var pair = GetTokenPair(tokenA, tokenB);
+            StorageMap exchangeMap = Storage.CurrentContext.CreateMap(ExchangeMapKey);
             var key = pair.Token0.Concat(pair.Token1);
-            if (exchangeMap.Get(key).Length != 0)
-                throw new InvalidOperationException("Exchange had created");
+            var value = exchangeMap.Get(key);
+            Assert(value.Length == 0, "Exchange had created");
 
             exchangeMap.Put(key, exchangeContractHash);
             onCreateExchange(tokenA, tokenB, exchangeContractHash);
@@ -124,16 +123,19 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         public static bool RemoveExchangePair(byte[] tokenA, byte[] tokenB)
         {
-            if (!Runtime.CheckWitness(superAdmin))
-                throw new InvalidOperationException("Forbidden");
-            StorageMap exchangeMap = Storage.CurrentContext.CreateMap("exchange");
+            Assert(Runtime.CheckWitness(superAdmin), "FORBIDDEN");
+            AssertAddress(tokenA, nameof(tokenA));
+            AssertAddress(tokenB, nameof(tokenB));
+
+            StorageMap exchangeMap = Storage.CurrentContext.CreateMap(ExchangeMapKey);
             var pair = GetTokenPair(tokenA, tokenB);
             var key = pair.Token0.Concat(pair.Token1);
-            if (exchangeMap.Get(key).Length == 0)
-                throw new InvalidOperationException("exchange do not exit");
-            exchangeMap.Delete(key);
-
-            onRemoveExchange(tokenA, tokenB);
+            var value = exchangeMap.Get(key);
+            if (value.Length > 0)
+            {
+                exchangeMap.Delete(key);
+                onRemoveExchange(tokenA, tokenB);
+            }
             return true;
         }
 
@@ -146,10 +148,10 @@ namespace FlamingoSwapFactory
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        public static byte[] GetExchange(byte[] tokenA, byte[] tokenB)
+        public static byte[] GetExchangePair(byte[] tokenA, byte[] tokenB)
         {
             var pair = GetTokenPair(tokenA, tokenB);
-            StorageMap exchangeMap = Storage.CurrentContext.CreateMap("exchange");
+            StorageMap exchangeMap = Storage.CurrentContext.CreateMap(ExchangeMapKey);
             return exchangeMap.Get(pair.Token0.Concat(pair.Token1));
         }
 
@@ -171,31 +173,24 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         private static bool SetFeeTo(byte[] feeTo)
         {
-            if (feeTo.Length != 20)
-            {
-                throw new Exception("feeTo is not address");
-            }
-            if (!Runtime.CheckWitness(superAdmin))
-            {
-                throw new Exception("FORBIDDEN");
-            }
+            Assert(Runtime.CheckWitness(superAdmin), "FORBIDDEN");
             Storage.Put(FeeToKey, feeTo);
             return true;
         }
 
+
+        /// <summary>
+        /// token排序
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <returns></returns>
         private static TokenPair GetTokenPair(byte[] tokenA, byte[] tokenB)
         {
             return tokenA.AsBigInteger() < tokenB.AsBigInteger()
                 ? new TokenPair { Token0 = tokenA, Token1 = tokenB }
                 : new TokenPair { Token0 = tokenB, Token1 = tokenA };
         }
-    }
-
-
-    struct TokenPair
-    {
-        public byte[] Token0;
-        public byte[] Token1;
     }
 }
 

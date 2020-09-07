@@ -13,6 +13,9 @@ namespace FlamingoSwapPair
     partial class FlamingoSwapPairContract
     {
 
+
+        private const string BalanceMapKey = "AssetBalance";
+
         [DisplayName("transfer")]
         public static event Action<byte[], byte[], BigInteger> Transferred;
 
@@ -21,9 +24,9 @@ namespace FlamingoSwapPair
         [DisplayName("balanceOf")]
         public static BigInteger BalanceOf(byte[] account)
         {
-            if (account.Length != 20)
-                throw new InvalidOperationException("The parameter account SHOULD be 20-byte addresses.");
-            StorageMap asset = Storage.CurrentContext.CreateMap(nameof(asset));
+            Assert(account.Length == 20, "The parameter account SHOULD be 20-byte addresses.");
+
+            StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
             return asset.Get(account).AsBigInteger();
         }
 
@@ -31,13 +34,15 @@ namespace FlamingoSwapPair
         private static bool SetBalance(byte[] account, BigInteger newBalance)
         {
             Assert(account.Length == 20, "The parameter account SHOULD be 20-byte addresses.");
-            StorageMap asset = Storage.CurrentContext.CreateMap(nameof(asset));
+            StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
             asset.Put(account, newBalance);
             return true;
         }
 
+
+
         [DisplayName("decimals")]
-        public static byte Decimals() => 8;
+        public static byte Decimals() => 8;//todo:精度确认
 
 
 
@@ -45,7 +50,7 @@ namespace FlamingoSwapPair
         public static string Name() => "Exchange Pair"; //name of the token
 
         [DisplayName("symbol")]
-        public static string Symbol() => "EP"; //symbol of the token
+        public static string Symbol() => "EP3"; //symbol of the token
 
         [DisplayName("supportedStandards")]
         public static string[] SupportedStandards() => new string[] { "NEP-5", "NEP-7", "NEP-10" };
@@ -73,14 +78,12 @@ namespace FlamingoSwapPair
         private static bool Transfer(byte[] from, byte[] to, BigInteger amount, byte[] callscript)
         {
             //Check parameters
-            if (from.Length != 20 || to.Length != 20)
-                throw new InvalidOperationException("The parameters from and to SHOULD be 20-byte addresses.");
-            if (amount <= 0)
-                throw new InvalidOperationException("The parameter amount MUST be greater than 0.");
+            Assert(from.Length == 20 && to.Length == 20, "The parameters from and to SHOULD be 20-byte addresses.");
+            Assert(amount > 0, "The parameter amount MUST be greater than 0.");
 
             if (!Runtime.CheckWitness(from) && from.AsBigInteger() != callscript.AsBigInteger())
                 return false;
-            StorageMap asset = Storage.CurrentContext.CreateMap(nameof(asset));
+            StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
             var fromAmount = asset.Get(from).AsBigInteger();
             if (fromAmount < amount)
                 return false;
@@ -105,29 +108,12 @@ namespace FlamingoSwapPair
         #region 非标准方法
 
 
-        /// <summary>
-        /// 物理销毁token（不校验签名），内部方法禁止外部调用
-        /// </summary>
-        /// <param name="address"></param>
-        /// <param name="value"></param>
-        private static void BurnToken(byte[] address, BigInteger value)
-        {
-            var balance = BalanceOf(address) - value;
-            SetBalance(address, balance);
-            var totalSupply = GetTotalSupply() - value;
-            SetTotalSupply(totalSupply);
-
-            Transferred(address, new byte[20], value);
-        }
-
-
-
 
         /// <summary>
-        /// 铸币（不校验签名），内部方法禁止外部调用
+        /// 铸币（不校验签名），内部方法禁止外部直接调用
         /// </summary>
-        /// <param name="toAddress"></param>
-        /// <param name="amount"></param>
+        /// <param name="toAddress">接收新铸造的币的账号</param>
+        /// <param name="amount">铸造量</param>
         private static void MintToken(byte[] toAddress, BigInteger amount)
         {
             var balance = BalanceOf(toAddress) + amount;
@@ -135,12 +121,27 @@ namespace FlamingoSwapPair
             var totalSupply = GetTotalSupply() + amount;
             SetTotalSupply(totalSupply);
 
-            //todo: from取值？？？
             Transferred(new byte[20], toAddress, amount);
+        }
+
+        /// <summary>
+        /// 物理销毁token（不校验签名），内部方法禁止外部直接调用
+        /// </summary>
+        /// <param name="fromAddress">token的持有地址</param>
+        /// <param name="value">销毁的token量</param>
+        private static void BurnToken(byte[] fromAddress, BigInteger value)
+        {
+            var balance = BalanceOf(fromAddress) - value;
+            SetBalance(fromAddress, balance);
+            var totalSupply = GetTotalSupply() - value;
+            SetTotalSupply(totalSupply);
+
+            Transferred(fromAddress, new byte[20], value);
         }
 
 
         #endregion
+
 
     }
 }

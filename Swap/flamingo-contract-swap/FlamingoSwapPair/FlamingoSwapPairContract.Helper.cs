@@ -12,19 +12,31 @@ namespace FlamingoSwapPair
     partial class FlamingoSwapPairContract
     {
         /// <summary>
+        /// <summary>
         /// 断言
         /// </summary>
         /// <param name="condition"></param>
         /// <param name="message"></param>
-        private static void Assert(bool condition, string message)
+        /// <param name="data"></param>
+        private static void Assert(bool condition, string message, object data = null)
         {
             if (!condition)
             {
-                Runtime.Notify("Fault:" + message);
+                Runtime.Notify("Fault:" + message, data);
                 throw new Exception(message);
             }
         }
 
+
+        /// <summary>
+        /// 断言Address为有效的地址格式
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="name"></param>
+        private static void AssertAddress(byte[] input, string name)
+        {
+            Assert(input.Length == 20 && input.AsBigInteger() != 0, name + " is not address", input);
+        }
 
 
         /// <summary>
@@ -74,6 +86,27 @@ namespace FlamingoSwapPair
             return result;
         }
 
+
+
+        /// <summary>
+        /// 调用其它Nep5合约的“transfer”
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="amount"></param>
+        /// <returns></returns>
+        private static bool SafeTransfer(byte[] token, byte[] from, byte[] to, BigInteger amount)
+        {
+            var tokenACall = (Func<string, object[], bool>)token.ToDelegate();
+            var args = new object[3];
+            args[0] = from;
+            args[1] = to;
+            args[2] = amount;
+            var result = tokenACall("transfer", args);
+            Assert(result, "Transfer Fail", token);
+            return result;
+        }
 
         /// <summary>
         /// 调用其它Nep5合约的“balanceOf”

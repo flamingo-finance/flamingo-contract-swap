@@ -5,9 +5,11 @@ VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "flamingo-contract-swap", "flamingo-contract-swap\flamingo-contract-swap.csproj", "{56E0E672-43DB-441E-A223-5AC158AAD487}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapFactory", "FlamingoSwapFactory\FlamingoSwapFactory.csproj", "{958C253C-4188-45FE-9BAE-2F440121E986}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapFactory", "FlamingoSwapFactory\FlamingoSwapFactory.csproj", "{958C253C-4188-45FE-9BAE-2F440121E986}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapPair", "FlamingoSwapPair\FlamingoSwapPair.csproj", "{B3C9F843-1172-4A3C-A36B-681AF68907F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapPair", "FlamingoSwapPair\FlamingoSwapPair.csproj", "{B3C9F843-1172-4A3C-A36B-681AF68907F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapRouter", "FlamingoSwapRouter\FlamingoSwapRouter.csproj", "{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3C9F843-1172-4A3C-A36B-681AF68907F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
