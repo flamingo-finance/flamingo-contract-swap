@@ -8,17 +8,15 @@ namespace FlamingoSwapPair
 {
     partial class FlamingoSwapPairContract : SmartContract
     {
-
-
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
         /// <summary>
-        /// Token 0 地址（UInt160后比较小的地址）
+        /// Token 0 地址
         /// </summary>
-        static readonly byte[] Token0 = "1d8e292b5626acbf4b22633a8f1bbdc5b036ff1f".HexToBytes();
+        static readonly byte[] Token0 = "b75b4516a20ded2d0e2a4ac2b9d2173175c28f82".HexToBytes();
 
         /// <summary>
-        ///  Token 1 地址（UInt160后比较大的地址）
+        ///  Token 1 地址
         /// </summary>
         static readonly byte[] Token1 = "902060e187aeff14b730d0e5eb5ce44d3b00f18a".HexToBytes();
 
@@ -27,10 +25,6 @@ namespace FlamingoSwapPair
         /// </summary>
         static readonly byte[] FactoryContract = "64c8f037fbe1b599e25ed2442d8ebffa251d03c9".HexToBytes();
 
-        /// <summary>
-        /// 最小保留量
-        /// todo:确定大小
-        /// </summary>
         private static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
 
 
@@ -71,6 +65,10 @@ namespace FlamingoSwapPair
                 //直接调用时，此处为 tx.Script.ToScriptHash();
                 var msgSender = ExecutionEngine.CallingScriptHash;
 
+                if (method == "getToken0") return Token0;
+
+                if (method == "getToken1") return Token1;
+
                 if (method == "balanceOf") return BalanceOf((byte[])args[0]);
 
                 if (method == "decimals") return Decimals();
@@ -93,12 +91,15 @@ namespace FlamingoSwapPair
 
                 if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
 
-                if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2], (byte[])args[3]);
+                if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
 
 
             }
             return false;
         }
+
+
+
 
         #region GetReserves
 
@@ -117,14 +118,12 @@ namespace FlamingoSwapPair
 
         /// <summary>
         /// 完成兑换，amount0Out 和 amount1Out必需一个为0一个为正数
-        /// todo:安全校验
         /// </summary>
         /// <param name="amount0Out">已经计算好的token0 转出量</param>
         /// <param name="amount1Out">已经计算好的token1 转出量</param>
         /// <param name="from"></param>
         /// <param name="toAddress"></param>
-        /// <param name="data"></param>
-        public static bool Swap(byte[] from, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress, byte[] data)
+        public static bool Swap(byte[] from, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress)
         {
             var me = ExecutionEngine.ExecutingScriptHash;
 
@@ -185,7 +184,7 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 销毁liquidity代币，并转出等量的token0和token1到toAddress
         /// 需要事先将用户持有的liquidity转入本合约才可以调此方法
-        /// todo：安全校验
+        /// todo：内部直接转liquidity？
         /// </summary>
         /// <param name="from"></param>
         /// <param name="toAddress"></param>
@@ -226,8 +225,7 @@ namespace FlamingoSwapPair
                 SetKLast(kLast);
             }
             Burned(from, amount0, amount1, toAddress);
-            //if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
-            //emit Burn(msg.sender, amount0, amount1, to);
+
             return new BigInteger[]
             {
                 amount0,
@@ -238,7 +236,7 @@ namespace FlamingoSwapPair
 
         /// <summary>
         /// 铸造代币，此方法应该由router在AddLiquidity时调用
-        /// todo:安全校验
+        /// todo:禁止外部直接调用
         /// </summary>
         /// <param name="from"></param>
         /// <param name="toAddress"></param>
@@ -416,7 +414,8 @@ namespace FlamingoSwapPair
                 {
                     return new ReservesData();
                 }
-                return (ReservesData)val.Deserialize();
+                var r = (ReservesData)val.Deserialize();
+                return r;
             }
             set => Storage.Put(nameof(ReservePair), value.Serialize());
         }
