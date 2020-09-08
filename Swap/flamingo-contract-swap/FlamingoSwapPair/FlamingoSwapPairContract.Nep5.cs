@@ -27,7 +27,7 @@ namespace FlamingoSwapPair
             Assert(account.Length == 20, "The parameter account SHOULD be 20-byte addresses.");
 
             StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
-            return asset.Get(account).AsBigInteger();
+            return asset.Get(account).ToBigInteger();
         }
 
 
@@ -42,15 +42,13 @@ namespace FlamingoSwapPair
 
 
         [DisplayName("decimals")]
-        public static byte Decimals() => 8;//todo:精度确认
-
-
+        public static byte Decimals() => 8;
 
         [DisplayName("name")]
         public static string Name() => "Exchange Pair"; //name of the token
 
         [DisplayName("symbol")]
-        public static string Symbol() => "EP3"; //symbol of the token
+        public static string Symbol() => "FPBC"; //symbol of the token
 
         [DisplayName("supportedStandards")]
         public static string[] SupportedStandards() => new string[] { "NEP-5", "NEP-7", "NEP-10" };
@@ -59,7 +57,7 @@ namespace FlamingoSwapPair
         public static BigInteger GetTotalSupply()
         {
             StorageMap contract = Storage.CurrentContext.CreateMap(nameof(contract));
-            return contract.Get("totalSupply").AsBigInteger();
+            return contract.Get("totalSupply").ToBigInteger();
         }
 
         /// <summary>

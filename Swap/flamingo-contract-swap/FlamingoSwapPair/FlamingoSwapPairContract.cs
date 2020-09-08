@@ -13,12 +13,12 @@ namespace FlamingoSwapPair
         /// <summary>
         /// Token 0 地址
         /// </summary>
-        static readonly byte[] Token0 = "b75b4516a20ded2d0e2a4ac2b9d2173175c28f82".HexToBytes();
+        static readonly byte[] Token0 = "3e21110fa3c6cc62e795ef66f2cb653c70762ba9".HexToBytes();
 
         /// <summary>
         ///  Token 1 地址
         /// </summary>
-        static readonly byte[] Token1 = "902060e187aeff14b730d0e5eb5ce44d3b00f18a".HexToBytes();
+        static readonly byte[] Token1 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
 
         /// <summary>
         /// Factory地址
