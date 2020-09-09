@@ -106,16 +106,14 @@ namespace FlamingoSwapRouter
         /// <param name="amount0Out"></param>
         /// <param name="amount1Out"></param>
         /// <param name="toAddress"></param>
-        /// <param name="data"></param>
         /// <returns></returns>
-        public static BigInteger[] DynamicSwap(this byte[] pairContract, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress, byte[] data)
+        public static BigInteger[] DynamicSwap(this byte[] pairContract, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress)
         {
             var tokenACall = (Func<string, object[], BigInteger[]>)pairContract.ToDelegate();
-            var args = new object[4];
+            var args = new object[3];
             args[0] = amount0Out;
             args[1] = amount1Out;
             args[2] = toAddress;
-            args[3] = data;
             var result = tokenACall("swap", args);
             return result;
         }

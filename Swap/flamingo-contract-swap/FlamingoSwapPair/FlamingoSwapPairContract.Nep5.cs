@@ -48,7 +48,7 @@ namespace FlamingoSwapPair
         public static string Name() => "Exchange Pair"; //name of the token
 
         [DisplayName("symbol")]
-        public static string Symbol() => "FPBC"; //symbol of the token
+        public static string Symbol() => "P-BC"; //symbol of the token
 
         [DisplayName("supportedStandards")]
         public static string[] SupportedStandards() => new string[] { "NEP-5", "NEP-7", "NEP-10" };

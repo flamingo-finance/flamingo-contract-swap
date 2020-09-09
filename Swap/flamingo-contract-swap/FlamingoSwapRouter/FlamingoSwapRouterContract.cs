@@ -38,9 +38,9 @@ namespace FlamingoSwapRouter
 
                 if (method == "swapTokenOutForTokenIn") return SwapTokenOutForTokenIn((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
 
-                if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (byte[])args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7], (BigInteger)args[8]);
+                if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
 
-                if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (byte[])args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
+                if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
 
             }
             return false;
@@ -51,8 +51,7 @@ namespace FlamingoSwapRouter
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="sender">流动性提供者，用于校验签名</param>
-        /// <param name="to">Liquidity收益地址</param>
+        /// <param name="sender">流动性提供者，用于校验签名，以及接收收益</param>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <param name="amountADesired">期望最多转入A的量，The amount of tokenA to add as liquidity if the B/A price is <= amountBDesired/amountADesired (A depreciates).</param>
@@ -61,7 +60,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountBMin">预计最少转入B的量</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static BigInteger[] AddLiquidity(byte[] sender, byte[] to, byte[] tokenA, byte[] tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
+        public static BigInteger[] AddLiquidity(byte[] sender, byte[] tokenA, byte[] tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
@@ -109,7 +108,7 @@ namespace FlamingoSwapRouter
             SafeTransfer(tokenB, sender, pairContract, amountB);
 
 
-            var liquidity = pairContract.DynamicMint(to);
+            var liquidity = pairContract.DynamicMint(sender);
             var result = new BigInteger[3];
             result[0] = amountA;
             result[1] = amountB;
@@ -123,7 +122,6 @@ namespace FlamingoSwapRouter
         /// 移除流动性
         /// </summary>
         /// <param name="sender"></param>
-        /// <param name="to"></param>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <param name="liquidity">移除的liquidity Token量</param>
@@ -131,7 +129,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountBMin">tokenB 期望最小提取量</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static BigInteger[] RemoveLiquidity(byte[] sender, byte[] to, byte[] tokenA, byte[] tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
+        public static BigInteger[] RemoveLiquidity(byte[] sender, byte[] tokenA, byte[] tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
@@ -143,7 +141,7 @@ namespace FlamingoSwapRouter
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             SafeTransfer(pairContract, sender, pairContract, liquidity);
 
-            var amounts = pairContract.DynamicBurn(to);
+            var amounts = pairContract.DynamicBurn(sender);
             var token0 = tokenA.ToUInteger() < tokenB.ToUInteger() ? tokenA : tokenB;
             var amountA = token0 == tokenA ? amounts[0] : amounts[1];
             var amountB = token0 == tokenA ? amounts[1] : amounts[0];
@@ -220,7 +218,7 @@ namespace FlamingoSwapRouter
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
             var amounts = new BigInteger[paths.Length];
-            amounts[0] = amountIn;
+            amounts[0] = amountIn.ToBigInt();
             var max = paths.Length - 1;
             for (var i = 0; i < max; i++)
             {
@@ -243,9 +241,7 @@ namespace FlamingoSwapRouter
             Assert(paths.Length >= 2, "INVALID_PATH");
             var amounts = new BigInteger[paths.Length];
             var max = paths.Length - 1;
-            //var a = amountOut.AsByteArray().ToBigInteger();
-            amountOut += 0;
-            amounts[max] = amountOut;
+            amounts[max] = amountOut.ToBigInt();
             for (var i = max; i > 0; i--)
             {
                 var preIndex = i - 1;
@@ -285,11 +281,11 @@ namespace FlamingoSwapRouter
 
 
         /// <summary>
-        /// 根据输入兑换输出
+        /// 根据输入计算输出，并完成兑换
         /// </summary>
         /// <param name="sender"></param>
-        /// <param name="amountIn"></param>
-        /// <param name="amountOutMin"></param>
+        /// <param name="amountIn">用户输入的TokenIn的量</param>
+        /// <param name="amountOutMin">用户想要兑换的TokenOut的最小量，实际估算结果低于此值时，交易中断</param>
         /// <param name="paths"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
@@ -306,8 +302,7 @@ namespace FlamingoSwapRouter
 
             var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
 
-            var transfer0 = paths[0].DynamicTransfer(sender, pairContract, amounts[0]);
-            Assert(transfer0, "transfer0 fail");
+            SafeTransfer(paths[0], sender, pairContract, amounts[0]);
 
             Swap(amounts, paths, sender);
             return true;
@@ -315,11 +310,11 @@ namespace FlamingoSwapRouter
 
 
         /// <summary>
-        /// 根据输出计算输入量
+        /// 根据输出计算输入量，并完成兑换
         /// </summary>
         /// <param name="sender"></param>
-        /// <param name="amountOut"></param>
-        /// <param name="amountInMax"></param>
+        /// <param name="amountOut">用户输入的TokenOut的量</param>
+        /// <param name="amountInMax">用户愿意支付的TokenIn的最大量，预估值高于此值时交易中断</param>
         /// <param name="paths"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
@@ -331,16 +326,13 @@ namespace FlamingoSwapRouter
             BigInteger timestamp = Runtime.Time;
             Assert(timestamp <= deadLine, "Exceeded the deadline");
 
-
             var amounts = GetAmountsIn(amountOut, paths);
             Assert(amounts[0] <= amountInMax, "EXCESSIVE_INPUT_AMOUNT");
 
             var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
 
-            var transfer0 = paths[0].DynamicTransfer(sender, pairContract, amounts[0]);
-            Assert(transfer0, "transfer0 fail");
+            SafeTransfer(paths[0], sender, pairContract, amounts[0]);
             Swap(amounts, paths, sender);
-
             return true;
         }
 
@@ -372,7 +364,7 @@ namespace FlamingoSwapRouter
                 }
 
                 var pairContract = GetExchangePairWithAssert(input, output);
-                pairContract.DynamicSwap(amount0Out, amount1Out, to, new byte[0]);
+                pairContract.DynamicSwap(amount0Out, amount1Out, to);
             }
         }
 

@@ -10,15 +10,36 @@ namespace FlamingoSwapPair
     {
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
+
+        #region TokenAB
+
+        ///// <summary>
+        ///// Token 0 地址
+        ///// </summary>
+        //static readonly byte[] Token0 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+
+        ///// <summary>
+        /////  Token 1 地址
+        ///// </summary>
+        //static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
+
+        #endregion
+
+
+        #region TokenBC
+
         /// <summary>
         /// Token 0 地址
         /// </summary>
-        static readonly byte[] Token0 = "3e21110fa3c6cc62e795ef66f2cb653c70762ba9".HexToBytes();
+        static readonly byte[] Token0 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
 
         /// <summary>
         ///  Token 1 地址
         /// </summary>
-        static readonly byte[] Token1 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
+        static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+
+        #endregion
+
 
         /// <summary>
         /// Factory地址
@@ -121,9 +142,9 @@ namespace FlamingoSwapPair
         /// </summary>
         /// <param name="amount0Out">已经计算好的token0 转出量</param>
         /// <param name="amount1Out">已经计算好的token1 转出量</param>
-        /// <param name="from"></param>
+        /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
-        public static bool Swap(byte[] from, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress)
+        public static bool Swap(byte[] msgSender, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress)
         {
             var me = ExecutionEngine.ExecutingScriptHash;
 
@@ -141,14 +162,12 @@ namespace FlamingoSwapPair
             if (amount0Out > 0)
             {
                 //从本合约转出目标token到目标地址
-                var tranferResult0 = DynamicTransfer(Token0, me, toAddress, amount0Out);
-                Assert(tranferResult0, "Transfer Token0 Fail");
+                SafeTransfer(Token0, me, toAddress, amount0Out);
             }
 
             if (amount1Out > 0)
             {
-                var tranferResult1 = DynamicTransfer(Token1, me, toAddress, amount1Out);
-                Assert(tranferResult1, "Transfer Token1 Fail");
+                SafeTransfer(Token1, me, toAddress, amount1Out);
             }
 
             //todo:toAddress回调接口???
@@ -172,7 +191,7 @@ namespace FlamingoSwapPair
 
             Update(balance0, balance1, reserve0, reserve1);
 
-            Swapped(from, amount0In, amount1In, amount0Out, amount1Out, toAddress);
+            Swapped(msgSender, amount0In, amount1In, amount0Out, amount1Out, toAddress);
             return true;
         }
 
@@ -186,10 +205,10 @@ namespace FlamingoSwapPair
         /// 需要事先将用户持有的liquidity转入本合约才可以调此方法
         /// todo：内部直接转liquidity？
         /// </summary>
-        /// <param name="from"></param>
+        /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns></returns>
-        public static object Burn(byte[] from, byte[] toAddress)
+        public static object Burn(byte[] msgSender, byte[] toAddress)
         {
             var me = ExecutionEngine.ExecutingScriptHash;
             var r = ReservePair;
@@ -209,10 +228,8 @@ namespace FlamingoSwapPair
             BurnToken(me, liquidity);
 
             //从本合约转出token
-            var transfer1 = DynamicTransfer(Token0, me, toAddress, amount0);
-            Assert(transfer1, "transfer1 fail");
-            var transfer2 = DynamicTransfer(Token1, me, toAddress, amount1);
-            Assert(transfer2, "transfer2 fail");
+            SafeTransfer(Token0, me, toAddress, amount0);
+            SafeTransfer(Token1, me, toAddress, amount1);
 
             balance0 = DynamicBalanceOf(Token0, me);
             balance1 = DynamicBalanceOf(Token1, me);
@@ -224,7 +241,7 @@ namespace FlamingoSwapPair
                 var kLast = reserve0 * reserve1;
                 SetKLast(kLast);
             }
-            Burned(from, amount0, amount1, toAddress);
+            Burned(msgSender, amount0, amount1, toAddress);
 
             return new BigInteger[]
             {
@@ -238,10 +255,10 @@ namespace FlamingoSwapPair
         /// 铸造代币，此方法应该由router在AddLiquidity时调用
         /// todo:禁止外部直接调用
         /// </summary>
-        /// <param name="from"></param>
+        /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns>返回本次铸币量</returns>
-        public static BigInteger Mint(byte[] from, byte[] toAddress)
+        public static BigInteger Mint(byte[] msgSender, byte[] toAddress)
         {
             var me = ExecutionEngine.ExecutingScriptHash;
 
@@ -289,7 +306,7 @@ namespace FlamingoSwapPair
                 SetKLast(kLast);
             }
 
-            Minted(from, amount0, amount1);
+            Minted(msgSender, amount0, amount1);
             return liquidity;
         }
 
@@ -389,9 +406,7 @@ namespace FlamingoSwapPair
             r.BlockTimestampLast = blockTimestamp;
             //优化写入次数
             ReservePair = r;
-            //SetReserve0(balance0);
-            //SetReserve1(balance1);
-            //SetBlockTimestampLast(blockTimestamp);
+
             Synced(balance0, balance1);
         }
 
