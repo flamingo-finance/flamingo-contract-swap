@@ -35,5 +35,9 @@ namespace FlamingoSwapFactory
         {
             Assert(input.Length == 20 && input.AsBigInteger() != 0, name + " is not address", input);
         }
+
+
+        [OpCode(OpCode.APPEND)]
+        private static extern void Append<T>(T[] array, T newItem);
     }
 }

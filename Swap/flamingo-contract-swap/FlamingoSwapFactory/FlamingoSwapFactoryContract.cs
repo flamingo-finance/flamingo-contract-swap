@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Linq;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 
@@ -66,6 +67,10 @@ namespace FlamingoSwapFactory
                     byte[] tokenB = (byte[])args[1];
                     return GetExchangePair(tokenA, tokenB);
                 }
+                if (method == "getAllExchangePair")
+                {
+                    return GetAllExchangePair();
+                }
                 if (method == "setFeeTo")
                 {
                     return SetFeeTo((byte[])args[0]);
@@ -105,12 +110,12 @@ namespace FlamingoSwapFactory
             AssertAddress(exchangeContractHash, nameof(exchangeContractHash));
 
             var pair = GetTokenPair(tokenA, tokenB);
-            StorageMap exchangeMap = Storage.CurrentContext.CreateMap(ExchangeMapKey);
-            var key = pair.Token0.Concat(pair.Token1);
-            var value = exchangeMap.Get(key);
+
+            var key = ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
+            var value = Storage.Get(key);
             Assert(value.Length == 0, "Exchange had created");
 
-            exchangeMap.Put(key, exchangeContractHash);
+            Storage.Put(key, exchangeContractHash);
             onCreateExchange(tokenA, tokenB, exchangeContractHash);
             return true;
         }
@@ -127,13 +132,12 @@ namespace FlamingoSwapFactory
             AssertAddress(tokenA, nameof(tokenA));
             AssertAddress(tokenB, nameof(tokenB));
 
-            StorageMap exchangeMap = Storage.CurrentContext.CreateMap(ExchangeMapKey);
             var pair = GetTokenPair(tokenA, tokenB);
-            var key = pair.Token0.Concat(pair.Token1);
-            var value = exchangeMap.Get(key);
+            var key = ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
+            var value = Storage.Get(key);
             if (value.Length > 0)
             {
-                exchangeMap.Delete(key);
+                Storage.Delete(key);
                 onRemoveExchange(tokenA, tokenB);
             }
             return true;
@@ -151,10 +155,38 @@ namespace FlamingoSwapFactory
         public static byte[] GetExchangePair(byte[] tokenA, byte[] tokenB)
         {
             var pair = GetTokenPair(tokenA, tokenB);
-            StorageMap exchangeMap = Storage.CurrentContext.CreateMap(ExchangeMapKey);
-            return exchangeMap.Get(pair.Token0.Concat(pair.Token1));
+            var key = ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
+            return Storage.Get(key);
         }
 
+
+        /// <summary>
+        /// 获得nep5资产的exchange合约映射
+        /// </summary>
+        /// <returns></returns>
+        public static ExchangePair[] GetAllExchangePair()
+        {
+            var iterator = Storage.Find(ExchangeMapKey);
+            var result = new ExchangePair[0];
+            while (iterator.Next())
+            {
+                var exchangeContractHash = iterator.Value;
+                if (exchangeContractHash.Length == 20)
+                {
+                    var keyPair = iterator.Key.AsByteArray().Last(40);
+                    var tokenA = keyPair.Take(20);
+                    var tokenB = keyPair.Last(20);
+                    var item = new ExchangePair()
+                    {
+                        TokenA = tokenA,
+                        TokenB = tokenB,
+                        ExchangePairHash = exchangeContractHash,
+                    };
+                    Append(result, item);
+                }
+            }
+            return result;
+        }
 
         /// <summary>
         /// 获取手续费收益地址
