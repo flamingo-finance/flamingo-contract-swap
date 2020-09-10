@@ -119,7 +119,7 @@ namespace FlamingoSwapPair
             var totalSupply = GetTotalSupply() + amount;
             SetTotalSupply(totalSupply);
 
-            Transferred(new byte[20], toAddress, amount);
+            Transferred(null, toAddress, amount);
         }
 
         /// <summary>

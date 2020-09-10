@@ -203,7 +203,6 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 销毁liquidity代币，并转出等量的token0和token1到toAddress
         /// 需要事先将用户持有的liquidity转入本合约才可以调此方法
-        /// todo：内部直接转liquidity？
         /// </summary>
         /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
@@ -282,7 +281,7 @@ namespace FlamingoSwapPair
             if (totalSupply == 0)
             {
                 liquidity = Sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-                //todo:第一笔注入资金过少，liquidity为负数，整个合约执行将中断回滚
+                //第一笔注入资金过少，liquidity为负数，整个合约执行将中断回滚
                 Runtime.Notify("liquidity X:", liquidity);
 
                 MintToken(new byte[20], MINIMUM_LIQUIDITY);// permanently lock the first MINIMUM_LIQUIDITY tokens,永久锁住第一波发行的 MINIMUM_LIQUIDITY token
