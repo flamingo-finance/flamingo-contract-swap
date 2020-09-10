@@ -10,7 +10,7 @@ namespace FlamingoSwapRouter
     {
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
-        private static readonly byte[] Factory = "64c8f037fbe1b599e25ed2442d8ebffa251d03c9".HexToBytes();
+        private static readonly byte[] Factory = "2e3753d2078f3d4ddd43f29ee332c64d954cf8a0".HexToBytes();
 
         public static object Main(string method, object[] args)
         {
