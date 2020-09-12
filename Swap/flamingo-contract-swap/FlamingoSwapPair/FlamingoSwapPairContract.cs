@@ -10,44 +10,44 @@ namespace FlamingoSwapPair
     {
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
+        /// <summary>
+        /// Factory地址
+        /// </summary>
+        static readonly byte[] FactoryContract = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
+
+        static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
+
 
         #region TokenAB
 
-        ///// <summary>
-        ///// Token 0 地址
-        ///// </summary>
-        //static readonly byte[] Token0 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+        /// <summary>
+        /// Token 0 地址(Token0放置合约hash小的token)
+        /// </summary>
+        static readonly byte[] Token0 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
 
-        ///// <summary>
-        /////  Token 1 地址
-        ///// </summary>
-        //static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
+        /// <summary>
+        ///  Token 1 地址
+        /// </summary>
+        static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
 
         #endregion
 
 
         #region TokenBC
 
-        /// <summary>
-        /// Token 0 地址
-        /// </summary>
-        static readonly byte[] Token0 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
+        ///// <summary>
+        ///// Token 0 地址(Token0放置合约hash小的token)
+        ///// </summary>
+        //static readonly byte[] Token0 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
 
-        /// <summary>
-        ///  Token 1 地址
-        /// </summary>
-        static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+        ///// <summary>
+        /////  Token 1 地址
+        ///// </summary>
+        //static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
 
         #endregion
 
-        /// <summary>
-        /// Factory地址
-        /// </summary>
-        static readonly byte[] FactoryContract = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
 
-
-
-        private static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
 
 
         #region 通知
@@ -421,11 +421,7 @@ namespace FlamingoSwapPair
             get
             {
                 var val = Storage.Get(nameof(ReservePair));
-                if (val.Length == 0)
-                {
-                    return new ReservesData();
-                }
-                return (ReservesData)val.Deserialize();
+                return val.Length == 0 ? new ReservesData() : (ReservesData)val.Deserialize();
             }
             set => Storage.Put(nameof(ReservePair), value.Serialize());
         }

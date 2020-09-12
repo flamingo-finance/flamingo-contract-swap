@@ -26,7 +26,7 @@ namespace FlamingoSwapPair
         public static string Name() => "Exchange Pair"; //name of the token
 
         [DisplayName("symbol")]
-        public static string Symbol() => "Temp-BC"; //symbol of the token
+        public static string Symbol() => "Temp-AB"; //symbol of the token
 
 
         [DisplayName("supportedStandards")]

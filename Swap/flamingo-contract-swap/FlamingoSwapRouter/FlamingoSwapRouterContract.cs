@@ -10,7 +10,7 @@ namespace FlamingoSwapRouter
     {
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
-        private static readonly byte[] Factory = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
+        static readonly byte[] Factory = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
 
         public static object Main(string method, object[] args)
         {
@@ -89,7 +89,7 @@ namespace FlamingoSwapRouter
                 if (estimatedB <= amountBDesired)
                 {
                     //B在期望范围内，直接按计算值转
-                    Assert(estimatedB >= amountBMin, "Insufficient B Amount", estimatedB);
+                    Assert(estimatedB >= amountBMin, "Insufficient B Amount");
                     amountA = amountADesired;
                     amountB = estimatedB;
                 }
@@ -97,7 +97,7 @@ namespace FlamingoSwapRouter
                 {
                     //B超出期望最大值，按照 TokenB 期望最大值计算 TokenA 的注入量
                     var estimatedA = Quote(amountBDesired, reserveB, reserveA);
-                    Assert(estimatedA >= amountAMin, "Insufficient A Amount", estimatedA);
+                    Assert(estimatedA >= amountAMin, "Insufficient A Amount");
                     amountA = estimatedA;
                     amountB = amountBDesired;
                 }
@@ -162,9 +162,6 @@ namespace FlamingoSwapRouter
             {
                 Throw("amount or reserve Invalid", amountA, reserveA, reserveB);
             }
-            //Assert(amountA > 0, "amountA Invalid");
-            //Assert(reserveA > 0, "reserveA Invalid");
-            //Assert(reserveB > 0, "reserveB Invalid");
 
             var amountB = amountA * reserveB / reserveA;
             return amountB;
@@ -357,45 +354,6 @@ namespace FlamingoSwapRouter
                 //pairContract.DynamicSwap(amount0Out, amount1Out, to);//+0.05gas
                 ((Func<string, object[], BigInteger[]>)pairContract.ToDelegate())("swap", new object[] { amount0Out, amount1Out, to });
             }
-        }
-
-
-
-
-        /// <summary>
-        /// 安全查询交易对，查不到立即中断合约执行
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <returns></returns>
-        private static byte[] GetExchangePairWithAssert(byte[] tokenA, byte[] tokenB)
-        {
-            var pairContract = ((Func<string, object[], byte[]>)Factory.ToDelegate())("getExchangePair", new object[] { tokenA, tokenB });
-            if (pairContract.Length != 20)
-            {
-                Throw("Cannot Find PairContract", tokenA, tokenB);
-            }
-            //Assert(pairContract.Length == 20, "cannot find pairContract");//+0.02 gas
-            return pairContract;
-        }
-
-
-        /// <summary>
-        /// 安全转账，失败则中断退出
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="from"></param>
-        /// <param name="to"></param>
-        /// <param name="amount"></param>
-        private static void SafeTransfer(byte[] token, byte[] from, byte[] to, BigInteger amount)
-        {
-            //var result = token.DynamicTransfer(from, to, amount);
-            var result = ((Func<string, object[], bool>)token.ToDelegate())("transfer", new object[] { from, to, amount });
-            if (!result)
-            {
-                Throw("Transfer Fail", token);
-            }
-            //Assert(result, "Transfer Fail", token);
         }
 
     }
