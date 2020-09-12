@@ -15,12 +15,12 @@ namespace FlamingoSwapFactory
         /// </summary>
         /// <param name="condition"></param>
         /// <param name="message"></param>
-        /// <param name="datas"></param>
-        private static void Assert(bool condition, string message, object datas = null)
+        /// <param name="data"></param>
+        private static void Assert(bool condition, string message, object data = null)
         {
             if (!condition)
             {
-                Runtime.Notify("Fault:" + message, datas);
+                Runtime.Notify("Fault:" + message, data);
                 throw new Exception(message);
             }
         }

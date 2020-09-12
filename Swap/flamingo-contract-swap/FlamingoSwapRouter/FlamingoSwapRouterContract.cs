@@ -10,7 +10,7 @@ namespace FlamingoSwapRouter
     {
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
-        private static readonly byte[] Factory = "2e3753d2078f3d4ddd43f29ee332c64d954cf8a0".HexToBytes();
+        private static readonly byte[] Factory = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
 
         public static object Main(string method, object[] args)
         {
@@ -20,7 +20,15 @@ namespace FlamingoSwapRouter
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                var msgSender = ExecutionEngine.CallingScriptHash;//等价以太坊的msg.sender
+                if (method == "swapTokenInForTokenOut") return SwapTokenInForTokenOut((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
+
+                if (method == "swapTokenOutForTokenIn") return SwapTokenOutForTokenIn((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
+
+                if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
+
+                if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
+
+                //var msgSender = ExecutionEngine.CallingScriptHash;//等价以太坊的msg.sender
 
                 if (method == "quote") return Quote((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
 
@@ -34,13 +42,6 @@ namespace FlamingoSwapRouter
 
                 if (method == "getAmountsIn") return GetAmountsIn(args[0].ToBigInt(), (byte[][])args[1]);
 
-                if (method == "swapTokenInForTokenOut") return SwapTokenInForTokenOut((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
-
-                if (method == "swapTokenOutForTokenIn") return SwapTokenOutForTokenIn((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
-
-                if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
-
-                if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
 
             }
             return false;
@@ -107,13 +108,9 @@ namespace FlamingoSwapRouter
             SafeTransfer(tokenA, sender, pairContract, amountA);
             SafeTransfer(tokenB, sender, pairContract, amountB);
 
-
-            var liquidity = pairContract.DynamicMint(sender);
-            var result = new BigInteger[3];
-            result[0] = amountA;
-            result[1] = amountB;
-            result[2] = liquidity;
-            return result;
+            var liquidity = pairContract.DynamicMint(sender);//+0.03gas
+            //var liquidity = ((Func<string, object[], BigInteger>)pairContract.ToDelegate())("mint", new object[] { sender });
+            return new BigInteger[] { amountA.ToBigInt(), amountB.ToBigInt(), liquidity };
         }
 
 
@@ -142,16 +139,14 @@ namespace FlamingoSwapRouter
             SafeTransfer(pairContract, sender, pairContract, liquidity);
 
             var amounts = pairContract.DynamicBurn(sender);
-            var token0 = tokenA.ToUInteger() < tokenB.ToUInteger() ? tokenA : tokenB;
-            var amountA = token0 == tokenA ? amounts[0] : amounts[1];
-            var amountB = token0 == tokenA ? amounts[1] : amounts[0];
+            var tokenAIsToken0 = tokenA.ToUInteger() < tokenB.ToUInteger();
+            var amountA = tokenAIsToken0 ? amounts[0] : amounts[1];
+            var amountB = tokenAIsToken0 ? amounts[1] : amounts[0];
 
             Assert(amountA >= amountAMin, "INSUFFICIENT_A_AMOUNT");
             Assert(amountB >= amountBMin, "INSUFFICIENT_B_AMOUNT");
-            var result = new BigInteger[2];
-            result[0] = amountA;
-            result[1] = amountB;
-            return result;
+
+            return new BigInteger[] { amountA, amountB };
         }
 
 
@@ -163,9 +158,13 @@ namespace FlamingoSwapRouter
         /// <param name="reserveB">tokenB的总量</param>
         public static BigInteger Quote(BigInteger amountA, BigInteger reserveA, BigInteger reserveB)
         {
-            Assert(amountA > 0, "amountA Invalid");
-            Assert(reserveA > 0, "reserveA Invalid");
-            Assert(reserveB > 0, "reserveB Invalid");
+            if (amountA <= 0 || reserveA <= 0 || reserveB <= 0)
+            {
+                Throw("amount or reserve Invalid", amountA, reserveA, reserveB);
+            }
+            //Assert(amountA > 0, "amountA Invalid");
+            //Assert(reserveA > 0, "reserveA Invalid");
+            //Assert(reserveB > 0, "reserveB Invalid");
 
             var amountB = amountA * reserveB / reserveA;
             return amountB;
@@ -181,8 +180,10 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger GetAmountOut(BigInteger amountIn, BigInteger reserveIn, BigInteger reserveOut)
         {
-            Assert(amountIn > 0, "amountIn should be positive number");
-            Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
+            //    Assert(amountIn > 0, "amountIn should be positive number");
+            //    Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
+            Assert(amountIn > 0 && reserveIn > 0 && reserveOut > 0, "amountOut and reserve should be positive number");
+
             var amountInWithFee = amountIn * 997;
             var numerator = amountInWithFee * reserveOut;
             var denominator = reserveIn * 1000 + amountInWithFee;
@@ -199,8 +200,9 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger GetAmountIn(BigInteger amountOut, BigInteger reserveIn, BigInteger reserveOut)
         {
-            Assert(amountOut > 0, "amountOut should be positive number");
-            Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
+            //Assert(amountOut > 0, "amountOut should be positive number");
+            //Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
+            Assert(amountOut > 0 && reserveIn > 0 && reserveOut > 0, "amountOut and reserve should be positive number");
             var numerator = reserveIn * amountOut * 1000;
             var denominator = (reserveOut - amountOut) * 997;
             var amountIn = (numerator / denominator) + 1;
@@ -260,21 +262,9 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         private static BigInteger[] GetReserves(byte[] tokenA, byte[] tokenB)
         {
-            var token0 = tokenA.ToUInteger() < tokenB.ToUInteger() ? tokenA : tokenB;
-            var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
-            var reserveData = pairContract.DynamicGetReserves();
-            var data = new BigInteger[2];
-            if (tokenA == token0)
-            {
-                data[0] = reserveData.Reserve0;
-                data[1] = reserveData.Reserve1;
-            }
-            else
-            {
-                data[0] = reserveData.Reserve1;
-                data[1] = reserveData.Reserve0;
-            }
-            return data;
+            //var reserveData = pairContract.DynamicGetReserves();
+            var reserveData = ((Func<string, object[], ReservesData>)GetExchangePairWithAssert(tokenA, tokenB).ToDelegate())("getReserves", null);
+            return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
 
@@ -294,16 +284,14 @@ namespace FlamingoSwapRouter
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
-            BigInteger timestamp = Runtime.Time;
-            Assert(timestamp <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsOut(amountIn, paths);
             Assert(amounts[amounts.Length - 1] >= amountOutMin, "INSUFFICIENT_OUTPUT_AMOUNT");
 
             var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
-
+            //先将用户的token转入第一个交易对合约
             SafeTransfer(paths[0], sender, pairContract, amounts[0]);
-
             Swap(amounts, paths, sender);
             return true;
         }
@@ -323,14 +311,13 @@ namespace FlamingoSwapRouter
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
-            BigInteger timestamp = Runtime.Time;
-            Assert(timestamp <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsIn(amountOut, paths);
             Assert(amounts[0] <= amountInMax, "EXCESSIVE_INPUT_AMOUNT");
 
             var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
-
+            //先将用户的token转入第一个交易对合约
             SafeTransfer(paths[0], sender, pairContract, amounts[0]);
             Swap(amounts, paths, sender);
             return true;
@@ -343,13 +330,14 @@ namespace FlamingoSwapRouter
             {
                 var input = paths[i];
                 var output = paths[i + 1];
-                var token0 = input.ToUInteger() < output.ToUInteger() ? input : output;
-                var amountOut = amounts[i + 1];
+                var amountOut = amounts[i + 1];//本轮兑换，合约需要转出的token量
 
                 BigInteger amount0Out = 0;
                 BigInteger amount1Out = 0;
-                if (input == token0)
+                //判定要转出的是token0还是token1
+                if (input.ToUInteger() < output.ToUInteger())
                 {
+                    //input是token0，所以要转出的output是token1
                     amount1Out = amountOut;
                 }
                 else
@@ -357,14 +345,17 @@ namespace FlamingoSwapRouter
                     amount0Out = amountOut;
                 }
 
-                var to = toAddress;
+                var to = toAddress;//最后一轮swap的接收地址
                 if (i < paths.Length - 2)
                 {
+                    //兑换链中每轮的接收地址都是下一对token的pair合约
                     to = GetExchangePairWithAssert(output, paths[i + 2]);
                 }
 
                 var pairContract = GetExchangePairWithAssert(input, output);
-                pairContract.DynamicSwap(amount0Out, amount1Out, to);
+                //从pair[n,n+1]中转出amount[n+1]到pair[n+1,n+2]
+                //pairContract.DynamicSwap(amount0Out, amount1Out, to);//+0.05gas
+                ((Func<string, object[], BigInteger[]>)pairContract.ToDelegate())("swap", new object[] { amount0Out, amount1Out, to });
             }
         }
 
@@ -379,8 +370,12 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         private static byte[] GetExchangePairWithAssert(byte[] tokenA, byte[] tokenB)
         {
-            var pairContract = Factory.DynamicGetExchangePair(tokenA, tokenB);
-            Assert(pairContract.Length == 20, "cannot find pairContract");
+            var pairContract = ((Func<string, object[], byte[]>)Factory.ToDelegate())("getExchangePair", new object[] { tokenA, tokenB });
+            if (pairContract.Length != 20)
+            {
+                Throw("Cannot Find PairContract", tokenA, tokenB);
+            }
+            //Assert(pairContract.Length == 20, "cannot find pairContract");//+0.02 gas
             return pairContract;
         }
 
@@ -394,8 +389,13 @@ namespace FlamingoSwapRouter
         /// <param name="amount"></param>
         private static void SafeTransfer(byte[] token, byte[] from, byte[] to, BigInteger amount)
         {
-            var result = token.DynamicTransfer(from, to, amount);
-            Assert(result, "Transfer Fail", token);
+            //var result = token.DynamicTransfer(from, to, amount);
+            var result = ((Func<string, object[], bool>)token.ToDelegate())("transfer", new object[] { from, to, amount });
+            if (!result)
+            {
+                Throw("Transfer Fail", token);
+            }
+            //Assert(result, "Transfer Fail", token);
         }
 
     }

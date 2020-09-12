@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Numerics;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 
@@ -48,36 +49,35 @@ namespace FlamingoSwapFactory
             }
             if (Runtime.Trigger == TriggerType.Application)
             {
-                if (method == "createExchangePair")
-                {
-                    byte[] tokenA = (byte[])args[0];
-                    byte[] tokenB = (byte[])args[1];
-                    byte[] exchangeContractHash = (byte[])args[2];
-                    return CreateExchangePair(tokenA, tokenB, exchangeContractHash);
-                }
-                if (method == "removeExchangePair")
-                {
-                    byte[] tokenA = (byte[])args[0];
-                    byte[] tokenB = (byte[])args[1];
-                    return RemoveExchangePair(tokenA, tokenB);
-                }
                 if (method == "getExchangePair")
                 {
-                    byte[] tokenA = (byte[])args[0];
-                    byte[] tokenB = (byte[])args[1];
-                    return GetExchangePair(tokenA, tokenB);
+                    //var tokenA = (byte[])args[0];
+                    //var tokenB = (byte[])args[1];
+                    //return Storage.Get(tokenA.AsBigInteger() < tokenB.AsBigInteger()
+                    //    ? ExchangeMapKey.AsByteArray().Concat(tokenA).Concat(tokenB)
+                    //    : ExchangeMapKey.AsByteArray().Concat(tokenB).Concat(tokenA));//0.182
+                    return Storage.Get(GetPairKey((byte[])args[0], (byte[])args[1]));//优化gas,0.199
+                    //return GetExchangePair((byte[])args[0], (byte[])args[1]);
                 }
                 if (method == "getAllExchangePair")
                 {
                     return GetAllExchangePair();
                 }
-                if (method == "setFeeTo")
+                if (method == "createExchangePair")
                 {
-                    return SetFeeTo((byte[])args[0]);
+                    return CreateExchangePair((byte[])args[0], (byte[])args[1], (byte[])args[2]);
+                }
+                if (method == "removeExchangePair")
+                {
+                    return RemoveExchangePair((byte[])args[0], (byte[])args[1]);
                 }
                 if (method == "getFeeTo")
                 {
                     return GetFeeTo();
+                }
+                if (method == "setFeeTo")
+                {
+                    return SetFeeTo((byte[])args[0]);
                 }
                 //转发
                 //{
@@ -109,9 +109,9 @@ namespace FlamingoSwapFactory
             AssertAddress(tokenB, nameof(tokenB));
             AssertAddress(exchangeContractHash, nameof(exchangeContractHash));
 
-            var pair = GetTokenPair(tokenA, tokenB);
-
-            var key = ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
+            //var pair = GetTokenPair(tokenA, tokenB);
+            // ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
+            var key = GetPairKey(tokenA, tokenB);
             var value = Storage.Get(key);
             Assert(value.Length == 0, "Exchange had created");
 
@@ -132,8 +132,7 @@ namespace FlamingoSwapFactory
             AssertAddress(tokenA, nameof(tokenA));
             AssertAddress(tokenB, nameof(tokenB));
 
-            var pair = GetTokenPair(tokenA, tokenB);
-            var key = ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
+            var key = GetPairKey(tokenA, tokenB);
             var value = Storage.Get(key);
             if (value.Length > 0)
             {
@@ -154,9 +153,7 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         public static byte[] GetExchangePair(byte[] tokenA, byte[] tokenB)
         {
-            var pair = GetTokenPair(tokenA, tokenB);
-            var key = ExchangeMapKey.AsByteArray().Concat(pair.Token0).Concat(pair.Token1);
-            return Storage.Get(key);
+            return Storage.Get(GetPairKey(tokenA, tokenB));
         }
 
 
@@ -212,16 +209,16 @@ namespace FlamingoSwapFactory
 
 
         /// <summary>
-        /// token排序
+        /// 获取pair
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        private static TokenPair GetTokenPair(byte[] tokenA, byte[] tokenB)
+        private static byte[] GetPairKey(byte[] tokenA, byte[] tokenB)
         {
             return tokenA.AsBigInteger() < tokenB.AsBigInteger()
-                ? new TokenPair { Token0 = tokenA, Token1 = tokenB }
-                : new TokenPair { Token0 = tokenB, Token1 = tokenA };
+                ? ExchangeMapKey.AsByteArray().Concat(tokenA).Concat(tokenB)
+                : ExchangeMapKey.AsByteArray().Concat(tokenB).Concat(tokenA);
         }
     }
 }

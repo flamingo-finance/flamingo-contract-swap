@@ -40,11 +40,12 @@ namespace FlamingoSwapPair
 
         #endregion
 
-
         /// <summary>
         /// Factory地址
         /// </summary>
-        static readonly byte[] FactoryContract = "64c8f037fbe1b599e25ed2442d8ebffa251d03c9".HexToBytes();
+        static readonly byte[] FactoryContract = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
+
+
 
         private static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
 
@@ -86,9 +87,15 @@ namespace FlamingoSwapPair
                 //直接调用时，此处为 tx.Script.ToScriptHash();
                 var msgSender = ExecutionEngine.CallingScriptHash;
 
-                if (method == "getToken0") return Token0;
+                if (method == "getReserves") return ReservePair;
 
-                if (method == "getToken1") return Token1;
+                if (method == "mint") return Mint(msgSender, (byte[])args[0]);//msgSender应当为router
+
+                if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
+
+                if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
+
+                if (method == "transfer") return Transfer((byte[])args[0], (byte[])args[1], (BigInteger)args[2], msgSender);
 
                 if (method == "balanceOf") return BalanceOf((byte[])args[0]);
 
@@ -102,17 +109,13 @@ namespace FlamingoSwapPair
 
                 if (method == "totalSupply") return GetTotalSupply();
 
-                if (method == "transfer") return Transfer((byte[])args[0], (byte[])args[1], (BigInteger)args[2], msgSender);
-
-                if (method == "getReserves") return GetReserves();
-
-                if (method == "mint") return Mint(msgSender, (byte[])args[0]);//msgSender应当为router
+                if (method == "getKLast") return GetKLast();
 
                 if (method == "getFeeTo") return GetFeeTo();//临时测试
 
-                if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
+                if (method == "getToken0") return Token0;
 
-                if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
+                if (method == "getToken1") return Token1;
 
 
             }
@@ -121,19 +124,6 @@ namespace FlamingoSwapPair
 
 
 
-
-        #region GetReserves
-
-        /// <summary>
-        /// 获取永久区存储的ReservesData
-        /// </summary>
-        /// <returns></returns>
-        public static ReservesData GetReserves()
-        {
-            return ReservePair;
-        }
-
-        #endregion
 
         #region Swap
 
@@ -156,7 +146,6 @@ namespace FlamingoSwapPair
 
             //转出量小于持有量
             Assert(amount0Out < reserve0 && amount1Out < reserve1, "INSUFFICIENT_LIQUIDITY");
-
             //禁止转到token本身的地址
             Assert(toAddress != Token0 && toAddress != Token1, "INVALID_TO");
             if (amount0Out > 0)
@@ -176,6 +165,7 @@ namespace FlamingoSwapPair
             BigInteger balance0 = DynamicBalanceOf(Token0, me);
             BigInteger balance1 = DynamicBalanceOf(Token1, me);
 
+
             //计算转入的token量：转入转出后token余额balance>reserve，代表token转入，计算结果为正数
             var amount0In = balance0 > (reserve0 - amount0Out) ? balance0 - (reserve0 - amount0Out) : 0;
             var amount1In = balance1 > (reserve1 - amount1Out) ? balance1 - (reserve1 - amount1Out) : 0;
@@ -189,7 +179,7 @@ namespace FlamingoSwapPair
             //恒定积
             Assert(balance0Adjusted * balance1Adjusted >= reserve0 * reserve1 * 1_000_000, "K");
 
-            Update(balance0, balance1, reserve0, reserve1);
+            Update(balance0, balance1, r);
 
             Swapped(msgSender, amount0In, amount1In, amount0Out, amount1Out, toAddress);
             return true;
@@ -233,7 +223,7 @@ namespace FlamingoSwapPair
             balance0 = DynamicBalanceOf(Token0, me);
             balance1 = DynamicBalanceOf(Token1, me);
 
-            Update(balance0, balance1, reserve0, reserve1);
+            Update(balance0, balance1, r);
 
             if (feeOn)
             {
@@ -270,19 +260,14 @@ namespace FlamingoSwapPair
             var amount0 = balance0 - reserve0;//token0增量
             var amount1 = balance1 - reserve1;//token1增量
 
-            Runtime.Notify("amount0,amount1:", amount0, amount1);
-
             bool feeOn = MintFee(reserve0, reserve1);
             var totalSupply = GetTotalSupply();
-
-            Runtime.Notify("totalSupply:", totalSupply);
 
             BigInteger liquidity;
             if (totalSupply == 0)
             {
                 liquidity = Sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
                 //第一笔注入资金过少，liquidity为负数，整个合约执行将中断回滚
-                Runtime.Notify("liquidity X:", liquidity);
 
                 MintToken(new byte[20], MINIMUM_LIQUIDITY);// permanently lock the first MINIMUM_LIQUIDITY tokens,永久锁住第一波发行的 MINIMUM_LIQUIDITY token
             }
@@ -292,13 +277,12 @@ namespace FlamingoSwapPair
                 var liquidity1 = amount1 * totalSupply / reserve1;
                 liquidity = liquidity0 > liquidity1 ? liquidity1 : liquidity0;
 
-                Runtime.Notify("liquidity XX:", liquidity0, liquidity1, liquidity);
             }
 
             Assert(liquidity > 0, "INSUFFICIENT_LIQUIDITY_MINTED");
             MintToken(toAddress, liquidity);
 
-            Update(balance0, balance1, reserve0, reserve1);
+            Update(balance0, balance1, r);
             if (feeOn)
             {
                 var kLast = reserve0 * reserve1;
@@ -318,9 +302,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static byte[] GetFeeTo()
         {
-            var factoryCall = (Func<string, object[], byte[]>)FactoryContract.ToDelegate();
-            var feeTo = factoryCall("getFeeTo", new object[0]);
-            return feeTo;
+            return ((Func<string, object[], byte[]>)FactoryContract.ToDelegate())("getFeeTo", new object[0]);
         }
 
         /// <summary>
@@ -369,46 +351,61 @@ namespace FlamingoSwapPair
         #region SyncUpdate
 
 
+        ///// <summary>
+        ///// 更新最新持有量（reserve）、价格累计量（price0CumulativeLast）、区块时间戳(blockTimestamp)
+        ///// </summary>
+        ///// <param name="balance0">最新的token0持有量</param>
+        ///// <param name="balance1">最新的token1持有量</param>
+        ///// <param name="reserve0"></param>
+        ///// <param name="reserve1"></param>
+        //private static void Update(BigInteger balance0, BigInteger balance1, BigInteger reserve0, BigInteger reserve1)
+        //{
+        //    //require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+        //    var r = ReservePair;
+        //    var blockTimestamp = Runtime.Time;
+        //    //var blockTimestampLast = r.BlockTimestampLast;
+        //    //var timeElapsed = blockTimestamp - blockTimestampLast;
+        //    //if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0)
+        //    //{
+        //    //    //todo:原始算法??
+        //    //    //price0CumulativeLast += (total1 * Q112) / total0 * timeElapsed;
+        //    //    // * never overflows, and + overflow is desired
+        //    //    // price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+        //    //    // price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+        //    //    var price0CumulativeLast = GetPrice0CumulativeLast() + reserve1 / reserve0 * timeElapsed;
+        //    //    var price1CumulativeLast = GetPrice1CumulativeLast() + reserve0 / reserve1 * timeElapsed;
+
+        //    //    SetPrice0CumulativeLast(price0CumulativeLast);
+        //    //    SetPrice1CumulativeLast(price1CumulativeLast);
+        //    //}
+
+
+        //    r.Reserve0 = balance0;
+        //    r.Reserve1 = balance1;
+        //    r.BlockTimestampLast = blockTimestamp;
+        //    //优化写入次数
+        //    ReservePair = r;
+
+        //    Synced(balance0, balance1);
+        //}
+
+
+
         /// <summary>
-        /// 更新最新持有量（reserve）、价格累计量（price0CumulativeLast）、区块时间戳(blockTimestamp)
+        /// 更新最新持有量（reserve）、区块时间戳(blockTimestamp)
         /// </summary>
         /// <param name="balance0">最新的token0持有量</param>
         /// <param name="balance1">最新的token1持有量</param>
-        /// <param name="reserve0"></param>
-        /// <param name="reserve1"></param>
-        private static void Update(BigInteger balance0, BigInteger balance1, BigInteger reserve0, BigInteger reserve1)
+        /// <param name="reserve">旧的reserve数据</param>
+        private static void Update(BigInteger balance0, BigInteger balance1, ReservesData reserve)
         {
-            //todo:check???
-            //require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
-            var r = ReservePair;
-            var blockTimestamp = Runtime.Time;
-            var blockTimestampLast = r.BlockTimestampLast;
-            var timeElapsed = blockTimestamp - blockTimestampLast;
-            if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0)
-            {
-                //todo:原始算法??
-                //price0CumulativeLast += (total1 * Q112) / total0 * timeElapsed;
-                // * never overflows, and + overflow is desired
-                // price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
-                // price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
-                var price0CumulativeLast = GetPrice0CumulativeLast() + reserve1 / reserve0 * timeElapsed;
-                var price1CumulativeLast = GetPrice1CumulativeLast() + reserve0 / reserve1 * timeElapsed;
-
-                SetPrice0CumulativeLast(price0CumulativeLast);
-                SetPrice1CumulativeLast(price1CumulativeLast);
-            }
-
-
-
-            r.Reserve0 = balance0;
-            r.Reserve1 = balance1;
-            r.BlockTimestampLast = blockTimestamp;
+            reserve.Reserve0 = balance0;
+            reserve.Reserve1 = balance1;
+            reserve.BlockTimestampLast = Runtime.Time;
             //优化写入次数
-            ReservePair = r;
-
+            ReservePair = reserve;
             Synced(balance0, balance1);
         }
-
 
         #endregion
 
@@ -428,8 +425,7 @@ namespace FlamingoSwapPair
                 {
                     return new ReservesData();
                 }
-                var r = (ReservesData)val.Deserialize();
-                return r;
+                return (ReservesData)val.Deserialize();
             }
             set => Storage.Put(nameof(ReservePair), value.Serialize());
         }

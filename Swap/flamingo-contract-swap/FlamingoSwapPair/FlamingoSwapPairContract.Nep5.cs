@@ -19,28 +19,6 @@ namespace FlamingoSwapPair
         [DisplayName("transfer")]
         public static event Action<byte[], byte[], BigInteger> Transferred;
 
-
-
-        [DisplayName("balanceOf")]
-        public static BigInteger BalanceOf(byte[] account)
-        {
-            Assert(account.Length == 20, "The parameter account SHOULD be 20-byte addresses.");
-
-            StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
-            return asset.Get(account).ToBigInteger();
-        }
-
-
-        private static bool SetBalance(byte[] account, BigInteger newBalance)
-        {
-            Assert(account.Length == 20, "The parameter account SHOULD be 20-byte addresses.");
-            StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
-            asset.Put(account, newBalance);
-            return true;
-        }
-
-
-
         [DisplayName("decimals")]
         public static byte Decimals() => 8;
 
@@ -48,16 +26,32 @@ namespace FlamingoSwapPair
         public static string Name() => "Exchange Pair"; //name of the token
 
         [DisplayName("symbol")]
-        public static string Symbol() => "P-BC"; //symbol of the token
+        public static string Symbol() => "Temp-BC"; //symbol of the token
+
 
         [DisplayName("supportedStandards")]
         public static string[] SupportedStandards() => new string[] { "NEP-5", "NEP-7", "NEP-10" };
 
+        [DisplayName("balanceOf")]
+        public static BigInteger BalanceOf(byte[] account)
+        {
+            if (account.Length != 20) throw new Exception("The parameter account SHOULD be 20-byte addresses.");
+
+            return Storage.CurrentContext.CreateMap(BalanceMapKey).Get(account).ToBigInteger();
+        }
+
+        private static bool SetBalance(byte[] account, BigInteger newBalance)
+        {
+            if (account.Length != 20) throw new Exception("The parameter account SHOULD be 20-byte addresses.");
+
+            Storage.CurrentContext.CreateMap(BalanceMapKey).Put(account, newBalance);
+            return true;
+        }
+
         [DisplayName("totalSupply")]
         public static BigInteger GetTotalSupply()
         {
-            StorageMap contract = Storage.CurrentContext.CreateMap(nameof(contract));
-            return contract.Get("totalSupply").ToBigInteger();
+            return Storage.Get("totalSupply").ToBigInteger();
         }
 
         /// <summary>
@@ -67,8 +61,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static bool SetTotalSupply(BigInteger totalSupply)
         {
-            StorageMap contract = Storage.CurrentContext.CreateMap(nameof(contract));
-            contract.Put("totalSupply", totalSupply);
+            Storage.Put("totalSupply", totalSupply);
             return true;
         }
 
@@ -114,10 +107,8 @@ namespace FlamingoSwapPair
         /// <param name="amount">铸造量</param>
         private static void MintToken(byte[] toAddress, BigInteger amount)
         {
-            var balance = BalanceOf(toAddress) + amount;
-            SetBalance(toAddress, balance);
-            var totalSupply = GetTotalSupply() + amount;
-            SetTotalSupply(totalSupply);
+            SetBalance(toAddress, BalanceOf(toAddress) + amount);
+            SetTotalSupply(GetTotalSupply() + amount);
 
             Transferred(null, toAddress, amount);
         }
@@ -129,10 +120,8 @@ namespace FlamingoSwapPair
         /// <param name="value">销毁的token量</param>
         private static void BurnToken(byte[] fromAddress, BigInteger value)
         {
-            var balance = BalanceOf(fromAddress) - value;
-            SetBalance(fromAddress, balance);
-            var totalSupply = GetTotalSupply() - value;
-            SetTotalSupply(totalSupply);
+            SetBalance(fromAddress, BalanceOf(fromAddress) - value);
+            SetTotalSupply(GetTotalSupply() - value);
 
             Transferred(fromAddress, new byte[20], value);
         }
