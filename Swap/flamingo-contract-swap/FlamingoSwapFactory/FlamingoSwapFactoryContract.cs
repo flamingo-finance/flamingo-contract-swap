@@ -10,9 +10,6 @@ namespace FlamingoSwapFactory
     partial class FlamingoSwapFactoryContract : SmartContract
     {
 
-        static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
-
-
         /// <summary>
         /// 收益地址的StoreKey
         /// </summary>
@@ -45,7 +42,7 @@ namespace FlamingoSwapFactory
         {
             if (Runtime.Trigger == TriggerType.Verification)
             {
-                return Runtime.CheckWitness(superAdmin);
+                return Runtime.CheckWitness(GetAdmin());
             }
             if (Runtime.Trigger == TriggerType.Application)
             {
@@ -79,15 +76,31 @@ namespace FlamingoSwapFactory
                 {
                     return SetFeeTo((byte[])args[0]);
                 }
-                //转发
-                //{
-                //    StorageMap exchangeMap = Storage.CurrentContext.CreateMap("exchange");
-                //    byte[] exchangeContractHash = exchangeMap.Get(tokenHash.Concat(assetHash));
-                //    if (exchangeContractHash.Length == 0)
-                //        throw new InvalidOperationException("exchangeContractHash inexistence");
-                //    deleDyncall _dyncall = (deleDyncall)exchangeContractHash.ToDelegate();
-                //    return _dyncall(operation, _args);
-                //}
+
+                if (method == "getAdmin")
+                {
+                    return GetAdmin();
+                }
+
+                if (method == "setAdmin")
+                {
+                    return SetAdmin((byte[])args[0]);
+                }
+
+                if (method == "upgrade")
+                {
+                    Assert(args.Length == 9, "upgrade: args.Length != 9.");
+                    byte[] script = (byte[])args[0];
+                    byte[] plist = (byte[])args[1];
+                    byte rtype = (byte)args[2];
+                    ContractPropertyState cps = (ContractPropertyState)args[3];
+                    string name = (string)args[4];
+                    string version = (string)args[5];
+                    string author = (string)args[6];
+                    string email = (string)args[7];
+                    string description = (string)args[8];
+                    return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
+                }
             }
             return false;
         }
@@ -103,7 +116,7 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         public static bool CreateExchangePair(byte[] tokenA, byte[] tokenB, byte[] exchangeContractHash)
         {
-            Assert(Runtime.CheckWitness(superAdmin), "Forbidden");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             Assert(tokenA != tokenB, "Identical Address", tokenA);
             AssertAddress(tokenA, nameof(tokenA));
             AssertAddress(tokenB, nameof(tokenB));
@@ -128,7 +141,7 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         public static bool RemoveExchangePair(byte[] tokenA, byte[] tokenB)
         {
-            Assert(Runtime.CheckWitness(superAdmin), "FORBIDDEN");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             AssertAddress(tokenA, nameof(tokenA));
             AssertAddress(tokenB, nameof(tokenB));
 
@@ -145,16 +158,16 @@ namespace FlamingoSwapFactory
 
 
 
-        /// <summary>
-        /// 获得nep5资产的exchange合约映射
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <returns></returns>
-        public static byte[] GetExchangePair(byte[] tokenA, byte[] tokenB)
-        {
-            return Storage.Get(GetPairKey(tokenA, tokenB));
-        }
+        ///// <summary>
+        ///// 获得nep5资产的exchange合约映射
+        ///// </summary>
+        ///// <param name="tokenA"></param>
+        ///// <param name="tokenB"></param>
+        ///// <returns></returns>
+        //public static byte[] GetExchangePair(byte[] tokenA, byte[] tokenB)
+        //{
+        //    return Storage.Get(GetPairKey(tokenA, tokenB));
+        //}
 
 
         /// <summary>
@@ -202,7 +215,7 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         private static bool SetFeeTo(byte[] feeTo)
         {
-            Assert(Runtime.CheckWitness(superAdmin), "FORBIDDEN");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             Storage.Put(FeeToKey, feeTo);
             return true;
         }

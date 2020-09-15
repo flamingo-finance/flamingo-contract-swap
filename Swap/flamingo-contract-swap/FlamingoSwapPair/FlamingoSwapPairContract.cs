@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Numerics;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
@@ -8,13 +9,12 @@ namespace FlamingoSwapPair
 {
     partial class FlamingoSwapPairContract : SmartContract
     {
-        static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
+
+
 
         /// <summary>
-        /// Factory地址
+        /// https://uniswap.org/docs/v2/protocol-overview/smart-contracts/#minimum-liquidity
         /// </summary>
-        static readonly byte[] FactoryContract = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
-
         static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
 
 
@@ -79,7 +79,7 @@ namespace FlamingoSwapPair
         {
             if (Runtime.Trigger == TriggerType.Verification)
             {
-                return Runtime.CheckWitness(superAdmin);
+                return Runtime.CheckWitness(GetAdmin());
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
@@ -109,15 +109,29 @@ namespace FlamingoSwapPair
 
                 if (method == "totalSupply") return GetTotalSupply();
 
-                if (method == "getKLast") return GetKLast();
-
-                if (method == "getFeeTo") return GetFeeTo();//临时测试
-
                 if (method == "getToken0") return Token0;
 
                 if (method == "getToken1") return Token1;
 
+                if (method == "getAdmin") return GetAdmin();
 
+                if (method == "setAdmin") return SetAdmin((byte[])args[0]);
+
+                if (method == "upgrade")
+                {
+                    Assert(args.Length == 9, "upgrade: args.Length != 9.");
+                    byte[] script = (byte[])args[0];
+                    byte[] plist = (byte[])args[1];
+                    byte rtype = (byte)args[2];
+                    ContractPropertyState cps = (ContractPropertyState)args[3];
+                    string name = (string)args[4];
+                    string version = (string)args[5];
+                    string author = (string)args[6];
+                    string email = (string)args[7];
+                    string description = (string)args[8];
+                    return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
+                }
+                
             }
             return false;
         }
@@ -159,8 +173,6 @@ namespace FlamingoSwapPair
                 SafeTransfer(Token1, me, toAddress, amount1Out);
             }
 
-            //todo:toAddress回调接口???
-            //if (data.length > 0) IUniswapV2Callee(to).uniswapV2Call(msg.sender, amount0Out, amount1Out, data);
 
             BigInteger balance0 = DynamicBalanceOf(Token0, me);
             BigInteger balance1 = DynamicBalanceOf(Token1, me);
@@ -201,14 +213,12 @@ namespace FlamingoSwapPair
         {
             var me = ExecutionEngine.ExecutingScriptHash;
             var r = ReservePair;
-            var reserve0 = r.Reserve0;
-            var reserve1 = r.Reserve1;
 
             var balance0 = DynamicBalanceOf(Token0, me);
             var balance1 = DynamicBalanceOf(Token1, me);
             var liquidity = BalanceOf(me);
 
-            bool feeOn = MintFee(reserve0, reserve1);
+            //bool feeOn = MintFee(reserve0, reserve1);
             var totalSupply = GetTotalSupply();
             var amount0 = liquidity * balance0 / totalSupply;//要销毁(转出)的token0额度：me持有的token0 * (me持有的me token/me token总量）
             var amount1 = liquidity * balance1 / totalSupply;
@@ -225,11 +235,11 @@ namespace FlamingoSwapPair
 
             Update(balance0, balance1, r);
 
-            if (feeOn)
-            {
-                var kLast = reserve0 * reserve1;
-                SetKLast(kLast);
-            }
+            //if (feeOn)
+            //{
+            //    var kLast = reserve0 * reserve1;
+            //    SetKLast(kLast);
+            //}
             Burned(msgSender, amount0, amount1, toAddress);
 
             return new BigInteger[]
@@ -260,7 +270,7 @@ namespace FlamingoSwapPair
             var amount0 = balance0 - reserve0;//token0增量
             var amount1 = balance1 - reserve1;//token1增量
 
-            bool feeOn = MintFee(reserve0, reserve1);
+            //bool feeOn = MintFee(reserve0, reserve1);
             var totalSupply = GetTotalSupply();
 
             BigInteger liquidity;
@@ -283,11 +293,11 @@ namespace FlamingoSwapPair
             MintToken(toAddress, liquidity);
 
             Update(balance0, balance1, r);
-            if (feeOn)
-            {
-                var kLast = reserve0 * reserve1;
-                SetKLast(kLast);
-            }
+            //if (feeOn)
+            //{
+            //    var kLast = reserve0 * reserve1;
+            //    SetKLast(kLast);
+            //}
 
             Minted(msgSender, amount0, amount1);
             return liquidity;
@@ -296,53 +306,52 @@ namespace FlamingoSwapPair
 
 
 
-        /// <summary>
-        /// 从Factory获取手续费收益地址
-        /// </summary>
-        /// <returns></returns>
-        private static byte[] GetFeeTo()
-        {
-            return ((Func<string, object[], byte[]>)FactoryContract.ToDelegate())("getFeeTo", new object[0]);
-        }
+        ///// <summary>
+        ///// 从Factory获取手续费收益地址
+        ///// </summary>
+        ///// <returns></returns>
+        //private static byte[] GetFeeTo()
+        //{
+        //    return ((Func<string, object[], byte[]>)FactoryContract.ToDelegate())("getFeeTo", new object[0]);
+        //}
 
-        /// <summary>
-        /// if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
-        /// 发放铸币fee给收益地址（目前没在使用）
-        /// todo:暂不测试此方法
-        /// </summary>
-        /// <param name="reserve0">当前token0持有量</param>
-        /// <param name="reserve1">当前token1持有量</param>
-        public static bool MintFee(BigInteger reserve0, BigInteger reserve1)
-        {
-            byte[] feeTo = GetFeeTo();
-            bool feeOn = feeTo.Length == 20;
-            var kLast = GetKLast();
-            if (feeOn)
-            {
-                if (kLast != 0)
-                {
-                    var rootK = Sqrt(reserve0 * reserve1);
-                    var rootKLast = Sqrt(kLast);
-                    if (rootK > rootKLast)
-                    {
-                        //如果资金池变大
-                        var numerator = Sqrt(GetTotalSupply() * (rootK - rootKLast));
-                        var denominator = (rootK * 5) + rootKLast;
-                        var liquidity = numerator / denominator;
-                        if (liquidity > 0)
-                        {
-                            MintToken(feeTo, liquidity);
-                        }
-                    }
-                }
-            }
-            else if (kLast != 0)
-            {
-                SetKLast(0);
-            }
+        ///// <summary>
+        ///// if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+        ///// 发放铸币fee给收益地址（目前没在使用）
+        ///// </summary>
+        ///// <param name="reserve0">当前token0持有量</param>
+        ///// <param name="reserve1">当前token1持有量</param>
+        //public static bool MintFee(BigInteger reserve0, BigInteger reserve1)
+        //{
+        //    byte[] feeTo = GetFeeTo();
+        //    bool feeOn = feeTo.Length == 20;
+        //    var kLast = GetKLast();
+        //    if (feeOn)
+        //    {
+        //        if (kLast != 0)
+        //        {
+        //            var rootK = Sqrt(reserve0 * reserve1);
+        //            var rootKLast = Sqrt(kLast);
+        //            if (rootK > rootKLast)
+        //            {
+        //                //如果资金池变大
+        //                var numerator = Sqrt(GetTotalSupply() * (rootK - rootKLast));
+        //                var denominator = (rootK * 5) + rootKLast;
+        //                var liquidity = numerator / denominator;
+        //                if (liquidity > 0)
+        //                {
+        //                    MintToken(feeTo, liquidity);
+        //                }
+        //            }
+        //        }
+        //    }
+        //    else if (kLast != 0)
+        //    {
+        //        SetKLast(0);
+        //    }
 
-            return feeOn;
-        }
+        //    return feeOn;
+        //}
 
 
         #endregion
@@ -430,85 +439,87 @@ namespace FlamingoSwapPair
         #endregion
 
 
+
+
         #region PriceCumulativeLast累计价格
 
 
-        /// <summary>
-        /// 累计价格存储Key
-        /// </summary>
-        private const string Price0CumulativeLastStoreKey = "Price0CumulativeLast";
-        private const string Price1StoreKey = "Price1CumulativeLast";
+        ///// <summary>
+        ///// 累计价格存储Key
+        ///// </summary>
+        //private const string Price0CumulativeLastStoreKey = "Price0CumulativeLast";
+        //private const string Price1StoreKey = "Price1CumulativeLast";
 
 
-        /// <summary>
-        /// 获取token0累计价格
-        /// </summary>
-        /// <returns></returns>
-        private static BigInteger GetPrice0CumulativeLast()
-        {
-            return Storage.Get(Price0CumulativeLastStoreKey).AsBigInteger();
-        }
+        ///// <summary>
+        ///// 获取token0累计价格
+        ///// </summary>
+        ///// <returns></returns>
+        //private static BigInteger GetPrice0CumulativeLast()
+        //{
+        //    return Storage.Get(Price0CumulativeLastStoreKey).AsBigInteger();
+        //}
 
 
-        /// <summary>
-        /// 设置token0累计价格
-        /// </summary>
-        /// <param name="price0CumulativeLast"></param>
-        /// <returns></returns>
-        private static bool SetPrice0CumulativeLast(BigInteger price0CumulativeLast)
-        {
-            Storage.Put(Price0CumulativeLastStoreKey, price0CumulativeLast);
-            return true;
-        }
+        ///// <summary>
+        ///// 设置token0累计价格
+        ///// </summary>
+        ///// <param name="price0CumulativeLast"></param>
+        ///// <returns></returns>
+        //private static bool SetPrice0CumulativeLast(BigInteger price0CumulativeLast)
+        //{
+        //    Storage.Put(Price0CumulativeLastStoreKey, price0CumulativeLast);
+        //    return true;
+        //}
 
 
 
-        /// <summary>
-        /// 获取token1累计价格
-        /// </summary>
-        /// <returns></returns>
-        private static BigInteger GetPrice1CumulativeLast()
-        {
-            return Storage.Get(Price1StoreKey).AsBigInteger();
-        }
+        ///// <summary>
+        ///// 获取token1累计价格
+        ///// </summary>
+        ///// <returns></returns>
+        //private static BigInteger GetPrice1CumulativeLast()
+        //{
+        //    return Storage.Get(Price1StoreKey).AsBigInteger();
+        //}
 
 
-        /// <summary>
-        /// 设置token1累计价格
-        /// </summary>
-        /// <param name="price1CumulativeLast"></param>
-        /// <returns></returns>
-        private static bool SetPrice1CumulativeLast(BigInteger price1CumulativeLast)
-        {
-            Storage.Put(Price1StoreKey, price1CumulativeLast);
-            return true;
-        }
+        ///// <summary>
+        ///// 设置token1累计价格
+        ///// </summary>
+        ///// <param name="price1CumulativeLast"></param>
+        ///// <returns></returns>
+        //private static bool SetPrice1CumulativeLast(BigInteger price1CumulativeLast)
+        //{
+        //    Storage.Put(Price1StoreKey, price1CumulativeLast);
+        //    return true;
+        //}
 
         #endregion
 
         #region K值
 
 
-        /// <summary>
-        /// 获取记录的KLast（reserve0 * reserve1,恒定积）
-        /// </summary>
-        /// <returns></returns>
-        private static BigInteger GetKLast()
-        {
-            return Storage.Get("KLast").AsBigInteger();
-        }
+        ///// <summary>
+        ///// 获取记录的KLast（reserve0 * reserve1,恒定积）
+        ///// </summary>
+        ///// <returns></returns>
+        //private static BigInteger GetKLast()
+        //{
+        //    return Storage.Get("KLast").AsBigInteger();
+        //}
 
 
-        /// <summary>
-        /// 记录的KLast(reserve0 * reserve1,恒定积)
-        /// </summary>
-        /// <param name="kLast"></param>
-        /// <returns></returns>
-        private static bool SetKLast(BigInteger kLast)
-        {
-            Storage.Put("KLast", kLast);
-            return true;
-        }
+        ///// <summary>
+        ///// 记录的KLast(reserve0 * reserve1,恒定积)
+        ///// </summary>
+        ///// <param name="kLast"></param>
+        ///// <returns></returns>
+        //private static bool SetKLast(BigInteger kLast)
+        //{
+        //    Storage.Put("KLast", kLast);
+        //    return true;
+        //}
 
         #endregion
 

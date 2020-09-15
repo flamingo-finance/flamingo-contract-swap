@@ -8,15 +8,15 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract : SmartContract
     {
-        static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
-        static readonly byte[] Factory = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
+        #warning 检查此处的 Factory 地址是否为最新地址
+        static readonly byte[] Factory = "1b099f38376e27dbffcac05ee0e670d81a3c61f8".HexToBytes();
 
         public static object Main(string method, object[] args)
         {
             if (Runtime.Trigger == TriggerType.Verification)
             {
-                return Runtime.CheckWitness(superAdmin);
+                return Runtime.CheckWitness(GetAdmin());
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
@@ -42,6 +42,24 @@ namespace FlamingoSwapRouter
 
                 if (method == "getAmountsIn") return GetAmountsIn(args[0].ToBigInt(), (byte[][])args[1]);
 
+                if (method == "getAdmin") return GetAdmin();
+
+                if (method == "setAdmin") return SetAdmin((byte[])args[0]);
+
+                if (method == "upgrade")
+                {
+                    Assert(args.Length == 9, "upgrade: args.Length != 9.");
+                    byte[] script = (byte[])args[0];
+                    byte[] plist = (byte[])args[1];
+                    byte rtype = (byte)args[2];
+                    ContractPropertyState cps = (ContractPropertyState)args[3];
+                    string name = (string)args[4];
+                    string version = (string)args[5];
+                    string author = (string)args[6];
+                    string email = (string)args[7];
+                    string description = (string)args[8];
+                    return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
+                }
 
             }
             return false;
@@ -67,8 +85,7 @@ namespace FlamingoSwapRouter
             Assert(Runtime.CheckWitness(sender), "Forbidden");
 
             //看看有没有超过最后期限
-            BigInteger timestamp = Runtime.Time;
-            Assert(timestamp <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger) Runtime.Time <= deadLine, "Exceeded the deadline");
 
 
             var reserves = GetReserves(tokenA, tokenB);
@@ -131,8 +148,7 @@ namespace FlamingoSwapRouter
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
-            BigInteger timestamp = Runtime.Time;
-            Assert(timestamp <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger) Runtime.Time <= deadLine, "Exceeded the deadline");
 
 
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
