@@ -54,6 +54,7 @@ namespace FlamingoSwapRouter
             Assert(Runtime.CheckWitness(GetAdmin()), "upgrade: CheckWitness failed!");
 
             byte[] newContractHash = Hash160(newScript);
+            Assert(Blockchain.GetContract(newContractHash).Serialize().Equals(new byte[] { 0x00, 0x00 }), "upgrade: The contract already exists");
 
             Contract newContract = Contract.Migrate(newScript, paramList, returnType, cps, name, version, author, email, description);
             Runtime.Notify("upgrade", ExecutionEngine.ExecutingScriptHash, newContractHash);

@@ -114,6 +114,7 @@ namespace FlamingoSwapRouter
                 {
                     //B超出期望最大值，按照 TokenB 期望最大值计算 TokenA 的注入量
                     var estimatedA = Quote(amountBDesired, reserveB, reserveA);
+                    Assert(estimatedA <= amountADesired, "Excess A Amount");
                     Assert(estimatedA >= amountAMin, "Insufficient A Amount");
                     amountA = estimatedA;
                     amountB = amountBDesired;

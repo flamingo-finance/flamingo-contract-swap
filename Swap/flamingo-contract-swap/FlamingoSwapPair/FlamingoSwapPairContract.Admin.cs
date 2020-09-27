@@ -61,6 +61,7 @@ namespace FlamingoSwapPair
 
             var me = ExecutionEngine.ExecutingScriptHash;
             byte[] newContractHash = Hash160(newScript);
+            Assert(Blockchain.GetContract(newContractHash).Serialize().Equals(new byte[] { 0x00, 0x00 }), "upgrade: The contract already exists");
 
             var r = ReservePair;
             SafeTransfer(Token0, me, newContractHash, r.Reserve0);

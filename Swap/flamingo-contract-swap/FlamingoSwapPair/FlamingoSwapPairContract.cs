@@ -30,6 +30,10 @@ namespace FlamingoSwapPair
         /// </summary>
         static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
 
+
+        [DisplayName("symbol")]
+        public static string Symbol() => "E-AB"; //symbol of the token
+
         #endregion
 
 
@@ -44,6 +48,9 @@ namespace FlamingoSwapPair
         /////  Token 1 地址
         ///// </summary>
         //static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "E-BC"; //symbol of the token
 
         #endregion
 

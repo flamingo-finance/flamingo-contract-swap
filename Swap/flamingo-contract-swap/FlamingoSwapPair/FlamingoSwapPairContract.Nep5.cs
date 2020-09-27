@@ -25,8 +25,6 @@ namespace FlamingoSwapPair
         [DisplayName("name")]
         public static string Name() => "Exchange Pair"; //name of the token
 
-        [DisplayName("symbol")]
-        public static string Symbol() => "Temp-AB"; //symbol of the token
 
 
         [DisplayName("supportedStandards")]
@@ -70,7 +68,7 @@ namespace FlamingoSwapPair
         {
             //Check parameters
             Assert(from.Length == 20 && to.Length == 20, "The parameters from and to SHOULD be 20-byte addresses.");
-            Assert(amount > 0, "The parameter amount MUST be greater than 0.");
+            Assert(amount >= 0, "The parameter amount MUST be greater than 0.");
 
             if (!Runtime.CheckWitness(from) && from.AsBigInteger() != callscript.AsBigInteger())
                 return false;
@@ -80,6 +78,7 @@ namespace FlamingoSwapPair
                 return false;
             if (from == to)
                 return true;
+
 
             //Reduce payer balances
             if (fromAmount == amount)
