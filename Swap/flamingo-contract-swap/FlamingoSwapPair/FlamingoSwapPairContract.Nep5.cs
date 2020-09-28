@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
+using Neo.SmartContract.Framework.Services.System;
 
 namespace FlamingoSwapPair
 {
@@ -69,6 +70,12 @@ namespace FlamingoSwapPair
             //Check parameters
             Assert(from.Length == 20 && to.Length == 20, "The parameters from and to SHOULD be 20-byte addresses.");
             Assert(amount >= 0, "The parameter amount MUST be greater than 0.");
+
+            var me = ExecutionEngine.ExecutingScriptHash;
+            if (to == me)
+            {
+                Assert(CheckIsRouter(callscript), "Only support transfer to me by Router");
+            }
 
             if (!Runtime.CheckWitness(from) && from.AsBigInteger() != callscript.AsBigInteger())
                 return false;

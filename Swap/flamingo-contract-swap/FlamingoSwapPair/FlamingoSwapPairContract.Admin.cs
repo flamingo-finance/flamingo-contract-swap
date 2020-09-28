@@ -17,12 +17,14 @@ namespace FlamingoSwapPair
 
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
 
-        ///// <summary>
-        ///// Factory地址
-        ///// </summary>
-        //static readonly byte[] FactoryContract = "32904da4441d544d05074774ade7c891d912f61a".HexToBytes();
+        /// <summary>
+        /// WhiteList 合约地址
+        /// </summary>
+        static readonly byte[] WhiteListContract = "3008f596f4fbdcaf712d6fc0ad2e9a522cc061cf".HexToBytes();
+
 
         const string AdminKey = nameof(superAdmin);
+        private const string WhiteListContractKey = nameof(WhiteListContract);
 
 
         /// <summary>
@@ -49,6 +51,39 @@ namespace FlamingoSwapPair
         }
 
 
+        /// <summary>
+        /// 获取WhiteListContract地址
+        /// </summary>
+        /// <returns></returns>
+        public static byte[] GetWhiteListContract()
+        {
+            var whiteList = Storage.Get(WhiteListContractKey);
+            return whiteList.Length == 20 ? whiteList : WhiteListContract;
+        }
+
+        /// <summary>
+        /// 设置WhiteListContract地址
+        /// </summary>
+        /// <param name="whiteList"></param>
+        /// <returns></returns>
+        public static bool SetWhiteListContract(byte[] whiteList)
+        {
+            Assert(whiteList.Length == 20, "WhiteList contract Invalid");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Storage.Put(WhiteListContractKey, whiteList);
+            return true;
+        }
+
+        /// <summary>
+        /// 检查<see cref="callScript"/>是否为router合约
+        /// </summary>
+        /// <param name="callScript"></param>
+        /// <returns></returns>
+        private static bool CheckIsRouter(byte[] callScript)
+        {
+            var whiteList = GetWhiteListContract();
+            return ((Func<string, object[], bool>)whiteList.ToDelegate())("checkRouter", new object[] { callScript });
+        }
 
         #endregion
 

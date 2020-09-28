@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapFactory", "Flam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapPair", "FlamingoSwapPair\FlamingoSwapPair.csproj", "{B3C9F843-1172-4A3C-A36B-681AF68907F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapRouter", "FlamingoSwapRouter\FlamingoSwapRouter.csproj", "{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapRouter", "FlamingoSwapRouter\FlamingoSwapRouter.csproj", "{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapPairWhiteList", "FlamingoSwapPairWhiteList\FlamingoSwapPairWhiteList.csproj", "{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

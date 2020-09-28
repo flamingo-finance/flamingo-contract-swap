@@ -10,8 +10,6 @@ namespace FlamingoSwapPair
     partial class FlamingoSwapPairContract : SmartContract
     {
 
-
-
         /// <summary>
         /// https://uniswap.org/docs/v2/protocol-overview/smart-contracts/#minimum-liquidity
         /// </summary>
@@ -124,6 +122,12 @@ namespace FlamingoSwapPair
 
                 if (method == "setAdmin") return SetAdmin((byte[])args[0]);
 
+                if (method == "getWhiteListContract") return GetWhiteListContract();
+
+                if (method == "setWhiteListContract") return SetWhiteListContract((byte[])args[0]);
+
+                if (method == "checkIsRouter") return CheckIsRouter((byte[])args[0]);
+
                 if (method == "upgrade")
                 {
                     Assert(args.Length == 9, "upgrade: args.Length != 9.");
@@ -144,8 +148,6 @@ namespace FlamingoSwapPair
         }
 
 
-
-
         #region Swap
 
         /// <summary>
@@ -157,6 +159,8 @@ namespace FlamingoSwapPair
         /// <param name="toAddress"></param>
         public static bool Swap(byte[] msgSender, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress)
         {
+            Assert(CheckIsRouter(msgSender), "Only Router Can Swap");
+
             var me = ExecutionEngine.ExecutingScriptHash;
 
             //转出量必需一个为0一个为正数
@@ -218,6 +222,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         public static object Burn(byte[] msgSender, byte[] toAddress)
         {
+            Assert(CheckIsRouter(msgSender),"Only Router Can Burn");
             var me = ExecutionEngine.ExecutingScriptHash;
             var r = ReservePair;
 
@@ -259,13 +264,14 @@ namespace FlamingoSwapPair
 
         /// <summary>
         /// 铸造代币，此方法应该由router在AddLiquidity时调用
-        /// todo:禁止外部直接调用
         /// </summary>
         /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns>返回本次铸币量</returns>
         public static BigInteger Mint(byte[] msgSender, byte[] toAddress)
         {
+            Assert(CheckIsRouter(msgSender), "Only Router Can Mint");
+
             var me = ExecutionEngine.ExecutingScriptHash;
 
             var r = ReservePair;
