@@ -11,10 +11,15 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract
     {
+   
 
         #region Admin
 
+        #warning 检查此处的 Admin 地址是否为最新地址
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
+
+        #warning 检查此处的 Factory 地址是否为最新地址
+        static readonly byte[] Factory = "1b099f38376e27dbffcac05ee0e670d81a3c61f8".HexToBytes();
 
         const string AdminKey = nameof(superAdmin);
 
