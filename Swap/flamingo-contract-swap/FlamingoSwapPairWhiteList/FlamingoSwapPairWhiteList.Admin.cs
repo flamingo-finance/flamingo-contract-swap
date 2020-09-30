@@ -12,6 +12,7 @@ namespace FlamingoSwapPairWhiteList
     {
         #region Admin
 
+        #warning 检查此处的 Admin 地址是否为最新地址
         static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
         const string AdminKey = nameof(superAdmin);
 

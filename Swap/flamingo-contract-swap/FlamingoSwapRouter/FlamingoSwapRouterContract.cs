@@ -8,10 +8,7 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract : SmartContract
     {
-
-        #warning 检查此处的 Factory 地址是否为最新地址
-        static readonly byte[] Factory = "1b099f38376e27dbffcac05ee0e670d81a3c61f8".HexToBytes();
-
+        
         public static object Main(string method, object[] args)
         {
             if (Runtime.Trigger == TriggerType.Verification)
