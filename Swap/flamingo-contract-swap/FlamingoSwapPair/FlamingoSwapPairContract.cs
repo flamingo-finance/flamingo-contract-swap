@@ -15,46 +15,6 @@ namespace FlamingoSwapPair
         /// </summary>
         static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
 
-
-        #region TokenAB
-
-        /// <summary>
-        /// Token 0 地址(Token0放置合约hash小的token)
-        /// </summary>
-        static readonly byte[] Token0 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
-
-        /// <summary>
-        ///  Token 1 地址
-        /// </summary>
-        static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
-
-
-        [DisplayName("symbol")]
-        public static string Symbol() => "E-AB"; //symbol of the token
-
-        #endregion
-
-
-        #region TokenBC
-
-        ///// <summary>
-        ///// Token 0 地址(Token0放置合约hash小的token)
-        ///// </summary>
-        //static readonly byte[] Token0 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
-
-        ///// <summary>
-        /////  Token 1 地址
-        ///// </summary>
-        //static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
-
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "E-BC"; //symbol of the token
-
-        #endregion
-
-
-
-
         #region 通知
 
         /// <summary>
@@ -130,7 +90,7 @@ namespace FlamingoSwapPair
 
                 if (method == "upgrade")
                 {
-                    Assert(args.Length == 9, "upgrade: args.Length != 9.");
+                    Assert(args.Length == 9, "upgrade: args.Length != 9");
                     byte[] script = (byte[])args[0];
                     byte[] plist = (byte[])args[1];
                     byte rtype = (byte)args[2];

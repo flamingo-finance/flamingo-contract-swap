@@ -15,16 +15,132 @@ namespace FlamingoSwapPair
 
         #region Admin
 
-        static readonly byte[] superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
+        static readonly byte[] superAdmin = "AVB7PZUpfZShoP8ih4krcCV5Z1SdpxQX3B".ToScriptHash();
 
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
         static readonly byte[] WhiteListContract = "3008f596f4fbdcaf712d6fc0ad2e9a522cc061cf".HexToBytes();
 
-
         const string AdminKey = nameof(superAdmin);
         private const string WhiteListContractKey = nameof(WhiteListContract);
+
+        #endregion
+
+        #region TokenAB
+
+        ///// <summary>
+        ///// Token 0 地址(Token0放置合约hash小的token)
+        ///// </summary>
+        //static readonly byte[] Token0 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+
+        ///// <summary>
+        /////  Token 1 地址
+        ///// </summary>
+        //static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
+
+
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "E-AB"; //symbol of the token
+
+        #endregion
+
+        #region TokenBC
+
+        ///// <summary>
+        ///// Token 0 地址(Token0放置合约hash小的token)
+        ///// </summary>
+        //static readonly byte[] Token0 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
+
+        ///// <summary>
+        /////  Token 1 地址
+        ///// </summary>
+        //static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
+
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "E-BC"; //symbol of the token
+
+        #endregion
+
+        #region pnWETH-nNEO
+
+        ///// <summary>
+        ///// nNEO 0 地址(Token0放置合约hash小的token)
+        ///// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
+        ///// </summary>
+        //static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
+
+        ///// <summary>
+        /////  pnWETH 1 地址
+        /////  0x23535b6fd46b8f867ed010bab4c2bd8ef0d0c64f
+        ///// </summary>
+        //static readonly byte[] Token1 = "4fc6d0f08ebdc2b4ba10d07e868f6bd46f5b5323".HexToBytes();
+
+
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "pnWETH-nNEO"; //symbol of the token
+
+        #endregion
+
+        #region pnWBTC-nNEO
+
+        ///// <summary>
+        ///// nNEO 0 地址(Token0放置合约hash小的token)
+        ///// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
+        ///// </summary>
+        //static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
+
+        ///// <summary>
+        /////  pnWBTC 1 地址
+        /////  0x69c57a716567a0f6910a0b3c1d4508fa163eb927
+        ///// </summary>
+        //static readonly byte[] Token1 = "27b93e16fa08451d3c0b0a91f6a06765717ac569".HexToBytes();
+
+
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "pnWBTC-nNEO"; //symbol of the token
+
+        #endregion
+
+        #region pONT-nNEO
+
+        /// <summary>
+        /// nNEO 0 地址(Token0放置合约hash小的token)
+        /// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
+        /// </summary>
+        static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
+
+        /// <summary>
+        ///  pONT 1 地址
+        ///  0x658cabf9c1f71ba0fa64098a7c17e52b94046ece
+        /// </summary>
+        static readonly byte[] Token1 = "ce6e04942be5177c8a0964faa01bf7c1f9ab8c65".HexToBytes();
+
+
+        [DisplayName("symbol")]
+        public static string Symbol() => "pONT-nNEO"; //symbol of the token
+
+        #endregion
+
+        #region FLM-nNEO
+
+        ///// <summary>
+        ///// FLM 地址(Token0放置合约hash小的token)
+        ///// 0x083ea8071188c7fe5b5e4af96ded222670d76663
+        ///// </summary>
+        //static readonly byte[] Token0 = "6366d7702622ed6df94a5e5bfec7881107a83e08".HexToBytes();
+
+        ///// <summary>
+        /////  nNEO 地址
+        /////  0x17da3881ab2d050fea414c80b3fa8324d756f60e
+        ///// </summary>
+        //static readonly byte[] Token1 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
+
+
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "FLM-nNEO"; //symbol of the token
+
+        #endregion
 
 
         /// <summary>
@@ -84,8 +200,6 @@ namespace FlamingoSwapPair
             var whiteList = GetWhiteListContract();
             return ((Func<string, object[], bool>)whiteList.ToDelegate())("checkRouter", new object[] { callScript });
         }
-
-        #endregion
 
 
         #region Upgrade
