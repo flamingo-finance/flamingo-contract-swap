@@ -1,66 +1,73 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Numerics;
+using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
 
 namespace FlamingoSwapRouter
 {
+    [DisplayName("Flamingo Router")]
+    [ManifestExtra("Author", "Flamingo Finance")]
+    [ManifestExtra("Email", "developer@flamingo.finance")]
+    [ManifestExtra("Description", "This is a Flamingo Contract")]
+    //[SupportedStandards("NEP17", "NEP10")]
     partial class FlamingoSwapRouterContract : SmartContract
     {
-        
-        public static object Main(string method, object[] args)
-        {
-            if (Runtime.Trigger == TriggerType.Verification)
-            {
-                return Runtime.CheckWitness(GetAdmin());
-            }
-            else if (Runtime.Trigger == TriggerType.Application)
-            {
-                if (method == "swapTokenInForTokenOut") return SwapTokenInForTokenOut((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
 
-                if (method == "swapTokenOutForTokenIn") return SwapTokenOutForTokenIn((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
+        //public static object Main(string method, object[] args)
+        //{
+        //    if (Runtime.Trigger == TriggerType.Verification)
+        //    {
+        //        return Runtime.CheckWitness(GetAdmin());
+        //    }
+        //    else if (Runtime.Trigger == TriggerType.Application)
+        //    {
+        //        if (method == "SwapTokenInForTokenOut") return SwapTokenInForTokenOut((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
 
-                if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
+        //        if (method == "swapTokenOutForTokenIn") return SwapTokenOutForTokenIn((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
 
-                if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
+        //        if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
 
-                //var msgSender = ExecutionEngine.CallingScriptHash;//等价以太坊的msg.sender
+        //        if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
 
-                if (method == "quote") return Quote((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
+        //        //var msgSender = ExecutionEngine.CallingScriptHash;//等价以太坊的msg.sender
 
-                if (method == "getReserves") return GetReserves((byte[])args[0], (byte[])args[1]);
+        //        if (method == "quote") return Quote((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
 
-                if (method == "getAmountOut") return GetAmountOut((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
+        //        if (method == "getReserves") return GetReserves((byte[])args[0], (byte[])args[1]);
 
-                if (method == "getAmountsOut") return GetAmountsOut(args[0].ToBigInt(), (byte[][])args[1]);
+        //        if (method == "getAmountOut") return GetAmountOut((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
 
-                if (method == "getAmountIn") return GetAmountIn((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
+        //        if (method == "getAmountsOut") return GetAmountsOut(args[0].ToBigInt(), (byte[][])args[1]);
 
-                if (method == "getAmountsIn") return GetAmountsIn(args[0].ToBigInt(), (byte[][])args[1]);
+        //        if (method == "getAmountIn") return GetAmountIn((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
 
-                if (method == "getAdmin") return GetAdmin();
+        //        if (method == "getAmountsIn") return GetAmountsIn(args[0].ToBigInt(), (byte[][])args[1]);
 
-                if (method == "setAdmin") return SetAdmin((byte[])args[0]);
+        //        if (method == "getAdmin") return GetAdmin();
 
-                if (method == "upgrade")
-                {
-                    Assert(args.Length == 9, "upgrade: args.Length != 9.");
-                    byte[] script = (byte[])args[0];
-                    byte[] plist = (byte[])args[1];
-                    byte rtype = (byte)args[2];
-                    ContractPropertyState cps = (ContractPropertyState)args[3];
-                    string name = (string)args[4];
-                    string version = (string)args[5];
-                    string author = (string)args[6];
-                    string email = (string)args[7];
-                    string description = (string)args[8];
-                    return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
-                }
+        //        if (method == "setAdmin") return SetAdmin((byte[])args[0]);
 
-            }
-            return false;
-        }
+        //        if (method == "upgrade")
+        //        {
+        //            Assert(args.Length == 9, "upgrade: args.Length != 9.");
+        //            byte[] script = (byte[])args[0];
+        //            byte[] plist = (byte[])args[1];
+        //            byte rtype = (byte)args[2];
+        //            ContractPropertyState cps = (ContractPropertyState)args[3];
+        //            string name = (string)args[4];
+        //            string version = (string)args[5];
+        //            string author = (string)args[6];
+        //            string email = (string)args[7];
+        //            string description = (string)args[8];
+        //            return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
+        //        }
+
+        //    }
+        //    return false;
+        //}
 
 
 
@@ -76,13 +83,13 @@ namespace FlamingoSwapRouter
         /// <param name="amountBMin">预计最少转入B的量</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static BigInteger[] AddLiquidity(byte[] sender, byte[] tokenA, byte[] tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
+        public static BigInteger[] AddLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
 
             //看看有没有超过最后期限
-            Assert((BigInteger) Runtime.Time <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
 
             var reserves = GetReserves(tokenA, tokenB);
@@ -141,12 +148,12 @@ namespace FlamingoSwapRouter
         /// <param name="amountBMin">tokenB 期望最小提取量</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static BigInteger[] RemoveLiquidity(byte[] sender, byte[] tokenA, byte[] tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
+        public static BigInteger[] RemoveLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
-            Assert((BigInteger) Runtime.Time <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
 
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
@@ -227,7 +234,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountIn">第一种token输入量</param>
         /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut）</param>
         /// <returns></returns>
-        public static BigInteger[] GetAmountsOut(BigInteger amountIn, byte[][] paths)
+        public static BigInteger[] GetAmountsOut(BigInteger amountIn, UInt160[] paths)
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
             var amounts = new BigInteger[paths.Length];
@@ -249,7 +256,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountOut">最后一种token输出量</param>
         /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut）</param>
         /// <returns></returns>
-        public static BigInteger[] GetAmountsIn(BigInteger amountOut, byte[][] paths)
+        public static BigInteger[] GetAmountsIn(BigInteger amountOut, UInt160[] paths)
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
             var amounts = new BigInteger[paths.Length];
@@ -271,10 +278,10 @@ namespace FlamingoSwapRouter
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        private static BigInteger[] GetReserves(byte[] tokenA, byte[] tokenB)
+        private static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
         {
             //var reserveData = pairContract.DynamicGetReserves();
-            var reserveData = ((Func<string, object[], ReservesData>)GetExchangePairWithAssert(tokenA, tokenB).ToDelegate())("getReserves", null);
+            var reserveData = ((Func<string, object[], ReservesData>)((byte[])GetExchangePairWithAssert(tokenA, tokenB)).ToDelegate())("getReserves", null);
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
@@ -290,7 +297,7 @@ namespace FlamingoSwapRouter
         /// <param name="paths"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool SwapTokenInForTokenOut(byte[] sender, BigInteger amountIn, BigInteger amountOutMin, byte[][] paths, BigInteger deadLine)
+        public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
@@ -317,7 +324,7 @@ namespace FlamingoSwapRouter
         /// <param name="paths"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool SwapTokenOutForTokenIn(byte[] sender, BigInteger amountOut, BigInteger amountInMax, byte[][] paths, BigInteger deadLine)
+        public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
@@ -334,7 +341,7 @@ namespace FlamingoSwapRouter
             return true;
         }
 
-        private static void Swap(BigInteger[] amounts, byte[][] paths, byte[] toAddress)
+        private static void Swap(BigInteger[] amounts, UInt160[] paths, UInt160 toAddress)
         {
             var max = paths.Length - 1;
             for (int i = 0; i < max; i++)
@@ -366,7 +373,7 @@ namespace FlamingoSwapRouter
                 var pairContract = GetExchangePairWithAssert(input, output);
                 //从pair[n,n+1]中转出amount[n+1]到pair[n+1,n+2]
                 //pairContract.DynamicSwap(amount0Out, amount1Out, to);//+0.05gas
-                ((Func<string, object[], BigInteger[]>)pairContract.ToDelegate())("swap", new object[] { amount0Out, amount1Out, to });
+                ((Func<string, object[], BigInteger[]>)((byte[])pairContract).ToDelegate())("swap", new object[] { amount0Out, amount1Out, to });
             }
         }
 

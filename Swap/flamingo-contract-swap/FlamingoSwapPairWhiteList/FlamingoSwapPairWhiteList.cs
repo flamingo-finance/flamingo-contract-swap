@@ -1,12 +1,17 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Numerics;
+using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
 
 namespace FlamingoSwapPairWhiteList
 {
+    [DisplayName("Flamingo Swap-Pair's Router WhiteList")]
+    [ManifestExtra("Author", "Flamingo Finance")]
+    [ManifestExtra("Email", "developer@flamingo.finance")]
+    [ManifestExtra("Description", "This is a Flamingo Contract")]
     partial class FlamingoSwapPairWhiteList : SmartContract
     {
 
@@ -22,37 +27,37 @@ namespace FlamingoSwapPairWhiteList
         /// params: routerHash
         /// </summary>
         [DisplayName("addRouter")]
-        public static event Action<byte[]> onAddRouter;
+        public static event Action<UInt160> onAddRouter;
 
         /// <summary>
         /// params: routerHash
         /// </summary>
         [DisplayName("removeRouter")]
-        public static event Action<byte[]> onRemoveRouter;
+        public static event Action<UInt160> onRemoveRouter;
 
 
         #endregion
 
-        public static object Main(string method, object[] args)
-        {
-            if (Runtime.Trigger == TriggerType.Verification)
-            {
-                return Runtime.CheckWitness(GetAdmin());
-            }
-            else if (Runtime.Trigger == TriggerType.Application)
-            {
-                //合约调用时，等价以太坊的msg.sender
-                //直接调用时，此处为 tx.Script.ToScriptHash();
-                //var msgSender = ExecutionEngine.CallingScriptHash;
-                if (method == "checkRouter") return CheckRouterWhiteList((byte[])args[0]);
-                if (method == "addRouter") return AddRouterWhiteList((byte[])args[0]);
-                if (method == "removeRouter") return RemoveRouterWhiteList((byte[])args[0]);
-                if (method == "getAllRouter") return GetAllRouterWhiteList();
-                if (method == "getAdmin") return GetAdmin();
-                if (method == "setAdmin") return SetAdmin((byte[])args[0]);
-            }
-            return false;
-        }
+        //public static object Main(string method, object[] args)
+        //{
+        //    if (Runtime.Trigger == TriggerType.Verification)
+        //    {
+        //        return Runtime.CheckWitness(GetAdmin());
+        //    }
+        //    else if (Runtime.Trigger == TriggerType.Application)
+        //    {
+        //        //合约调用时，等价以太坊的msg.sender
+        //        //直接调用时，此处为 tx.Script.ToScriptHash();
+        //        //var msgSender = ExecutionEngine.CallingScriptHash;
+        //        if (method == "checkRouter") return CheckRouterWhiteList((byte[])args[0]);
+        //        if (method == "addRouter") return AddRouterWhiteList((byte[])args[0]);
+        //        if (method == "removeRouter") return RemoveRouterWhiteList((byte[])args[0]);
+        //        if (method == "getAllRouter") return GetAllRouterWhiteList();
+        //        if (method == "getAdmin") return GetAdmin();
+        //        if (method == "setAdmin") return SetAdmin((byte[])args[0]);
+        //    }
+        //    return false;
+        //}
 
 
 
@@ -61,12 +66,11 @@ namespace FlamingoSwapPairWhiteList
         /// </summary>
         /// <param name="router">Nep5 tokenA</param>
         /// <returns></returns>
-        public static bool AddRouterWhiteList(byte[] router)
+        public static bool AddRouterWhiteList(UInt160 router)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            Assert(router.Length == 20, "Invalid Router Address");
-            var key = WhiteList.AsByteArray().Concat(router);
-            Storage.Put(key, 1);
+            var key = WhiteList.ToByteArray().Concat(router);
+            StoragePut(key, 1);
             onAddRouter(router);
             return true;
         }
@@ -77,12 +81,11 @@ namespace FlamingoSwapPairWhiteList
         /// </summary>
         /// <param name="router">Nep5 tokenA</param>
         /// <returns></returns>
-        public static bool RemoveRouterWhiteList(byte[] router)
+        public static bool RemoveRouterWhiteList(UInt160 router)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            Assert(router.Length == 20, "Invalid Router Address");
-            var key = WhiteList.AsByteArray().Concat(router);
-            Storage.Delete(key);
+            var key = WhiteList.ToByteArray().Concat(router);
+            StorageDelete(key);
             onRemoveRouter(router);
             return true;
         }
@@ -99,30 +102,32 @@ namespace FlamingoSwapPairWhiteList
             {
                 return false;
             }
-            var key = WhiteList.AsByteArray().Concat(router);
-            var value = Storage.Get(key).AsBigInteger();
+            var key = WhiteList.ToByteArray().Concat(router);
+            var value = ((byte[])StorageGet(key)).ToBigInteger();
             return value > 0;
         }
 
 
-        /// <summary>
-        /// 查询router白名单
-        /// </summary>
-        /// <returns></returns>
-        public static byte[][] GetAllRouterWhiteList()
-        {
-            var iterator = Storage.Find(WhiteList);
-            var result = new byte[0][];
-            while (iterator.Next())
-            {
-                if (iterator.Value.AsBigInteger() > 0)
-                {
-                    var router = iterator.Key.AsByteArray().Last(20);
-                    Append(result, router);
-                }
-            }
-            return result;
-        }
+        ///// <summary>
+        ///// 查询router白名单
+        ///// todo:iterator key删了，暂时去掉此方法
+        ///// </summary>
+        ///// <returns></returns>
+        //public static byte[][] GetAllRouterWhiteList()
+        //{
+        //    var iterator = StorageFind(WhiteList);
+        //    var result = new byte[0][];
+        //    while (iterator.Next())
+        //    {
+        //        if (((byte[])iterator.Value).ToBigInteger() > 0)
+        //        {
+
+        //            var router = iterator.Key.AsByteArray().Last(20);
+        //            Append(result, router);
+        //        }
+        //    }
+        //    return result;
+        //}
 
     }
 }

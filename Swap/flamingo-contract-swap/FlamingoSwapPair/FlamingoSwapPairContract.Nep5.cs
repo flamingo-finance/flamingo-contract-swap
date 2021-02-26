@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
@@ -18,7 +19,7 @@ namespace FlamingoSwapPair
         private const string BalanceMapKey = "AssetBalance";
 
         [DisplayName("transfer")]
-        public static event Action<byte[], byte[], BigInteger> Transferred;
+        public static event Action<UInt160, UInt160, BigInteger> Transferred;
 
         [DisplayName("decimals")]
         public static byte Decimals() => 8;
@@ -32,17 +33,15 @@ namespace FlamingoSwapPair
         public static string[] SupportedStandards() => new string[] { "NEP-5", "NEP-7", "NEP-10" };
 
         [DisplayName("balanceOf")]
-        public static BigInteger BalanceOf(byte[] account)
+        public static BigInteger BalanceOf(UInt160 account)
         {
-            if (account.Length != 20) throw new Exception("The parameter account SHOULD be 20-byte addresses.");
+            //if (account.Length != 20) throw new Exception("The parameter account SHOULD be 20-byte addresses.");
 
-            return Storage.CurrentContext.CreateMap(BalanceMapKey).Get(account).ToBigInteger();
+            return ((byte[])Storage.CurrentContext.CreateMap(BalanceMapKey).Get(account)).ToBigInteger();
         }
 
-        private static bool SetBalance(byte[] account, BigInteger newBalance)
+        private static bool SetBalance(UInt160 account, BigInteger newBalance)
         {
-            if (account.Length != 20) throw new Exception("The parameter account SHOULD be 20-byte addresses.");
-
             Storage.CurrentContext.CreateMap(BalanceMapKey).Put(account, newBalance);
             return true;
         }
@@ -50,7 +49,7 @@ namespace FlamingoSwapPair
         [DisplayName("totalSupply")]
         public static BigInteger GetTotalSupply()
         {
-            return Storage.Get("totalSupply").ToBigInteger();
+            return ((byte[])StorageGet("totalSupply")).ToBigInteger();
         }
 
         /// <summary>
@@ -60,15 +59,15 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static bool SetTotalSupply(BigInteger totalSupply)
         {
-            Storage.Put("totalSupply", totalSupply);
+            StoragePut("totalSupply", totalSupply);
             return true;
         }
 
         //Methods of actual execution
-        private static bool Transfer(byte[] from, byte[] to, BigInteger amount, byte[] callscript)
+        private static bool Transfer(UInt160 from, UInt160 to, BigInteger amount, UInt160 callscript)
         {
             //Check parameters
-            Assert(from.Length == 20 && to.Length == 20, "The parameters from and to SHOULD be 20-byte addresses.");
+            //Assert(from.Length == 20 && to.Length == 20, "The parameters from and to SHOULD be 20-byte addresses.");
             Assert(amount >= 0, "The parameter amount MUST be greater than 0.");
 
             var me = ExecutionEngine.ExecutingScriptHash;
@@ -77,10 +76,10 @@ namespace FlamingoSwapPair
                 Assert(CheckIsRouter(callscript), "Only support transfer to me by Router");
             }
 
-            if (!Runtime.CheckWitness(from) && from.AsBigInteger() != callscript.AsBigInteger())
+            if (!Runtime.CheckWitness(from) && from != callscript)
                 return false;
             StorageMap asset = Storage.CurrentContext.CreateMap(BalanceMapKey);
-            var fromAmount = asset.Get(from).AsBigInteger();
+            var fromAmount = ((byte[])asset.Get(from)).ToBigInteger();
             if (fromAmount < amount)
                 return false;
             if (from == to)
@@ -94,7 +93,7 @@ namespace FlamingoSwapPair
                 asset.Put(from, fromAmount - amount);
 
             //Increase the payee balance
-            var toAmount = asset.Get(to).AsBigInteger();
+            var toAmount = ((byte[])asset.Get(to)).ToBigInteger();
             asset.Put(to, toAmount + amount);
 
             Transferred(from, to, amount);
@@ -111,7 +110,7 @@ namespace FlamingoSwapPair
         /// </summary>
         /// <param name="toAddress">接收新铸造的币的账号</param>
         /// <param name="amount">铸造量</param>
-        private static void MintToken(byte[] toAddress, BigInteger amount)
+        private static void MintToken(UInt160 toAddress, BigInteger amount)
         {
             SetBalance(toAddress, BalanceOf(toAddress) + amount);
             SetTotalSupply(GetTotalSupply() + amount);
@@ -124,12 +123,12 @@ namespace FlamingoSwapPair
         /// </summary>
         /// <param name="fromAddress">token的持有地址</param>
         /// <param name="value">销毁的token量</param>
-        private static void BurnToken(byte[] fromAddress, BigInteger value)
+        private static void BurnToken(UInt160 fromAddress, BigInteger value)
         {
             SetBalance(fromAddress, BalanceOf(fromAddress) - value);
             SetTotalSupply(GetTotalSupply() - value);
 
-            Transferred(fromAddress, new byte[20], value);
+            Transferred(fromAddress, UInt160.Zero, value);
         }
 
 

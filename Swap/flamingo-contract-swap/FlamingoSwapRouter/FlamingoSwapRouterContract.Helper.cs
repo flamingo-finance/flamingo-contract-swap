@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 
@@ -11,7 +12,17 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract
     {
+        /// <summary>
+        /// send notify
+        /// </summary>
+        /// <param name="message"></param>
+        private static void Notify(string message)
+        {
+            Notify(message, new object[0]);
+        }
 
+        [Syscall("System.Runtime.Notify")]
+        private static extern void Notify(string eventName, params object[] data);
 
         /// <summary>
         /// 中断执行,节约gas
@@ -20,7 +31,7 @@ namespace FlamingoSwapRouter
         /// <param name="data"></param>
         private static void Throw(string message, params object[] data)
         {
-            Runtime.Notify("Fault:" + message, data);
+            Notify("Fault:" + message, data);
             throw new Exception(message);
         }
 
@@ -35,10 +46,11 @@ namespace FlamingoSwapRouter
         {
             if (!condition)
             {
-                Runtime.Notify("Fault:" + message);
+                Notify("Fault:" + message);
                 throw new Exception(message);
             }
         }
+
 
 
         ///// <summary>
@@ -60,7 +72,7 @@ namespace FlamingoSwapRouter
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        private static byte[] GetExchangePairWithAssert(byte[] tokenA, byte[] tokenB)
+        private static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
         {
             var pairContract = ((Func<string, object[], byte[]>)Factory.ToDelegate())("getExchangePair", new object[] { tokenA, tokenB });
             if (pairContract.Length != 20)
@@ -68,7 +80,7 @@ namespace FlamingoSwapRouter
                 Throw("Cannot Find PairContract", tokenA, tokenB);
             }
             //Assert(pairContract.Length == 20, "cannot find pairContract");//+0.02 gas
-            return pairContract;
+            return (UInt160)pairContract;
         }
 
 
@@ -79,15 +91,41 @@ namespace FlamingoSwapRouter
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="amount"></param>
-        private static void SafeTransfer(byte[] token, byte[] from, byte[] to, BigInteger amount)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
             //var result = token.DynamicTransfer(from, to, amount);
-            var result = ((Func<string, object[], bool>)token.ToDelegate())("transfer", new object[] { from, to, amount });
+            var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { from, to, amount });
             if (!result)
             {
                 Throw("Transfer Fail", token);
             }
             //Assert(result, "Transfer Fail", token);
+        }
+
+
+        private static ByteString StorageGet(string key)
+        {
+            return Storage.Get(Storage.CurrentContext, key);
+        }
+
+        private static void StoragePut(string key, string value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+        private static void StoragePut(string key, byte[] value)
+        {
+            Storage.Put(Storage.CurrentContext, key, (ByteString)value);
+        }
+
+        private static void StoragePut(byte[] key, byte[] value)
+        {
+            Storage.Put(Storage.CurrentContext, key, (ByteString)value);
+        }
+
+        private static void StoragePut(string key, ByteString value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
         }
     }
 }

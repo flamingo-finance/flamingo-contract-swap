@@ -1,15 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="2.10.0.0" />
+    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-CI00245" />
+    <PackageReference Include="Neo3.Compiler.Dev" Version="3.0.0-preview5-dev1" />
   </ItemGroup>
 
-  <Target Name="NeoBuild" AfterTargets="AfterBuild">
-    <Exec WorkingDirectory="$(OutputPath)" Command="neon $(AssemblyName).dll --compatible"></Exec>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="$(neon3) -f &quot;$(TargetPath)&quot; -o" />
   </Target>
 </Project>

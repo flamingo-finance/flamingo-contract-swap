@@ -1,12 +1,17 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Numerics;
+using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
 
 namespace FlamingoSwapPair
 {
+    [DisplayName("Flamingo Swap-Pair Contract")]
+    [ManifestExtra("Author", "Flamingo Finance")]
+    [ManifestExtra("Email", "developer@flamingo.finance")]
+    [ManifestExtra("Description", "This is a Flamingo Contract")]
     partial class FlamingoSwapPairContract : SmartContract
     {
 
@@ -25,87 +30,88 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 铸币事件 Minted(sender,amount0,amount1)
         /// </summary>
-        private static event Action<byte[], BigInteger, BigInteger> Minted;
+        private static event Action<UInt160, BigInteger, BigInteger> Minted;
 
         /// <summary>
         /// 销毁事件 Burned(from,amount0,amount1,to)
         /// </summary>
-        private static event Action<byte[], BigInteger, BigInteger, byte[]> Burned;
+        private static event Action<UInt160, BigInteger, BigInteger, UInt160> Burned;
 
         /// <summary>
         /// 兑换事件
         /// </summary>
-        private static event Action<byte[], BigInteger, BigInteger, BigInteger, BigInteger, byte[]> Swapped;
+        private static event Action<UInt160, BigInteger, BigInteger, BigInteger, BigInteger, UInt160> Swapped;
 
         #endregion
 
 
-        public static object Main(string method, object[] args)
-        {
-            if (Runtime.Trigger == TriggerType.Verification)
-            {
-                return Runtime.CheckWitness(GetAdmin());
-            }
-            else if (Runtime.Trigger == TriggerType.Application)
-            {
-                //合约调用时，等价以太坊的msg.sender
-                //直接调用时，此处为 tx.Script.ToScriptHash();
-                var msgSender = ExecutionEngine.CallingScriptHash;
+        //public static object Main(string method, object[] args)
+        //{
+        //    if (Runtime.Trigger == TriggerType.Verification)
+        //    {
+        //        return Runtime.CheckWitness(GetAdmin());
+        //    }
+        //    else if (Runtime.Trigger == TriggerType.Application)
+        //    {
+        //        //合约调用时，等价以太坊的msg.sender
+        //        //直接调用时，此处为 tx.Script.ToScriptHash();
+        //        var msgSender = ExecutionEngine.CallingScriptHash;
 
-                if (method == "getReserves") return ReservePair;
+        //        if (method == "getReserves") return ReservePair;
 
-                if (method == "mint") return Mint(msgSender, (byte[])args[0]);//msgSender应当为router
+        //        if (method == "mint") return Mint(msgSender, (byte[])args[0]);//msgSender应当为router
 
-                if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
+        //        if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
 
-                if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
+        //        if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
 
-                if (method == "transfer") return Transfer((byte[])args[0], (byte[])args[1], (BigInteger)args[2], msgSender);
+        //        if (method == "transfer") return Transfer((byte[])args[0], (byte[])args[1], (BigInteger)args[2], msgSender);
 
-                if (method == "balanceOf") return BalanceOf((byte[])args[0]);
+        //        if (method == "balanceOf") return BalanceOf((byte[])args[0]);
 
-                if (method == "decimals") return Decimals();
+        //        if (method == "decimals") return Decimals();
 
-                if (method == "name") return Name();
+        //        if (method == "name") return Name();
 
-                if (method == "symbol") return Symbol();
+        //        if (method == "symbol") return Symbol();
 
-                if (method == "supportedStandards") return SupportedStandards();
+        //        if (method == "supportedStandards") return SupportedStandards();
 
-                if (method == "totalSupply") return GetTotalSupply();
+        //        if (method == "totalSupply") return GetTotalSupply();
 
-                if (method == "getToken0") return Token0;
+        //        if (method == "getToken0") return Token0;
 
-                if (method == "getToken1") return Token1;
+        //        if (method == "getToken1") return Token1;
 
-                if (method == "getAdmin") return GetAdmin();
+        //        if (method == "getAdmin") return GetAdmin();
 
-                if (method == "setAdmin") return SetAdmin((byte[])args[0]);
+        //        if (method == "setAdmin") return SetAdmin((byte[])args[0]);
 
-                if (method == "getWhiteListContract") return GetWhiteListContract();
+        //        if (method == "getWhiteListContract") return GetWhiteListContract();
 
-                if (method == "setWhiteListContract") return SetWhiteListContract((byte[])args[0]);
+        //        if (method == "setWhiteListContract") return SetWhiteListContract((byte[])args[0]);
 
-                if (method == "checkIsRouter") return CheckIsRouter((byte[])args[0]);
+        //        if (method == "checkIsRouter") return CheckIsRouter((byte[])args[0]);
 
-                if (method == "upgrade")
-                {
-                    Assert(args.Length == 9, "upgrade: args.Length != 9");
-                    byte[] script = (byte[])args[0];
-                    byte[] plist = (byte[])args[1];
-                    byte rtype = (byte)args[2];
-                    ContractPropertyState cps = (ContractPropertyState)args[3];
-                    string name = (string)args[4];
-                    string version = (string)args[5];
-                    string author = (string)args[6];
-                    string email = (string)args[7];
-                    string description = (string)args[8];
-                    return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
-                }
-                
-            }
-            return false;
-        }
+        //        if (method == "upgrade")
+        //        {
+        //            Assert(args.Length == 9, "upgrade: args.Length != 9");
+        //            byte[] script = (byte[])args[0];
+        //            byte[] plist = (byte[])args[1];
+        //            byte rtype = (byte)args[2];
+        //            ContractPropertyState cps = (ContractPropertyState)args[3];
+        //            string name = (string)args[4];
+        //            string version = (string)args[5];
+        //            string author = (string)args[6];
+        //            string email = (string)args[7];
+        //            string description = (string)args[8];
+        //            return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
+        //        }
+
+        //    }
+        //    return false;
+        //}
+
 
 
         #region Swap
@@ -117,7 +123,7 @@ namespace FlamingoSwapPair
         /// <param name="amount1Out">已经计算好的token1 转出量</param>
         /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
-        public static bool Swap(byte[] msgSender, BigInteger amount0Out, BigInteger amount1Out, byte[] toAddress)
+        public static bool Swap(UInt160 msgSender, BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress)
         {
             Assert(CheckIsRouter(msgSender), "Only Router Can Swap");
 
@@ -132,7 +138,7 @@ namespace FlamingoSwapPair
             //转出量小于持有量
             Assert(amount0Out < reserve0 && amount1Out < reserve1, "INSUFFICIENT_LIQUIDITY");
             //禁止转到token本身的地址
-            Assert(toAddress != Token0 && toAddress != Token1, "INVALID_TO");
+            Assert(toAddress != (UInt160)Token0 && toAddress != (UInt160)Token1, "INVALID_TO");
             if (amount0Out > 0)
             {
                 //从本合约转出目标token到目标地址
@@ -180,9 +186,9 @@ namespace FlamingoSwapPair
         /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns></returns>
-        public static object Burn(byte[] msgSender, byte[] toAddress)
+        public static object Burn(UInt160 msgSender, UInt160 toAddress)
         {
-            Assert(CheckIsRouter(msgSender),"Only Router Can Burn");
+            Assert(CheckIsRouter(msgSender), "Only Router Can Burn");
             var me = ExecutionEngine.ExecutingScriptHash;
             var r = ReservePair;
 
@@ -228,7 +234,7 @@ namespace FlamingoSwapPair
         /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns>返回本次铸币量</returns>
-        public static BigInteger Mint(byte[] msgSender, byte[] toAddress)
+        public static BigInteger Mint(UInt160 msgSender, UInt160 toAddress)
         {
             Assert(CheckIsRouter(msgSender), "Only Router Can Mint");
 
@@ -252,7 +258,7 @@ namespace FlamingoSwapPair
                 liquidity = Sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
                 //第一笔注入资金过少，liquidity为负数，整个合约执行将中断回滚
 
-                MintToken(new byte[20], MINIMUM_LIQUIDITY);// permanently lock the first MINIMUM_LIQUIDITY tokens,永久锁住第一波发行的 MINIMUM_LIQUIDITY token
+                MintToken(UInt160.Zero, MINIMUM_LIQUIDITY);// permanently lock the first MINIMUM_LIQUIDITY tokens,永久锁住第一波发行的 MINIMUM_LIQUIDITY token
             }
             else
             {
@@ -385,6 +391,7 @@ namespace FlamingoSwapPair
             reserve.Reserve1 = balance1;
             reserve.BlockTimestampLast = Runtime.Time;
             //优化写入次数
+            //SetReserves(reserve);
             ReservePair = reserve;
             Synced(balance0, balance1);
         }
@@ -402,12 +409,34 @@ namespace FlamingoSwapPair
         {
             get
             {
-                var val = Storage.Get(nameof(ReservePair));
-                return val.Length == 0 ? new ReservesData() : (ReservesData)val.Deserialize();
+                var val = StorageGet(nameof(ReservePair));
+                if (val.Length == 0)
+                {
+                    return new ReservesData();
+                }
+                var b = (ReservesData)StdLib.Deserialize(val);
+                return b;
             }
-            set => Storage.Put(nameof(ReservePair), value.Serialize());
+            set
+            {
+
+                var val = StdLib.Serialize(value);
+                StoragePut(nameof(ReservePair), val);
+            }
         }
 
+        ////todo:????
+        public static object GetReserves()
+        {
+            return ReservePair;
+            //return val.Length == 0 ? new ReservesData() : b;
+        }
+
+        //public static void SetReserves(ReservesData value)
+        //{
+        //    var val = StdLib.Serialize(value);
+        //    StoragePut(nameof(ReservePair), val);
+        //}
 
         #endregion
 

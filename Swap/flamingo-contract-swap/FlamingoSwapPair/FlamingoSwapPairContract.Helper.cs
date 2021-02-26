@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 
@@ -11,6 +12,20 @@ namespace FlamingoSwapPair
 {
     partial class FlamingoSwapPairContract
     {
+
+        /// <summary>
+        /// send notify
+        /// </summary>
+        /// <param name="message"></param>
+        private static void Notify(string message)
+        {
+            Notify(message, new object[0]);
+        }
+
+        [Syscall("System.Runtime.Notify")]
+        private static extern void Notify(string eventName, params object[] data);
+
+
         /// <summary>
         /// 断言
         /// </summary>
@@ -20,7 +35,7 @@ namespace FlamingoSwapPair
         {
             if (!condition)
             {
-                Runtime.Notify("Fault:" + message);
+                Notify("Fault:" + message);
                 throw new Exception(message);
             }
         }
@@ -73,12 +88,12 @@ namespace FlamingoSwapPair
         /// <param name="to"></param>
         /// <param name="amount"></param>
         /// <returns></returns>
-        private static void SafeTransfer(byte[] token, byte[] from, byte[] to, BigInteger amount)
+        private static void SafeTransfer(byte[] token, UInt160 from, UInt160 to, BigInteger amount)
         {
             var result = ((Func<string, object[], bool>)token.ToDelegate())("transfer", new object[] { @from, to, amount });
             if (!result)
             {
-                Runtime.Notify("TransferFail",token);
+                Notify("TransferFail", token);
                 throw new Exception("TransferFail");
             }
             //Assert(result, "Transfer Fail", token);
@@ -90,10 +105,84 @@ namespace FlamingoSwapPair
         /// <param name="token"></param>
         /// <param name="address"></param>
         /// <returns></returns>
-        private static BigInteger DynamicBalanceOf(byte[] token, byte[] address)
+        private static BigInteger DynamicBalanceOf(byte[] token, UInt160 address)
         {
             //args[0] = address;
             return ((Func<string, object[], BigInteger>)token.ToDelegate())("balanceOf", new object[] { address });
+        }
+
+
+
+
+        private static ByteString StorageGet(ByteString key)
+        {
+            return Storage.Get(Storage.CurrentContext, key);
+        }
+
+        private static ByteString StorageGet(byte[] key)
+        {
+            return Storage.Get(Storage.CurrentContext, key);
+        }
+        //private static void StoragePut(string key, string value)
+        //{
+        //    Storage.Put(Storage.CurrentContext, key, value);
+        //}
+
+        //private static void StoragePut(string key, byte[] value)
+        //{
+        //    Storage.Put(Storage.CurrentContext, key, (ByteString)value);
+        //}
+
+        //private static void StoragePut(string key, BigInteger value)
+        //{
+        //    Storage.Put(Storage.CurrentContext, key, value);
+        //}
+
+        //private static void StoragePut(string key, ByteString value)
+        //{
+        //    Storage.Put(Storage.CurrentContext, key, value);
+        //}   
+
+        private static void StoragePut(ByteString key, ByteString value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+        private static void StoragePut(ByteString key, byte[] value)
+        {
+            Storage.Put(Storage.CurrentContext, key, (ByteString)value);
+        }
+
+        private static void StoragePut(ByteString key, BigInteger value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+        private static void StoragePut(byte[] key, byte[] value)
+        {
+            Storage.Put(Storage.CurrentContext, key, (ByteString)value);
+        }
+
+        private static void StoragePut(byte[] key, BigInteger value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+        private static void StoragePut(byte[] key, ByteString value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+
+
+        private static void StorageDelete(ByteString key)
+        {
+            Storage.Delete(Storage.CurrentContext, key);
+        }
+
+        private static void StorageDelete(byte[] key)
+        {
+            Storage.Delete(Storage.CurrentContext, (ByteString)key);
         }
     }
 }
