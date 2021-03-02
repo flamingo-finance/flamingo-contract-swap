@@ -14,7 +14,7 @@ namespace FlamingoSwapPairWhiteList
         #region Admin
 
 #warning 检查此处的 Admin 地址是否为最新地址
-        static readonly UInt160 superAdmin = "AZaCs7GwthGy9fku2nFXtbrdKBRmrUQoFP".ToScriptHash();
+        static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
         const string AdminKey = nameof(superAdmin);
 
 
@@ -30,7 +30,7 @@ namespace FlamingoSwapPairWhiteList
         public static UInt160 GetAdmin()
         {
             var admin = StorageGet(AdminKey);
-            return admin.Length == 20 ? (UInt160)admin : superAdmin;
+            return admin?.Length == 20 ? (UInt160)admin : superAdmin;
         }
 
         /// <summary>
@@ -40,13 +40,23 @@ namespace FlamingoSwapPairWhiteList
         /// <returns></returns>
         public static bool SetAdmin(UInt160 admin)
         {
+            
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             StoragePut(AdminKey, admin);
             return true;
         }
 
 
-
+        /// <summary>
+        /// 升级
+        /// </summary>
+        /// <param name="nefFile"></param>
+        /// <param name="manifest"></param>
+        public static void Update(ByteString nefFile, string manifest)
+        {
+            if (!Verify()) throw new Exception("No authorization.");
+            ContractManagement.Update(nefFile, manifest, null);
+        }
 
         #endregion
 

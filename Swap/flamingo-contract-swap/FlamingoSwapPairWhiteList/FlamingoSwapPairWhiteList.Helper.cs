@@ -51,9 +51,10 @@ namespace FlamingoSwapPairWhiteList
         [OpCode(OpCode.APPEND)]
         private static extern void Append<T>(T[] array, T newItem);
 
-        private static Iterator StorageFind(ByteString key)
+
+        private static Iterator StorageFind(byte[] prefix)
         {
-            return Storage.Find(Storage.CurrentContext, key);
+            return Storage.Find(Storage.CurrentContext, prefix, FindOptions.RemovePrefix);
         }
 
 
@@ -87,6 +88,11 @@ namespace FlamingoSwapPairWhiteList
         //}   
 
         private static void StoragePut(ByteString key, ByteString value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+        private static void StoragePut(ByteString key, BigInteger value)
         {
             Storage.Put(Storage.CurrentContext, key, value);
         }
