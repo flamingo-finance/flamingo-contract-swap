@@ -57,6 +57,12 @@ namespace FlamingoSwapFactory
 
 
 
+        private static Iterator StorageFind(byte[] prefix)
+        {
+            return Storage.Find(Storage.CurrentContext, prefix, FindOptions.RemovePrefix);
+        }
+
+
 
         private static ByteString StorageGet(ByteString key)
         {

@@ -16,12 +16,12 @@ namespace FlamingoSwapPair
 
         #region Admin
 
-        static readonly UInt160 superAdmin = "AVB7PZUpfZShoP8ih4krcCV5Z1SdpxQX3B".ToScriptHash();
+        static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
 
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
-        static readonly UInt160 WhiteListContract = (UInt160)"3008f596f4fbdcaf712d6fc0ad2e9a522cc061cf".HexToBytes();
+        static readonly UInt160 WhiteListContract = (UInt160)"0x3008f596f4fbdcaf712d6fc0ad2e9a522cc061cf".HexToBytes(true);
 
         const string AdminKey = nameof(superAdmin);
         private const string WhiteListContractKey = nameof(WhiteListContract);
@@ -35,19 +35,16 @@ namespace FlamingoSwapPair
 
         #region TokenAB
 
-        ///// <summary>
-        ///// Token 0 地址(Token0放置合约hash小的token)
-        ///// </summary>
-        //static readonly byte[] Token0 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
 
-        ///// <summary>
-        /////  Token 1 地址
-        ///// </summary>
-        //static readonly byte[] Token1 = "cbad1e6082cb71f336939934f21e5929a5c6d7ff".HexToBytes();
+        [DisplayName("symbol")]
+        public static string Symbol() => "E-AB"; //symbol of the token
 
+        /// <summary>
+        /// 两个token地址，无需排序
+        /// </summary>
+        static readonly UInt160 TokenA = (UInt160)"0xf333333333333333333333333333333333333333".HexToBytes(true);
+        static readonly UInt160 TokenB = (UInt160)"0xf222222222222222222222222222222222222222".HexToBytes(true);
 
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "E-AB"; //symbol of the token
 
         #endregion
 
@@ -110,21 +107,21 @@ namespace FlamingoSwapPair
 
         #region pONT-nNEO
 
-        /// <summary>
-        /// nNEO 0 地址(Token0放置合约hash小的token)
-        /// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
-        /// </summary>
-        static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
+        ///// <summary>
+        ///// nNEO 0 地址(Token0放置合约hash小的token)
+        ///// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
+        ///// </summary>
+        //static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
 
-        /// <summary>
-        ///  pONT 1 地址
-        ///  0x658cabf9c1f71ba0fa64098a7c17e52b94046ece
-        /// </summary>
-        static readonly byte[] Token1 = "ce6e04942be5177c8a0964faa01bf7c1f9ab8c65".HexToBytes();
+        ///// <summary>
+        /////  pONT 1 地址
+        /////  0x658cabf9c1f71ba0fa64098a7c17e52b94046ece
+        ///// </summary>
+        //static readonly byte[] Token1 = "ce6e04942be5177c8a0964faa01bf7c1f9ab8c65".HexToBytes();
 
 
-        [DisplayName("symbol")]
-        public static string Symbol() => "pONT-nNEO"; //symbol of the token
+        //[DisplayName("symbol")]
+        //public static string Symbol() => "pONT-nNEO"; //symbol of the token
 
         #endregion
 
@@ -149,6 +146,7 @@ namespace FlamingoSwapPair
         #endregion
 
 
+
         /// <summary>
         /// 获取合约管理员
         /// </summary>
@@ -156,7 +154,7 @@ namespace FlamingoSwapPair
         public static UInt160 GetAdmin()
         {
             var admin = StorageGet(AdminKey);
-            return admin.Length == 20 ? (UInt160)admin : superAdmin;
+            return admin?.Length == 20 ? (UInt160)admin : superAdmin;
         }
 
         /// <summary>
@@ -227,6 +225,17 @@ namespace FlamingoSwapPair
         //    return newContractHash;
         //}
 
+
+        /// <summary>
+        /// 升级
+        /// </summary>
+        /// <param name="nefFile"></param>
+        /// <param name="manifest"></param>
+        public static void Update(ByteString nefFile, string manifest)
+        {
+            if (!Verify()) throw new Exception("No authorization.");
+            ContractManagement.Update(nefFile, manifest, null);
+        }
 
         #endregion
     }

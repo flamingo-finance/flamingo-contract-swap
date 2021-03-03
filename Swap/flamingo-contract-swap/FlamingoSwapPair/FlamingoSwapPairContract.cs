@@ -42,6 +42,11 @@ namespace FlamingoSwapPair
         /// </summary>
         private static event Action<UInt160, BigInteger, BigInteger, BigInteger, BigInteger, UInt160> Swapped;
 
+        /// <summary>
+        /// Deploy事件
+        /// </summary>
+        private static event Action<UInt160, UInt160> Deployed;
+
         #endregion
 
 
@@ -112,6 +117,55 @@ namespace FlamingoSwapPair
         //    return false;
         //}
 
+
+        /// <summary>
+        /// 合约初始化
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="update"></param>
+        public static void _deploy(object data, bool update)
+        {
+            if (TokenA.ToUInteger() < TokenB.ToUInteger())
+            {
+                Token0 = TokenA;
+                Token1 = TokenB;
+                Deployed(TokenA, TokenB);
+            }
+            else
+            {
+                Token0 = TokenB;
+                Token1 = TokenA;
+                Deployed(TokenB, TokenA);
+            }
+        }
+
+
+
+        #region Token0,Token1
+
+
+        /// <summary>
+        /// Token 0 地址(Token0放置合约hash小的token)
+        /// </summary>
+        static UInt160 Token0
+        {
+            get => (UInt160)StorageGet("token0");
+            set => StoragePut("token0", value);
+        }
+
+
+        /// <summary>
+        ///  Token 1 地址
+        /// </summary>
+        static UInt160 Token1
+        {
+            get => (UInt160)StorageGet("token1");
+            set => StoragePut("token1", value);
+        }
+
+
+
+        #endregion
 
 
         #region Swap

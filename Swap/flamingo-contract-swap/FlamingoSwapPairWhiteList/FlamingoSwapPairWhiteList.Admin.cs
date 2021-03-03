@@ -40,7 +40,6 @@ namespace FlamingoSwapPairWhiteList
         /// <returns></returns>
         public static bool SetAdmin(UInt160 admin)
         {
-            
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             StoragePut(AdminKey, admin);
             return true;

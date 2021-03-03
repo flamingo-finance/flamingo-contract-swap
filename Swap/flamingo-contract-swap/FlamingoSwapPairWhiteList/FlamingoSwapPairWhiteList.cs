@@ -17,6 +17,7 @@ namespace FlamingoSwapPairWhiteList
 
         /// <summary>
         /// 白名单存储区前缀，只允许一字节
+        /// todo:换成0xff?
         /// </summary>
         private static readonly byte[] WhiteListPrefix = { 0x77 };
 
