@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
+using Neo.SmartContract;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
@@ -15,61 +16,6 @@ namespace FlamingoSwapRouter
     //[SupportedStandards("NEP17", "NEP10")]
     partial class FlamingoSwapRouterContract : SmartContract
     {
-
-        //public static object Main(string method, object[] args)
-        //{
-        //    if (Runtime.Trigger == TriggerType.Verification)
-        //    {
-        //        return Runtime.CheckWitness(GetAdmin());
-        //    }
-        //    else if (Runtime.Trigger == TriggerType.Application)
-        //    {
-        //        if (method == "SwapTokenInForTokenOut") return SwapTokenInForTokenOut((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
-
-        //        if (method == "swapTokenOutForTokenIn") return SwapTokenOutForTokenIn((byte[])args[0], (BigInteger)args[1], (BigInteger)args[2], (byte[][])args[3], (BigInteger)args[4]);
-
-        //        if (method == "addLiquidity") return AddLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6], (BigInteger)args[7]);
-
-        //        if (method == "removeLiquidity") return RemoveLiquidity((byte[])args[0], (byte[])args[1], (byte[])args[2], (BigInteger)args[3], (BigInteger)args[4], (BigInteger)args[5], (BigInteger)args[6]);
-
-        //        //var msgSender = ExecutionEngine.CallingScriptHash;//等价以太坊的msg.sender
-
-        //        if (method == "quote") return Quote((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
-
-        //        if (method == "getReserves") return GetReserves((byte[])args[0], (byte[])args[1]);
-
-        //        if (method == "getAmountOut") return GetAmountOut((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
-
-        //        if (method == "getAmountsOut") return GetAmountsOut(args[0].ToBigInt(), (byte[][])args[1]);
-
-        //        if (method == "getAmountIn") return GetAmountIn((BigInteger)args[0], (BigInteger)args[1], (BigInteger)args[2]);
-
-        //        if (method == "getAmountsIn") return GetAmountsIn(args[0].ToBigInt(), (byte[][])args[1]);
-
-        //        if (method == "getAdmin") return GetAdmin();
-
-        //        if (method == "setAdmin") return SetAdmin((byte[])args[0]);
-
-        //        if (method == "upgrade")
-        //        {
-        //            Assert(args.Length == 9, "upgrade: args.Length != 9.");
-        //            byte[] script = (byte[])args[0];
-        //            byte[] plist = (byte[])args[1];
-        //            byte rtype = (byte)args[2];
-        //            ContractPropertyState cps = (ContractPropertyState)args[3];
-        //            string name = (string)args[4];
-        //            string version = (string)args[5];
-        //            string author = (string)args[6];
-        //            string email = (string)args[7];
-        //            string description = (string)args[8];
-        //            return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
-        //        }
-
-        //    }
-        //    return false;
-        //}
-
-
 
         /// <summary>
         /// 
@@ -130,9 +76,9 @@ namespace FlamingoSwapRouter
             SafeTransfer(tokenA, sender, pairContract, amountA);
             SafeTransfer(tokenB, sender, pairContract, amountB);
 
-            var liquidity = pairContract.DynamicMint(sender);//+0.03gas
+            var liquidity = pairContract.DynamicMint(sender);
             //var liquidity = ((Func<string, object[], BigInteger>)pairContract.ToDelegate())("mint", new object[] { sender });
-            return new BigInteger[] { amountA.ToBigInt(), amountB.ToBigInt(), liquidity };
+            return new BigInteger[] { amountA, amountB, liquidity };
         }
 
 
@@ -238,7 +184,7 @@ namespace FlamingoSwapRouter
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
             var amounts = new BigInteger[paths.Length];
-            amounts[0] = amountIn.ToBigInt();
+            amounts[0] = amountIn;
             var max = paths.Length - 1;
             for (var i = 0; i < max; i++)
             {
@@ -261,7 +207,7 @@ namespace FlamingoSwapRouter
             Assert(paths.Length >= 2, "INVALID_PATH");
             var amounts = new BigInteger[paths.Length];
             var max = paths.Length - 1;
-            amounts[max] = amountOut.ToBigInt();
+            amounts[max] = amountOut;
             for (var i = max; i > 0; i--)
             {
                 var preIndex = i - 1;
@@ -278,10 +224,10 @@ namespace FlamingoSwapRouter
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        private static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
+        public static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
         {
-            //var reserveData = pairContract.DynamicGetReserves();
-            var reserveData = ((Func<string, object[], ReservesData>)((byte[])GetExchangePairWithAssert(tokenA, tokenB)).ToDelegate())("getReserves", null);
+            //var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.All, new object[0]);
+            var reserveData = ((Func<string, object[], ReservesData>)((byte[])GetExchangePairWithAssert(tokenA, tokenB)).ToDelegate())("getReserves", new object[0]);
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 

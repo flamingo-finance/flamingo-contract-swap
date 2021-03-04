@@ -20,7 +20,7 @@ namespace FlamingoSwapRouter
         static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
 
 #warning 检查此处的 Factory 地址是否为最新地址
-        static readonly byte[] Factory = "1b099f38376e27dbffcac05ee0e670d81a3c61f8".HexToBytes();
+        static readonly byte[] Factory = "0xb5f7710ded13e051c551a2eedb2482338a2a928a".HexToBytes(true);
 
         const string AdminKey = nameof(superAdmin);
 

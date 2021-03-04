@@ -88,9 +88,9 @@ namespace FlamingoSwapPair
         /// <param name="to"></param>
         /// <param name="amount"></param>
         /// <returns></returns>
-        private static void SafeTransfer(byte[] token, UInt160 from, UInt160 to, BigInteger amount)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
-            var result = ((Func<string, object[], bool>)token.ToDelegate())("transfer", new object[] { @from, to, amount });
+            var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { @from, to, amount, null });
             if (!result)
             {
                 Notify("TransferFail", token);
@@ -105,10 +105,10 @@ namespace FlamingoSwapPair
         /// <param name="token"></param>
         /// <param name="address"></param>
         /// <returns></returns>
-        private static BigInteger DynamicBalanceOf(byte[] token, UInt160 address)
+        private static BigInteger DynamicBalanceOf(UInt160 token, UInt160 address)
         {
             //args[0] = address;
-            return ((Func<string, object[], BigInteger>)token.ToDelegate())("balanceOf", new object[] { address });
+            return ((Func<string, object[], BigInteger>)((byte[])token).ToDelegate())("balanceOf", new object[] { address });
         }
 
 

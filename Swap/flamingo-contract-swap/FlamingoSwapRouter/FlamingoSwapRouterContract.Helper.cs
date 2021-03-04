@@ -75,7 +75,7 @@ namespace FlamingoSwapRouter
         private static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
         {
             var pairContract = ((Func<string, object[], byte[]>)Factory.ToDelegate())("getExchangePair", new object[] { tokenA, tokenB });
-            if (pairContract.Length != 20)
+            if (pairContract == null || pairContract.Length != 20)
             {
                 Throw("Cannot Find PairContract", tokenA, tokenB);
             }
@@ -94,7 +94,7 @@ namespace FlamingoSwapRouter
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
             //var result = token.DynamicTransfer(from, to, amount);
-            var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { from, to, amount });
+            var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { from, to, amount, null });
             if (!result)
             {
                 Throw("Transfer Fail", token);

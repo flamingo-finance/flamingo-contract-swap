@@ -12,13 +12,14 @@ namespace FlamingoSwapPair
     [ManifestExtra("Author", "Flamingo Finance")]
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
+    [SupportedStandards("NEP-17")]
     partial class FlamingoSwapPairContract : SmartContract
     {
 
         /// <summary>
         /// https://uniswap.org/docs/v2/protocol-overview/smart-contracts/#minimum-liquidity
         /// </summary>
-        static readonly BigInteger MINIMUM_LIQUIDITY = 1000;
+        const long MINIMUM_LIQUIDITY = 1000;
 
         #region 通知
 
@@ -164,6 +165,15 @@ namespace FlamingoSwapPair
         }
 
 
+        public static UInt160 GetToken0()
+        {
+            return Token0;
+        }
+
+        public static UInt160 GetToken1()
+        {
+            return Token1;
+        }
 
         #endregion
 
@@ -175,11 +185,12 @@ namespace FlamingoSwapPair
         /// </summary>
         /// <param name="amount0Out">已经计算好的token0 转出量</param>
         /// <param name="amount1Out">已经计算好的token1 转出量</param>
-        /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
-        public static bool Swap(UInt160 msgSender, BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress)
+        public static bool Swap(BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress)
         {
-            Assert(CheckIsRouter(msgSender), "Only Router Can Swap");
+            var caller = ExecutionEngine.CallingScriptHash;
+
+            Assert(CheckIsRouter(caller), "Only Router Can Swap");
 
             var me = ExecutionEngine.ExecutingScriptHash;
 
@@ -224,7 +235,7 @@ namespace FlamingoSwapPair
 
             Update(balance0, balance1, r);
 
-            Swapped(msgSender, amount0In, amount1In, amount0Out, amount1Out, toAddress);
+            Swapped(caller, amount0In, amount1In, amount0Out, amount1Out, toAddress);
             return true;
         }
 
@@ -237,12 +248,12 @@ namespace FlamingoSwapPair
         /// 销毁liquidity代币，并转出等量的token0和token1到toAddress
         /// 需要事先将用户持有的liquidity转入本合约才可以调此方法
         /// </summary>
-        /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns></returns>
-        public static object Burn(UInt160 msgSender, UInt160 toAddress)
+        public static object Burn(UInt160 toAddress)
         {
-            Assert(CheckIsRouter(msgSender), "Only Router Can Burn");
+            var caller = ExecutionEngine.CallingScriptHash;
+            Assert(CheckIsRouter(caller), "Only Router Can Burn");
             var me = ExecutionEngine.ExecutingScriptHash;
             var r = ReservePair;
 
@@ -250,8 +261,7 @@ namespace FlamingoSwapPair
             var balance1 = DynamicBalanceOf(Token1, me);
             var liquidity = BalanceOf(me);
 
-            //bool feeOn = MintFee(reserve0, reserve1);
-            var totalSupply = GetTotalSupply();
+            var totalSupply = TotalSupply();
             var amount0 = liquidity * balance0 / totalSupply;//要销毁(转出)的token0额度：me持有的token0 * (me持有的me token/me token总量）
             var amount1 = liquidity * balance1 / totalSupply;
 
@@ -267,12 +277,7 @@ namespace FlamingoSwapPair
 
             Update(balance0, balance1, r);
 
-            //if (feeOn)
-            //{
-            //    var kLast = reserve0 * reserve1;
-            //    SetKLast(kLast);
-            //}
-            Burned(msgSender, amount0, amount1, toAddress);
+            Burned(caller, amount0, amount1, toAddress);
 
             return new BigInteger[]
             {
@@ -285,12 +290,12 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 铸造代币，此方法应该由router在AddLiquidity时调用
         /// </summary>
-        /// <param name="msgSender"></param>
         /// <param name="toAddress"></param>
         /// <returns>返回本次铸币量</returns>
-        public static BigInteger Mint(UInt160 msgSender, UInt160 toAddress)
+        public static BigInteger Mint(UInt160 toAddress)
         {
-            Assert(CheckIsRouter(msgSender), "Only Router Can Mint");
+            var caller = ExecutionEngine.CallingScriptHash;
+            Assert(CheckIsRouter(caller), "Only Router Can Mint");
 
             var me = ExecutionEngine.ExecutingScriptHash;
 
@@ -303,8 +308,7 @@ namespace FlamingoSwapPair
             var amount0 = balance0 - reserve0;//token0增量
             var amount1 = balance1 - reserve1;//token1增量
 
-            //bool feeOn = MintFee(reserve0, reserve1);
-            var totalSupply = GetTotalSupply();
+            var totalSupply = TotalSupply();
 
             BigInteger liquidity;
             if (totalSupply == 0)
@@ -319,72 +323,42 @@ namespace FlamingoSwapPair
                 var liquidity0 = amount0 * totalSupply / reserve0;
                 var liquidity1 = amount1 * totalSupply / reserve1;
                 liquidity = liquidity0 > liquidity1 ? liquidity1 : liquidity0;
-
             }
 
             Assert(liquidity > 0, "INSUFFICIENT_LIQUIDITY_MINTED");
             MintToken(toAddress, liquidity);
 
             Update(balance0, balance1, r);
-            //if (feeOn)
-            //{
-            //    var kLast = reserve0 * reserve1;
-            //    SetKLast(kLast);
-            //}
 
-            Minted(msgSender, amount0, amount1);
+            Minted(caller, amount0, amount1);
             return liquidity;
         }
 
 
+        /// <summary>
+        /// 铸币（不校验签名），内部方法禁止外部直接调用
+        /// </summary>
+        /// <param name="toAddress">接收新铸造的币的账号</param>
+        /// <param name="amount">铸造量</param>
+        private static void MintToken(UInt160 toAddress, BigInteger amount)
+        {
+            AssetStorage.Increase(toAddress, amount);
+            TotalSupplyStorage.Increase(amount);
+            OnTransfer(null, toAddress, amount);
+        }
 
+        /// <summary>
+        /// 物理销毁token（不校验签名），内部方法禁止外部直接调用
+        /// </summary>
+        /// <param name="fromAddress">token的持有地址</param>
+        /// <param name="amount">销毁的token量</param>
+        private static void BurnToken(UInt160 fromAddress, BigInteger amount)
+        {
+            AssetStorage.Reduce(fromAddress, amount);
+            TotalSupplyStorage.Reduce(amount);
+            OnTransfer(fromAddress, null, amount);
+        }
 
-        ///// <summary>
-        ///// 从Factory获取手续费收益地址
-        ///// </summary>
-        ///// <returns></returns>
-        //private static byte[] GetFeeTo()
-        //{
-        //    return ((Func<string, object[], byte[]>)FactoryContract.ToDelegate())("getFeeTo", new object[0]);
-        //}
-
-        ///// <summary>
-        ///// if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
-        ///// 发放铸币fee给收益地址（目前没在使用）
-        ///// </summary>
-        ///// <param name="reserve0">当前token0持有量</param>
-        ///// <param name="reserve1">当前token1持有量</param>
-        //public static bool MintFee(BigInteger reserve0, BigInteger reserve1)
-        //{
-        //    byte[] feeTo = GetFeeTo();
-        //    bool feeOn = feeTo.Length == 20;
-        //    var kLast = GetKLast();
-        //    if (feeOn)
-        //    {
-        //        if (kLast != 0)
-        //        {
-        //            var rootK = Sqrt(reserve0 * reserve1);
-        //            var rootKLast = Sqrt(kLast);
-        //            if (rootK > rootKLast)
-        //            {
-        //                //如果资金池变大
-        //                var numerator = Sqrt(GetTotalSupply() * (rootK - rootKLast));
-        //                var denominator = (rootK * 5) + rootKLast;
-        //                var liquidity = numerator / denominator;
-        //                if (liquidity > 0)
-        //                {
-        //                    MintToken(feeTo, liquidity);
-        //                }
-        //            }
-        //        }
-        //    }
-        //    else if (kLast != 0)
-        //    {
-        //        SetKLast(0);
-        //    }
-
-        //    return feeOn;
-        //}
 
 
         #endregion
@@ -464,9 +438,9 @@ namespace FlamingoSwapPair
             get
             {
                 var val = StorageGet(nameof(ReservePair));
-                if (val.Length == 0)
+                if (val is null || val.Length == 0)
                 {
-                    return new ReservesData();
+                    return new ReservesData() { Reserve0 = 0, Reserve1 = 0, BlockTimestampLast = 0 };
                 }
                 var b = (ReservesData)StdLib.Deserialize(val);
                 return b;
@@ -479,23 +453,12 @@ namespace FlamingoSwapPair
             }
         }
 
-        ////todo:????
         public static object GetReserves()
         {
             return ReservePair;
-            //return val.Length == 0 ? new ReservesData() : b;
         }
 
-        //public static void SetReserves(ReservesData value)
-        //{
-        //    var val = StdLib.Serialize(value);
-        //    StoragePut(nameof(ReservePair), val);
-        //}
-
         #endregion
-
-
-
 
         #region PriceCumulativeLast累计价格
 

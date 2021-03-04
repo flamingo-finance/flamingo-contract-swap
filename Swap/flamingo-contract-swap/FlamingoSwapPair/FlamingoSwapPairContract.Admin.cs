@@ -13,25 +13,15 @@ namespace FlamingoSwapPair
 {
     partial class FlamingoSwapPairContract
     {
+        #region Settings
 
-        #region Admin
 
         static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
 
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
-        static readonly UInt160 WhiteListContract = (UInt160)"0x3008f596f4fbdcaf712d6fc0ad2e9a522cc061cf".HexToBytes(true);
-
-        const string AdminKey = nameof(superAdmin);
-        private const string WhiteListContractKey = nameof(WhiteListContract);
-
-        // When this contract address is included in the transaction signature,
-        // this method will be triggered as a VerificationTrigger to verify that the signature is correct.
-        // For example, this method needs to be called when withdrawing token from the contract.
-        public static bool Verify() => Runtime.CheckWitness(GetAdmin());
-
-        #endregion
+        static readonly UInt160 WhiteListContract = (UInt160)"0x31f714e04766139c8f3705f5ce94518e1411ec07".HexToBytes(true);
 
         #region TokenAB
 
@@ -42,8 +32,8 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 两个token地址，无需排序
         /// </summary>
-        static readonly UInt160 TokenA = (UInt160)"0xf333333333333333333333333333333333333333".HexToBytes(true);
-        static readonly UInt160 TokenB = (UInt160)"0xf222222222222222222222222222222222222222".HexToBytes(true);
+        static readonly UInt160 TokenA = (UInt160)"0x534f3888c7d1778676f2504a81af53544cc25533".HexToBytes(true);
+        static readonly UInt160 TokenB = (UInt160)"0x91de485d9ac26bb57b99392bfd4224c8334ed3d7".HexToBytes(true);
 
 
         #endregion
@@ -145,6 +135,19 @@ namespace FlamingoSwapPair
 
         #endregion
 
+        #endregion
+
+        #region Admin
+
+
+        const string AdminKey = nameof(superAdmin);
+        private const string WhiteListContractKey = nameof(WhiteListContract);
+
+        // When this contract address is included in the transaction signature,
+        // this method will be triggered as a VerificationTrigger to verify that the signature is correct.
+        // For example, this method needs to be called when withdrawing token from the contract.
+        public static bool Verify() => Runtime.CheckWitness(GetAdmin());
+
 
 
         /// <summary>
@@ -169,6 +172,10 @@ namespace FlamingoSwapPair
             return true;
         }
 
+        #endregion
+
+        #region WhiteContract
+
 
         /// <summary>
         /// 获取WhiteListContract地址
@@ -177,7 +184,7 @@ namespace FlamingoSwapPair
         public static UInt160 GetWhiteListContract()
         {
             var whiteList = StorageGet(WhiteListContractKey);
-            return whiteList.Length == 20 ? (UInt160)whiteList : WhiteListContract;
+            return whiteList?.Length == 20 ? (UInt160)whiteList : WhiteListContract;
         }
 
         /// <summary>
@@ -197,12 +204,13 @@ namespace FlamingoSwapPair
         /// </summary>
         /// <param name="callScript"></param>
         /// <returns></returns>
-        private static bool CheckIsRouter(UInt160 callScript)
+        public static bool CheckIsRouter(UInt160 callScript)
         {
             var whiteList = GetWhiteListContract();
             return ((Func<string, object[], bool>)((byte[])whiteList).ToDelegate())("checkRouter", new object[] { callScript });
         }
 
+        #endregion
 
         #region Upgrade
 
