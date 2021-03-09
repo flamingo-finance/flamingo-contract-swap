@@ -28,17 +28,19 @@ namespace FlamingoSwapPairWhiteList
         /// params: routerHash
         /// </summary>
         [DisplayName("addRouter")]
-        public static event Action<UInt160> onAddRouter;
+        private static event AddRouterEvent onAddRouter;
+        private delegate void AddRouterEvent(UInt160 router);
 
         /// <summary>
         /// params: routerHash
         /// </summary>
         [DisplayName("removeRouter")]
-        public static event Action<UInt160> onRemoveRouter;
+        private static event RemoveRouterEvent onRemoveRouter;
+        private delegate void RemoveRouterEvent(UInt160 router);
 
 
         #endregion
-        
+
         /// <summary>
         /// 增加router白名单，加过白名单的router才能完成burn
         /// </summary>

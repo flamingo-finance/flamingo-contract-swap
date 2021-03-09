@@ -15,14 +15,6 @@ namespace FlamingoSwapPair
 {
     partial class FlamingoSwapPairContract
     {
-
-        #region Notifications
-        [DisplayName("Transfer")]
-        public static event Action<UInt160, UInt160, BigInteger> OnTransfer;
-        #endregion
-
-
-
         public static ulong Decimals() => 8;
         public static BigInteger TotalSupply() => TotalSupplyStorage.Get();
 

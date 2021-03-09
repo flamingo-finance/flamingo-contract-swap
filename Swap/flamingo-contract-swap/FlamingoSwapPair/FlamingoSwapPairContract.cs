@@ -26,28 +26,36 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 同步持有量Synced（reserve0，reserve1）
         /// </summary>
-        private static event Action<BigInteger, BigInteger> Synced;
+        private static event SyncedEvent Synced;
+        private delegate void SyncedEvent(BigInteger balance0, BigInteger balance1);
 
         /// <summary>
-        /// 铸币事件 Minted(sender,amount0,amount1)
+        /// 铸币事件 Minted(caller,amount0,amount1,liquidity)
         /// </summary>
-        private static event Action<UInt160, BigInteger, BigInteger> Minted;
+        private static event MintedEvent Minted;
+        private delegate void MintedEvent(UInt160 caller, BigInteger amount0, BigInteger amount1, BigInteger liquidity);
 
         /// <summary>
-        /// 销毁事件 Burned(from,amount0,amount1,to)
+        /// 销毁事件 Burned(caller,liquidity,amount0,amount1,to)
         /// </summary>
-        private static event Action<UInt160, BigInteger, BigInteger, UInt160> Burned;
+        private static event BurnedEvent Burned;
+        private delegate void BurnedEvent(UInt160 caller, BigInteger liquidity, BigInteger amount0, BigInteger amount1, UInt160 to);
 
         /// <summary>
         /// 兑换事件
         /// </summary>
-        private static event Action<UInt160, BigInteger, BigInteger, BigInteger, BigInteger, UInt160> Swapped;
+        private static event SwappedEvent Swapped;
+        private delegate void SwappedEvent(UInt160 caller, BigInteger amount0In, BigInteger amount1In, BigInteger amount0Out, BigInteger amount1Out, UInt160 to);
 
         /// <summary>
         /// Deploy事件
         /// </summary>
-        private static event Action<UInt160, UInt160> Deployed;
+        private static event DeployedEvent Deployed;
+        private delegate void DeployedEvent(UInt160 token0, UInt160 token1);
 
+        [DisplayName("Transfer")]
+        public static event OnTransferEvent OnTransfer;
+        public delegate void OnTransferEvent(UInt160 from, UInt160 to, BigInteger amount);
         #endregion
 
 
@@ -130,14 +138,13 @@ namespace FlamingoSwapPair
             {
                 Token0 = TokenA;
                 Token1 = TokenB;
-                Deployed(TokenA, TokenB);
             }
             else
             {
                 Token0 = TokenB;
                 Token1 = TokenA;
-                Deployed(TokenB, TokenA);
             }
+            Deployed(Token0, Token1);
         }
 
 
@@ -277,7 +284,7 @@ namespace FlamingoSwapPair
 
             Update(balance0, balance1, r);
 
-            Burned(caller, amount0, amount1, toAddress);
+            Burned(caller, liquidity, amount0, amount1, toAddress);
 
             return new BigInteger[]
             {
@@ -330,7 +337,7 @@ namespace FlamingoSwapPair
 
             Update(balance0, balance1, r);
 
-            Minted(caller, amount0, amount1);
+            Minted(caller, amount0, amount1, liquidity);
             return liquidity;
         }
 
