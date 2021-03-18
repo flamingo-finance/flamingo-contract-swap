@@ -13,7 +13,7 @@ namespace FlamingoSwapRouter
     [ManifestExtra("Author", "Flamingo Finance")]
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
-    //[SupportedStandards("NEP17", "NEP10")]
+    [ContractPermission("*")]//avoid native contract hash change
     partial class FlamingoSwapRouterContract : SmartContract
     {
 

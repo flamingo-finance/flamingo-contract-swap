@@ -32,8 +32,8 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 两个token地址，无需排序
         /// </summary>
-        static readonly UInt160 TokenA = (UInt160)"0xe3ff75cd7250418bbf597b95f6542e501ab3e903".HexToBytes(true);
-        static readonly UInt160 TokenB = (UInt160)"0x791b982e26c6ed23604ec0b2bfaf5d5cf173b383".HexToBytes(true);
+        static readonly UInt160 TokenA = (UInt160)"0x905cf618320e045d2fc25a41502a40b4dfb806a9".HexToBytes(true);
+        static readonly UInt160 TokenB = (UInt160)"0xf9966fe5ee5b2e7dd1c00eb4cb601bcc371de698".HexToBytes(true);
 
 
         #endregion

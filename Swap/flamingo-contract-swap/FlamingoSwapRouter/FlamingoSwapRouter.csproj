@@ -4,8 +4,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-CI00245" />
-    <PackageReference Include="Neo3.Compiler.Dev" Version="3.0.0-preview5-dev1" />
+    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-rc1" />
+    <PackageReference Include="Neo3.Compiler.Dev" Version="3.0.0-rc1" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

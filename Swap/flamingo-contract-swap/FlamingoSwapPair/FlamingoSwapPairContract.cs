@@ -13,6 +13,7 @@ namespace FlamingoSwapPair
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
     [SupportedStandards("NEP-17")]
+    [ContractPermission("*")]//avoid native contract hash change
     partial class FlamingoSwapPairContract : SmartContract
     {
 

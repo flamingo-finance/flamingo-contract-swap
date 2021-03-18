@@ -12,6 +12,7 @@ namespace FlamingoSwapPairWhiteList
     [ManifestExtra("Author", "Flamingo Finance")]
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
+    [ContractPermission("*")]//avoid native contract hash change
     partial class FlamingoSwapPairWhiteList : SmartContract
     {
 
