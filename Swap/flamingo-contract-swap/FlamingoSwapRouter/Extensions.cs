@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapRouter
 {
@@ -19,7 +16,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger DynamicMint(this byte[] pairContract, byte[] toAddress)
         {
-            return ((Func<string, object[], BigInteger>)pairContract.ToDelegate())("mint", new object[] { toAddress });
+            return (BigInteger)Contract.Call((UInt160)pairContract, "mint", CallFlags.All, new object[] { toAddress });
         }
 
         /// <summary>
@@ -30,7 +27,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger DynamicMint(this UInt160 pairContract, UInt160 toAddress)
         {
-            return ((Func<string, object[], BigInteger>)((byte[])pairContract).ToDelegate())("mint", new object[] { toAddress });
+            return (BigInteger)Contract.Call(pairContract, "mint", CallFlags.All, new object[] { toAddress });
         }
 
         /// <summary>
@@ -41,7 +38,8 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] DynamicBurn(this byte[] pairContract, byte[] toAddress)
         {
-            return ((Func<string, object[], BigInteger[]>)pairContract.ToDelegate())("burn", new object[] { toAddress });
+            return (BigInteger[])Contract.Call((UInt160)pairContract, "burn", CallFlags.All, new object[] { toAddress });
+
         }
 
 
@@ -53,7 +51,8 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] DynamicBurn(this UInt160 pairContract, UInt160 toAddress)
         {
-            return ((Func<string, object[], BigInteger[]>)((byte[])pairContract).ToDelegate())("burn", new object[] { toAddress });
+            return (BigInteger[])Contract.Call(pairContract, "burn", CallFlags.All, new object[] { toAddress });
+
         }
 
 

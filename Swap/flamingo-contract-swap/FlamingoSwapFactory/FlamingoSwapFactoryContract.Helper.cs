@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapFactory
 {
-    partial class FlamingoSwapFactoryContract
+    public partial class FlamingoSwapFactoryContract
     {
 
         /// <summary>
@@ -72,26 +68,7 @@ namespace FlamingoSwapFactory
         private static ByteString StorageGet(byte[] key)
         {
             return Storage.Get(Storage.CurrentContext, key);
-        }
-        //private static void StoragePut(string key, string value)
-        //{
-        //    Storage.Put(Storage.CurrentContext, key, value);
-        //}
-
-        //private static void StoragePut(string key, byte[] value)
-        //{
-        //    Storage.Put(Storage.CurrentContext, key, (ByteString)value);
-        //}
-
-        //private static void StoragePut(string key, BigInteger value)
-        //{
-        //    Storage.Put(Storage.CurrentContext, key, value);
-        //}
-
-        //private static void StoragePut(string key, ByteString value)
-        //{
-        //    Storage.Put(Storage.CurrentContext, key, value);
-        //}   
+        } 
 
         private static void StoragePut(ByteString key, ByteString value)
         {

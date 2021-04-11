@@ -1,26 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
-using Neo.SmartContract.Framework.Services.System;
+using Neo.SmartContract.Framework.Services;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract;
 
 namespace FlamingoSwapRouter
 {
-    partial class FlamingoSwapRouterContract
+    public partial class FlamingoSwapRouterContract
     {
 
 
         #region Admin
 
 #warning 检查此处的 Admin 地址是否为最新地址
-        static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
+        [InitialValue("NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp", ContractParameterType.Hash160)]
+        static readonly UInt160 superAdmin = default;
 
 #warning 检查此处的 Factory 地址是否为最新地址
-        static readonly byte[] Factory = "0x7e194f033caca2340d2a59d4b9e60991993a10d6".HexToBytes(true);
+        //注意此处输入小端序
+        [InitialValue("0x7e194f033caca2340d2a59d4b9e60991993a10d6", ContractParameterType.ByteArray)]
+        static readonly byte[] Factory = default;
 
         const string AdminKey = nameof(superAdmin);
 
@@ -48,7 +48,7 @@ namespace FlamingoSwapRouter
         public static bool SetAdmin(UInt160 admin)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            StoragePut(AdminKey, admin);
+            StoragePut(AdminKey, (ByteString)admin);
             return true;
         }
 

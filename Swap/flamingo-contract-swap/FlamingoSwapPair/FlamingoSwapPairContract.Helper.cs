@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapPair
 {
-    partial class FlamingoSwapPairContract
+    public partial class FlamingoSwapPairContract
     {
 
         /// <summary>
@@ -90,7 +86,8 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
-            var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { @from, to, amount, null });
+            //var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { @from, to, amount, null });
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null});
             if (!result)
             {
                 Notify("TransferFail", token);
@@ -108,7 +105,8 @@ namespace FlamingoSwapPair
         private static BigInteger DynamicBalanceOf(UInt160 token, UInt160 address)
         {
             //args[0] = address;
-            return ((Func<string, object[], BigInteger>)((byte[])token).ToDelegate())("balanceOf", new object[] { address });
+            //return ((Func<string, object[], BigInteger>)((byte[])token).ToDelegate())("balanceOf", new object[] { address });
+            return (BigInteger)Contract.Call(token, "balanceOf", CallFlags.All, new object[] { address });
         }
 
 

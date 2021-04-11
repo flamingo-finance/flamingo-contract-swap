@@ -1,10 +1,9 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
-using Neo.SmartContract.Framework.Services.System;
+using Neo.SmartContract.Framework.Services;
+using Neo.SmartContract.Framework.Native;
 
 namespace FlamingoSwapPair
 {
@@ -14,7 +13,7 @@ namespace FlamingoSwapPair
     [ManifestExtra("Description", "This is a Flamingo Contract")]
     [SupportedStandards("NEP-17")]
     [ContractPermission("*")]//avoid native contract hash change
-    partial class FlamingoSwapPairContract : SmartContract
+    public partial class FlamingoSwapPairContract : SmartContract
     {
 
         /// <summary>
@@ -196,11 +195,11 @@ namespace FlamingoSwapPair
         /// <param name="toAddress"></param>
         public static bool Swap(BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress)
         {
-            var caller = ExecutionEngine.CallingScriptHash;
+            var caller = Runtime.CallingScriptHash;
 
             Assert(CheckIsRouter(caller), "Only Router Can Swap");
 
-            var me = ExecutionEngine.ExecutingScriptHash;
+            var me = Runtime.ExecutingScriptHash;
 
             //转出量必需一个为0一个为正数
             Assert(amount0Out * amount1Out == 0 && (amount0Out > 0 || amount1Out > 0), "INSUFFICIENT_OUTPUT_AMOUNT");
@@ -260,9 +259,9 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         public static object Burn(UInt160 toAddress)
         {
-            var caller = ExecutionEngine.CallingScriptHash;
+            var caller = Runtime.CallingScriptHash;
             Assert(CheckIsRouter(caller), "Only Router Can Burn");
-            var me = ExecutionEngine.ExecutingScriptHash;
+            var me = Runtime.ExecutingScriptHash;
             var r = ReservePair;
 
             var balance0 = DynamicBalanceOf(Token0, me);
@@ -302,10 +301,10 @@ namespace FlamingoSwapPair
         /// <returns>返回本次铸币量</returns>
         public static BigInteger Mint(UInt160 toAddress)
         {
-            var caller = ExecutionEngine.CallingScriptHash;
+            var caller = Runtime.CallingScriptHash;
             Assert(CheckIsRouter(caller), "Only Router Can Mint");
 
-            var me = ExecutionEngine.ExecutingScriptHash;
+            var me = Runtime.ExecutingScriptHash;
 
             var r = ReservePair;
             var reserve0 = r.Reserve0;
