@@ -19,7 +19,7 @@ namespace FlamingoSwapRouter
 
 #warning 检查此处的 Factory 地址是否为最新地址
         //注意此处输入小端序
-        [InitialValue("0x7e194f033caca2340d2a59d4b9e60991993a10d6", ContractParameterType.ByteArray)]
+        [InitialValue("d6103a999109e6b9d4592a0d34a2ac3c034f197e", ContractParameterType.ByteArray)]
         static readonly byte[] Factory = default;
 
         const string AdminKey = nameof(superAdmin);
