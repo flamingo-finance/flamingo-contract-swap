@@ -1,12 +1,9 @@
-﻿using System;
-using System.ComponentModel;
-using System.Linq;
-using System.Numerics;
+﻿using System.ComponentModel;
 using FlamingoSwapFactory.Models;
 using Neo;
-using Neo.SmartContract;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapFactory
 {
@@ -15,12 +12,12 @@ namespace FlamingoSwapFactory
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
     [ContractPermission("*")]//avoid native contract hash change
-    partial class FlamingoSwapFactoryContract : SmartContract
+    public partial class FlamingoSwapFactoryContract : SmartContract
     {
         /// <summary>
         /// 交易对列表的存储区前缀，只允许一字节
         /// </summary>
-        private static readonly byte[] ExchangeMapKey = { 0xff };
+        private static readonly byte[] ExchangeMapKey = new byte[]{ 0xff };
 
 
         #region 通知

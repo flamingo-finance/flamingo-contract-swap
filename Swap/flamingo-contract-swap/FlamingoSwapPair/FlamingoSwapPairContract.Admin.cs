@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
-using Neo.SmartContract.Framework.Services.System;
+using Neo.SmartContract.Framework.Services;
+using Neo.SmartContract.Framework.Native;
 
 namespace FlamingoSwapPair
 {
@@ -15,13 +11,15 @@ namespace FlamingoSwapPair
     {
         #region Settings
 
-
-        static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
+        [InitialValue("NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp", Neo.SmartContract.ContractParameterType.Hash160)]
+        static readonly UInt160 superAdmin = default;
 
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
-        static readonly UInt160 WhiteListContract = (UInt160)"0x31f714e04766139c8f3705f5ce94518e1411ec07".HexToBytes(true);
+        //注意此处是小端序
+        [InitialValue("07ec11148e5194cef505378f9c136647e014f731", Neo.SmartContract.ContractParameterType.ByteArray)]
+        static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
 
@@ -32,8 +30,12 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 两个token地址，无需排序
         /// </summary>
-        static readonly UInt160 TokenA = (UInt160)"0x905cf618320e045d2fc25a41502a40b4dfb806a9".HexToBytes(true);
-        static readonly UInt160 TokenB = (UInt160)"0xf9966fe5ee5b2e7dd1c00eb4cb601bcc371de698".HexToBytes(true);
+        //注意此处是小端序
+        [InitialValue("a906b8dfb4402a50415ac22f5d040e3218f65c90", Neo.SmartContract.ContractParameterType.ByteArray)]
+        static readonly UInt160 TokenA = default;
+        //注意此处是小端序
+        [InitialValue("98e61d37cc1b60cbb40ec0d17d2e5beee56f96f9", Neo.SmartContract.ContractParameterType.ByteArray)]
+        static readonly UInt160 TokenB = default;
 
 
         #endregion
@@ -207,7 +209,7 @@ namespace FlamingoSwapPair
         public static bool CheckIsRouter(UInt160 callScript)
         {
             var whiteList = GetWhiteListContract();
-            return ((Func<string, object[], bool>)((byte[])whiteList).ToDelegate())("checkRouter", new object[] { callScript });
+            return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.All, new object[] { callScript });
         }
 
         #endregion

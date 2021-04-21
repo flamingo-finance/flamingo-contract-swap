@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapRouter
 {
@@ -72,9 +68,9 @@ namespace FlamingoSwapRouter
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        private static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
+        public static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
         {
-            var pairContract = ((Func<string, object[], byte[]>)Factory.ToDelegate())("getExchangePair", new object[] { tokenA, tokenB });
+            var pairContract = (byte[])Contract.Call((UInt160)Factory, "getExchangePair", CallFlags.All, new object[] { tokenA, tokenB });
             if (pairContract == null || pairContract.Length != 20)
             {
                 Throw("Cannot Find PairContract", tokenA, tokenB);
@@ -93,8 +89,7 @@ namespace FlamingoSwapRouter
         /// <param name="amount"></param>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
-            //var result = token.DynamicTransfer(from, to, amount);
-            var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { from, to, amount, null });
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to , amount, null });
             if (!result)
             {
                 Throw("Transfer Fail", token);

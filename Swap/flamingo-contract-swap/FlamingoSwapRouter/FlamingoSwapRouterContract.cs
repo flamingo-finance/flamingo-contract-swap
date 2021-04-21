@@ -2,10 +2,8 @@
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
-using Neo.SmartContract;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
-using Neo.SmartContract.Framework.Services.System;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapRouter
 {
@@ -14,7 +12,7 @@ namespace FlamingoSwapRouter
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
     [ContractPermission("*")]//avoid native contract hash change
-    partial class FlamingoSwapRouterContract : SmartContract
+    public partial class FlamingoSwapRouterContract : SmartContract
     {
 
         /// <summary>
@@ -70,14 +68,11 @@ namespace FlamingoSwapRouter
                     amountB = amountBDesired;
                 }
             }
-
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
 
             SafeTransfer(tokenA, sender, pairContract, amountA);
             SafeTransfer(tokenB, sender, pairContract, amountB);
-
             var liquidity = pairContract.DynamicMint(sender);
-            //var liquidity = ((Func<string, object[], BigInteger>)pairContract.ToDelegate())("mint", new object[] { sender });
             return new BigInteger[] { amountA, amountB, liquidity };
         }
 
@@ -106,6 +101,7 @@ namespace FlamingoSwapRouter
             SafeTransfer(pairContract, sender, pairContract, liquidity);
 
             var amounts = pairContract.DynamicBurn(sender);
+            //var amounts = (byte[])Contract.Call(pairContract, "burn", CallFlags.All, sender);
             var tokenAIsToken0 = tokenA.ToUInteger() < tokenB.ToUInteger();
             var amountA = tokenAIsToken0 ? amounts[0] : amounts[1];
             var amountB = tokenAIsToken0 ? amounts[1] : amounts[0];
@@ -226,8 +222,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
         {
-            //var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.All, new object[0]);
-            var reserveData = ((Func<string, object[], ReservesData>)((byte[])GetExchangePairWithAssert(tokenA, tokenB)).ToDelegate())("getReserves", new object[0]);
+            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.All, new object[] { });
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
@@ -319,7 +314,7 @@ namespace FlamingoSwapRouter
                 var pairContract = GetExchangePairWithAssert(input, output);
                 //从pair[n,n+1]中转出amount[n+1]到pair[n+1,n+2]
                 //pairContract.DynamicSwap(amount0Out, amount1Out, to);//+0.05gas
-                ((Func<string, object[], BigInteger[]>)((byte[])pairContract).ToDelegate())("swap", new object[] { amount0Out, amount1Out, to });
+                Contract.Call(pairContract, "swap", CallFlags.All, new object[] { amount0Out, amount1Out, to });
             }
         }
 

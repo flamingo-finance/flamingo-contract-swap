@@ -1,10 +1,8 @@
-﻿using System;
-using System.ComponentModel;
-using System.Numerics;
+﻿using System.ComponentModel;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
-using Neo.SmartContract.Framework.Services.System;
+using Neo.SmartContract.Framework.Services;
+using System.Numerics;
 
 namespace FlamingoSwapPairWhiteList
 {
@@ -13,14 +11,14 @@ namespace FlamingoSwapPairWhiteList
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
     [ContractPermission("*")]//avoid native contract hash change
-    partial class FlamingoSwapPairWhiteList : SmartContract
+    public partial class FlamingoSwapPairWhiteList : SmartContract
     {
 
         /// <summary>
         /// 白名单存储区前缀，只允许一字节
         /// todo:换成0xff?
         /// </summary>
-        private static readonly byte[] WhiteListPrefix = { 0x77 };
+        private static readonly byte[] WhiteListPrefix = new byte[]{ 0x77 };
 
 
         #region 通知
@@ -80,7 +78,10 @@ namespace FlamingoSwapPairWhiteList
         public static bool CheckRouter(UInt160 router)
         {
             var key = WhiteListPrefix.Concat(router);
-            var value = ((byte[])StorageGet(key)).ToBigInteger();
+            var getraw = StorageGet(key);
+            if (getraw == null)
+                return false;
+            var value = new BigInteger((byte[])getraw);
             return value > 0;
         }
 

@@ -1,21 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapPairWhiteList
 {
-    partial class FlamingoSwapPairWhiteList
+    public partial class FlamingoSwapPairWhiteList
     {
         #region Admin
 
-#warning 检查此处的 Admin 地址是否为最新地址
-        static readonly UInt160 superAdmin = "NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp".ToScriptHash();
+        #warning 检查此处的 Admin 地址是否为最新地址
+        [InitialValue("NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp", Neo.SmartContract.ContractParameterType.Hash160)]
+        static readonly UInt160 superAdmin = default;
         const string AdminKey = nameof(superAdmin);
+
 
 
         // When this contract address is included in the transaction signature,

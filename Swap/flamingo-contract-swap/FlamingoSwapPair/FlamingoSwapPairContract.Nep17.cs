@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Neo;
-using Neo.SmartContract;
-using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services.Neo;
-using Neo.SmartContract.Framework.Services.System;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapPair
 {
@@ -23,11 +16,11 @@ namespace FlamingoSwapPair
         public static bool Transfer(UInt160 from, UInt160 to, BigInteger amount, object data)
         {
             if (amount <= 0) throw new Exception("The parameter amount MUST be greater than 0.");
-            if (!Runtime.CheckWitness(from) && !from.Equals(ExecutionEngine.CallingScriptHash)) throw new Exception("No authorization.");
-            var me = ExecutionEngine.ExecutingScriptHash;
+            if (!Runtime.CheckWitness(from) && !from.Equals(Runtime.CallingScriptHash)) throw new Exception("No authorization.");
+            var me = Runtime.ExecutingScriptHash;
             if (to == me)
             {
-                Assert(CheckIsRouter(ExecutionEngine.CallingScriptHash), "Only support transfer to me by Router");
+                Assert(CheckIsRouter(Runtime.CallingScriptHash), "Only support transfer to me by Router");
             }
             if (AssetStorage.Get(from) < amount) throw new Exception("Insufficient balance.");
             if (from == to) return true;
@@ -83,11 +76,11 @@ namespace FlamingoSwapPair
 
             public static void Reduce(BigInteger value) => Put(Get() - value);
 
-            public static void Put(BigInteger value) => Storage.CurrentContext.CreateMap(mapName).Put(key, value);
+            public static void Put(BigInteger value) => new StorageMap(Storage.CurrentContext,mapName).Put(key, value);
 
             public static BigInteger Get()
             {
-                var value = Storage.CurrentContext.CreateMap(mapName).Get(key);
+                var value = new StorageMap(Storage.CurrentContext,mapName).Get(key);
                 return value is null ? 0 : (BigInteger)value;
             }
         }
@@ -99,9 +92,9 @@ namespace FlamingoSwapPair
 
             public static void Increase(UInt160 key, BigInteger value) => Put(key, Get(key) + value);
 
-            public static void Enable() => Storage.CurrentContext.CreateMap(mapName).Put("enable", 1);
+            public static void Enable() => new StorageMap(Storage.CurrentContext,mapName).Put("enable", 1);
 
-            public static void Disable() => Storage.CurrentContext.CreateMap(mapName).Put("enable", 0);
+            public static void Disable() => new StorageMap(Storage.CurrentContext,mapName).Put("enable", 0);
 
             public static void Reduce(UInt160 key, BigInteger value)
             {
@@ -112,17 +105,17 @@ namespace FlamingoSwapPair
                     Put(key, oldValue - value);
             }
 
-            public static void Put(UInt160 key, BigInteger value) => Storage.CurrentContext.CreateMap(mapName).Put(key, value);
+            public static void Put(UInt160 key, BigInteger value) => new StorageMap(Storage.CurrentContext,mapName).Put(key, value);
 
             public static BigInteger Get(UInt160 key)
             {
-                var value = Storage.CurrentContext.CreateMap(mapName).Get(key);
+                var value = new StorageMap(Storage.CurrentContext,mapName).Get(key);
                 return value is null ? 0 : (BigInteger)value;
             }
 
-            public static bool GetPaymentStatus() => Storage.CurrentContext.CreateMap(mapName).Get("enable").Equals(1);
+            public static bool GetPaymentStatus() => new StorageMap(Storage.CurrentContext,mapName).Get("enable").Equals(1);
 
-            public static void Remove(UInt160 key) => Storage.CurrentContext.CreateMap(mapName).Delete(key);
+            public static void Remove(UInt160 key) => new StorageMap(Storage.CurrentContext,mapName).Delete(key);
         }
     }
 }
