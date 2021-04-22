@@ -2,13 +2,12 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-rc1" />
-    <PackageReference Include="Neo3.Compiler.Dev" Version="3.0.0-rc1" />
+    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-CI00309" />
+    <PackageReference Include="Neo3.Compiler.CSharp.Dev" Version="3.0.0-dev1" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(neon3) -f &quot;$(TargetPath)&quot; -o" />
+    <Exec Command="$(neon3) $(ProjectDir)" />
   </Target>
 </Project>
