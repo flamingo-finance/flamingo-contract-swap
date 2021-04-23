@@ -65,7 +65,7 @@ namespace FlamingoSwapFactory
             Assert(tokenA != tokenB, "Identical Address", tokenA);
             var key = GetPairKey(tokenA, tokenB);
             var value = StorageGet(key);
-            Assert(value == null || value.Length == 0, "Exchange had created");
+            Assert(value == null || value.Length == 0, "Exchange Already Existed");
 
             StoragePut(key, exchangeContractHash);
             onCreateExchange(tokenA, tokenB, exchangeContractHash);
@@ -82,10 +82,10 @@ namespace FlamingoSwapFactory
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             var contract = ContractManagement.GetContract(exchangeContractHash);
-            Assert(contract != null, "ExchangeContractHash is not existed");
+            Assert(contract != null, "Not Deployed");
             var token0 = (UInt160)Contract.Call(exchangeContractHash, "getToken0", CallFlags.All, new object[0]);
             var token1 = (UInt160)Contract.Call(exchangeContractHash, "getToken1", CallFlags.All, new object[0]);
-            Assert(token0 != null && token1 != null, "token0 or token1 is not exited");
+            Assert(token0 != null && token1 != null, "Token Invalid");
             var key = GetPairKey(token0, token1);
             //var value = StorageGet(key);
             //if (value != null)

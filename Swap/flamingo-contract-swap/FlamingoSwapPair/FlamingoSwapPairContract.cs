@@ -202,13 +202,13 @@ namespace FlamingoSwapPair
             var me = Runtime.ExecutingScriptHash;
 
             //转出量必需一个为0一个为正数
-            Assert(amount0Out * amount1Out == 0 && (amount0Out > 0 || amount1Out > 0), "INSUFFICIENT_OUTPUT_AMOUNT");
+            Assert(amount0Out * amount1Out == 0 && (amount0Out > 0 || amount1Out > 0), "Invalid AmountOut");
             var r = ReservePair;
             var reserve0 = r.Reserve0;
             var reserve1 = r.Reserve1;
 
             //转出量小于持有量
-            Assert(amount0Out < reserve0 && amount1Out < reserve1, "INSUFFICIENT_LIQUIDITY");
+            Assert(amount0Out < reserve0 && amount1Out < reserve1, "Insufficient Liquidity");
             //禁止转到token本身的地址
             Assert(toAddress != (UInt160)Token0 && toAddress != (UInt160)Token1, "INVALID_TO");
             if (amount0Out > 0)
@@ -231,7 +231,7 @@ namespace FlamingoSwapPair
             var amount0In = balance0 > (reserve0 - amount0Out) ? balance0 - (reserve0 - amount0Out) : 0;
             var amount1In = balance1 > (reserve1 - amount1Out) ? balance1 - (reserve1 - amount1Out) : 0;
             //swap 时至少有一个转入
-            Assert(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
+            Assert(amount0In > 0 || amount1In > 0, "Invalid AmountIn");
 
             //amountIn 收取千分之三手续费
             var balance0Adjusted = balance0 * 1000 - amount0In * 3;
@@ -272,7 +272,7 @@ namespace FlamingoSwapPair
             var amount0 = liquidity * balance0 / totalSupply;//要销毁(转出)的token0额度：me持有的token0 * (me持有的me token/me token总量）
             var amount1 = liquidity * balance1 / totalSupply;
 
-            Assert(amount0 > 0 && amount1 > 0, "INSUFFICIENT_LIQUIDITY_BURNED");
+            Assert(amount0 > 0 && amount1 > 0, "Insufficient LP Burned");
             BurnToken(me, liquidity);
 
             //从本合约转出token
@@ -332,7 +332,7 @@ namespace FlamingoSwapPair
                 liquidity = liquidity0 > liquidity1 ? liquidity1 : liquidity0;
             }
 
-            Assert(liquidity > 0, "INSUFFICIENT_LIQUIDITY_MINTED");
+            Assert(liquidity > 0, "Insufficient LP Minted");
             MintToken(toAddress, liquidity);
 
             Update(balance0, balance1, r);

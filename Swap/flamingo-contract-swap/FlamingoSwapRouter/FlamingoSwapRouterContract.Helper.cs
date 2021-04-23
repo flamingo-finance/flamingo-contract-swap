@@ -73,7 +73,7 @@ namespace FlamingoSwapRouter
             var pairContract = (byte[])Contract.Call((UInt160)Factory, "getExchangePair", CallFlags.All, new object[] { tokenA, tokenB });
             if (pairContract == null || pairContract.Length != 20)
             {
-                Throw("Cannot Find PairContract", tokenA, tokenB);
+                Throw("PairContract Not Found", tokenA, tokenB);
             }
             //Assert(pairContract.Length == 20, "cannot find pairContract");//+0.02 gas
             return (UInt160)pairContract;
