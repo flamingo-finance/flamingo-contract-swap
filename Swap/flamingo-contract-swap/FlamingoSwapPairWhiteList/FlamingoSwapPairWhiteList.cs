@@ -20,26 +20,6 @@ namespace FlamingoSwapPairWhiteList
         /// </summary>
         private static readonly byte[] WhiteListPrefix = new byte[]{ 0x77 };
 
-
-        #region 通知
-
-        /// <summary>
-        /// params: routerHash
-        /// </summary>
-        [DisplayName("addRouter")]
-        private static event AddRouterEvent onAddRouter;
-        private delegate void AddRouterEvent(UInt160 router);
-
-        /// <summary>
-        /// params: routerHash
-        /// </summary>
-        [DisplayName("removeRouter")]
-        private static event RemoveRouterEvent onRemoveRouter;
-        private delegate void RemoveRouterEvent(UInt160 router);
-
-
-        #endregion
-
         /// <summary>
         /// 增加router白名单，加过白名单的router才能完成burn
         /// </summary>

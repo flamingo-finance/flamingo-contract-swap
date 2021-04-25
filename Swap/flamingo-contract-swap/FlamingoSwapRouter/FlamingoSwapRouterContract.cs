@@ -14,7 +14,6 @@ namespace FlamingoSwapRouter
     [ContractPermission("*")]//avoid native contract hash change
     public partial class FlamingoSwapRouterContract : SmartContract
     {
-
         /// <summary>
         /// 
         /// </summary>
@@ -121,11 +120,7 @@ namespace FlamingoSwapRouter
         /// <param name="reserveB">tokenB的总量</param>
         public static BigInteger Quote(BigInteger amountA, BigInteger reserveA, BigInteger reserveB)
         {
-            if (amountA <= 0 || reserveA <= 0 || reserveB <= 0)
-            {
-                Throw("Amount|Reserve Invalid", amountA, reserveA, reserveB);
-            }
-
+            Assert(amountA > 0 && reserveA > 0 && reserveB > 0, "Amount|Reserve Invalid", amountA, reserveA, reserveB);
             var amountB = amountA * reserveB / reserveA;
             return amountB;
         }

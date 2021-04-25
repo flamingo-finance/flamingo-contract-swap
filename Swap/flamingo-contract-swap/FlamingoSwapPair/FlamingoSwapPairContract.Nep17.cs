@@ -28,7 +28,7 @@ namespace FlamingoSwapPair
             AssetStorage.Reduce(from, amount);
             AssetStorage.Increase(to, amount);
 
-            OnTransfer(from, to, amount);
+            onTransfer(from, to, amount);
 
             // Validate payable
             if (ContractManagement.GetContract(to) != null)

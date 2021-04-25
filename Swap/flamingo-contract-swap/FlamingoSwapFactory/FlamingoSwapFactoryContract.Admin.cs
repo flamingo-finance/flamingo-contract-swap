@@ -11,7 +11,7 @@ namespace FlamingoSwapFactory
         #region Admin
 
 #warning 检查此处的 Admin 地址是否为最新地址
-        [InitialValue("NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("NPS3U9PduobRCai5ZUdK2P3Y8RjwzMVfSg", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
         const string AdminKey = nameof(superAdmin);
 
@@ -53,10 +53,11 @@ namespace FlamingoSwapFactory
         /// </summary>
         /// <param name="nefFile"></param>
         /// <param name="manifest"></param>
-        public static void Update(ByteString nefFile, string manifest)
+        /// <param name="data"></param>
+        public static void Update(ByteString nefFile, string manifest, object data)
         {
             if (!Verify()) throw new Exception("No authorization.");
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, data);
         }
 
 

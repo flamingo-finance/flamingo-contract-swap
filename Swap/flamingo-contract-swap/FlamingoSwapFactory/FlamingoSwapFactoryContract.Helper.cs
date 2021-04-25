@@ -7,19 +7,18 @@ namespace FlamingoSwapFactory
 {
     public partial class FlamingoSwapFactoryContract
     {
-
         /// <summary>
-        /// send notify
+        /// 断言
         /// </summary>
+        /// <param name="condition"></param>
         /// <param name="message"></param>
-        private static void Notify(string message)
+        private static void Assert(bool condition, string message)
         {
-            Notify(message, new object[0]);
+            if (!condition)
+            {
+                throw new Exception(message);
+            }
         }
-
-        [Syscall("System.Runtime.Notify")]
-        private static extern void Notify(string eventName, params object[] data);
-
 
         /// <summary>
         /// 断言
@@ -31,21 +30,11 @@ namespace FlamingoSwapFactory
         {
             if (!condition)
             {
-                Notify("Fault:" + message, data);
+                onFault(message, data);
                 throw new Exception(message);
             }
         }
 
-
-        ///// <summary>
-        ///// 断言Address为有效的地址格式
-        ///// </summary>
-        ///// <param name="input"></param>
-        ///// <param name="name"></param>
-        //private static void AssertAddress(byte[] input, string name)
-        //{
-        //    Assert(input.Length == 20 && input.AsBigInteger() != 0, name + " is not address", input);
-        //}
 
 
         [OpCode(OpCode.APPEND)]
@@ -68,7 +57,7 @@ namespace FlamingoSwapFactory
         private static ByteString StorageGet(byte[] key)
         {
             return Storage.Get(Storage.CurrentContext, key);
-        } 
+        }
 
         private static void StoragePut(ByteString key, ByteString value)
         {

@@ -17,28 +17,7 @@ namespace FlamingoSwapFactory
         /// <summary>
         /// 交易对列表的存储区前缀，只允许一字节
         /// </summary>
-        private static readonly byte[] ExchangeMapKey = new byte[]{ 0xff };
-
-
-        #region 通知
-
-        /// <summary>
-        /// params: tokenA,tokenB,exchangeContractHash
-        /// </summary>
-        [DisplayName("createExchange")]
-        private static event CreateExchangeEvent onCreateExchange;
-        private delegate void CreateExchangeEvent(UInt160 tokenA, UInt160 tokenB, UInt160 exchangeContractHash);
-
-        /// <summary>
-        /// params: tokenA,tokenB
-        /// </summary>
-        [DisplayName("removeExchange")]
-        private static event RemoveExchangeEvent onRemoveExchange;
-        private delegate void RemoveExchangeEvent(UInt160 tokenA, UInt160 tokenB);
-
-
-        #endregion
-
+        private static readonly byte[] ExchangeMapKey = new byte[] { 0xff };
 
         /// <summary>
         /// 查询交易对合约,ByteString 可以为null，交给调用端判断
@@ -53,7 +32,7 @@ namespace FlamingoSwapFactory
         }
 
         /// <summary>
-        /// 增加nep5资产的exchange合约映射
+        /// 增加nep17资产的exchange合约映射
         /// </summary>
         /// <param name="tokenA">Nep5 tokenA</param>
         /// <param name="tokenB">Nep5 tokenB</param>
@@ -74,7 +53,7 @@ namespace FlamingoSwapFactory
 
 
         /// <summary>
-        /// 增加nep5资产的exchange合约映射
+        /// 增加nep17资产的exchange合约映射
         /// </summary>
         /// <param name="exchangeContractHash"></param>
         /// <returns></returns>
@@ -98,7 +77,7 @@ namespace FlamingoSwapFactory
         }
 
         /// <summary>
-        /// 删除nep5资产的exchange合约映射
+        /// 删除nep17资产的exchange合约映射
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
@@ -120,7 +99,7 @@ namespace FlamingoSwapFactory
 
 
         /// <summary>
-        /// 获得nep5资产的exchange合约映射
+        /// 获得nep17资产的exchange合约映射
         /// </summary>
         /// <returns></returns>
         public static ExchangePair[] GetAllExchangePair()

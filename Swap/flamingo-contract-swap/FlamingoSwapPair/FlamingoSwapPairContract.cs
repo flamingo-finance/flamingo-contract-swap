@@ -21,111 +21,6 @@ namespace FlamingoSwapPair
         /// </summary>
         const long MINIMUM_LIQUIDITY = 1000;
 
-        #region 通知
-
-        /// <summary>
-        /// 同步持有量Synced（reserve0，reserve1）
-        /// </summary>
-        private static event SyncedEvent Synced;
-        private delegate void SyncedEvent(BigInteger balance0, BigInteger balance1);
-
-        /// <summary>
-        /// 铸币事件 Minted(caller,amount0,amount1,liquidity)
-        /// </summary>
-        private static event MintedEvent Minted;
-        private delegate void MintedEvent(UInt160 caller, BigInteger amount0, BigInteger amount1, BigInteger liquidity);
-
-        /// <summary>
-        /// 销毁事件 Burned(caller,liquidity,amount0,amount1,to)
-        /// </summary>
-        private static event BurnedEvent Burned;
-        private delegate void BurnedEvent(UInt160 caller, BigInteger liquidity, BigInteger amount0, BigInteger amount1, UInt160 to);
-
-        /// <summary>
-        /// 兑换事件
-        /// </summary>
-        private static event SwappedEvent Swapped;
-        private delegate void SwappedEvent(UInt160 caller, BigInteger amount0In, BigInteger amount1In, BigInteger amount0Out, BigInteger amount1Out, UInt160 to);
-
-        /// <summary>
-        /// Deploy事件
-        /// </summary>
-        private static event DeployedEvent Deployed;
-        private delegate void DeployedEvent(UInt160 token0, UInt160 token1);
-
-        [DisplayName("Transfer")]
-        public static event OnTransferEvent OnTransfer;
-        public delegate void OnTransferEvent(UInt160 from, UInt160 to, BigInteger amount);
-        #endregion
-
-
-        //public static object Main(string method, object[] args)
-        //{
-        //    if (Runtime.Trigger == TriggerType.Verification)
-        //    {
-        //        return Runtime.CheckWitness(GetAdmin());
-        //    }
-        //    else if (Runtime.Trigger == TriggerType.Application)
-        //    {
-        //        //合约调用时，等价以太坊的msg.sender
-        //        //直接调用时，此处为 tx.Script.ToScriptHash();
-        //        var msgSender = ExecutionEngine.CallingScriptHash;
-
-        //        if (method == "getReserves") return ReservePair;
-
-        //        if (method == "mint") return Mint(msgSender, (byte[])args[0]);//msgSender应当为router
-
-        //        if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
-
-        //        if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
-
-        //        if (method == "transfer") return Transfer((byte[])args[0], (byte[])args[1], (BigInteger)args[2], msgSender);
-
-        //        if (method == "balanceOf") return BalanceOf((byte[])args[0]);
-
-        //        if (method == "decimals") return Decimals();
-
-        //        if (method == "name") return Name();
-
-        //        if (method == "symbol") return Symbol();
-
-        //        if (method == "supportedStandards") return SupportedStandards();
-
-        //        if (method == "totalSupply") return GetTotalSupply();
-
-        //        if (method == "getToken0") return Token0;
-
-        //        if (method == "getToken1") return Token1;
-
-        //        if (method == "getAdmin") return GetAdmin();
-
-        //        if (method == "setAdmin") return SetAdmin((byte[])args[0]);
-
-        //        if (method == "getWhiteListContract") return GetWhiteListContract();
-
-        //        if (method == "setWhiteListContract") return SetWhiteListContract((byte[])args[0]);
-
-        //        if (method == "checkIsRouter") return CheckIsRouter((byte[])args[0]);
-
-        //        if (method == "upgrade")
-        //        {
-        //            Assert(args.Length == 9, "upgrade: args.Length != 9");
-        //            byte[] script = (byte[])args[0];
-        //            byte[] plist = (byte[])args[1];
-        //            byte rtype = (byte)args[2];
-        //            ContractPropertyState cps = (ContractPropertyState)args[3];
-        //            string name = (string)args[4];
-        //            string version = (string)args[5];
-        //            string author = (string)args[6];
-        //            string email = (string)args[7];
-        //            string description = (string)args[8];
-        //            return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
-        //        }
-
-        //    }
-        //    return false;
-        //}
-
 
         /// <summary>
         /// 合约初始化
@@ -351,7 +246,7 @@ namespace FlamingoSwapPair
         {
             AssetStorage.Increase(toAddress, amount);
             TotalSupplyStorage.Increase(amount);
-            OnTransfer(null, toAddress, amount);
+            onTransfer(null, toAddress, amount);
         }
 
         /// <summary>
@@ -363,7 +258,7 @@ namespace FlamingoSwapPair
         {
             AssetStorage.Reduce(fromAddress, amount);
             TotalSupplyStorage.Reduce(amount);
-            OnTransfer(fromAddress, null, amount);
+            onTransfer(fromAddress, null, amount);
         }
 
 
