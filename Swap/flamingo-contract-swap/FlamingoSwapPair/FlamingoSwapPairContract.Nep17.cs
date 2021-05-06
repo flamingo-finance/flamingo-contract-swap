@@ -20,7 +20,7 @@ namespace FlamingoSwapPair
             var me = Runtime.ExecutingScriptHash;
             if (to == me)
             {
-                Assert(CheckIsRouter(Runtime.CallingScriptHash), "Only support transfer to me by Router");
+                Assert(CheckIsRouter(Runtime.CallingScriptHash), "Not Allowed To Transfer");
             }
             if (AssetStorage.Get(from) < amount) throw new Exception("Insufficient balance.");
             if (from == to) return true;
@@ -28,7 +28,7 @@ namespace FlamingoSwapPair
             AssetStorage.Reduce(from, amount);
             AssetStorage.Increase(to, amount);
 
-            OnTransfer(from, to, amount);
+            onTransfer(from, to, amount);
 
             // Validate payable
             if (ContractManagement.GetContract(to) != null)

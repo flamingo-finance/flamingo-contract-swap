@@ -8,19 +8,6 @@ namespace FlamingoSwapPairWhiteList
     partial class FlamingoSwapPairWhiteList
     {
         /// <summary>
-        /// send notify
-        /// </summary>
-        /// <param name="message"></param>
-        private static void Notify(string message)
-        {
-            Notify(message, new object[0]);
-        }
-
-        [Syscall("System.Runtime.Notify")]
-        private static extern void Notify(string eventName, params object[] data);
-
-
-        /// <summary>
         /// 断言
         /// </summary>
         /// <param name="condition"></param>
@@ -29,21 +16,11 @@ namespace FlamingoSwapPairWhiteList
         {
             if (!condition)
             {
-                Notify("Fault:" + message);
                 throw new Exception(message);
             }
         }
 
-        ///// <summary>
-        ///// 断言,节约gas
-        ///// </summary>
-        ///// <param name="condition"></param>
-        ///// <param name="message"></param>
-        //[OpCode(OpCode.THROWIFNOT)]
-        //[OpCode(OpCode.DROP)]
-        //private static extern void Assert(bool condition, string message);
-
-
+        
         [OpCode(OpCode.APPEND)]
         private static extern void Append<T>(T[] array, T newItem);
 

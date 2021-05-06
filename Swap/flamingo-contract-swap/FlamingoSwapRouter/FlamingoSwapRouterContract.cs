@@ -14,7 +14,6 @@ namespace FlamingoSwapRouter
     [ContractPermission("*")]//avoid native contract hash change
     public partial class FlamingoSwapRouterContract : SmartContract
     {
-
         /// <summary>
         /// 
         /// </summary>
@@ -106,8 +105,8 @@ namespace FlamingoSwapRouter
             var amountA = tokenAIsToken0 ? amounts[0] : amounts[1];
             var amountB = tokenAIsToken0 ? amounts[1] : amounts[0];
 
-            Assert(amountA >= amountAMin, "INSUFFICIENT_A_AMOUNT");
-            Assert(amountB >= amountBMin, "INSUFFICIENT_B_AMOUNT");
+            Assert(amountA >= amountAMin, "Insufficient A Amount");
+            Assert(amountB >= amountBMin, "Insufficient B Amount");
 
             return new BigInteger[] { amountA, amountB };
         }
@@ -121,11 +120,7 @@ namespace FlamingoSwapRouter
         /// <param name="reserveB">tokenB的总量</param>
         public static BigInteger Quote(BigInteger amountA, BigInteger reserveA, BigInteger reserveB)
         {
-            if (amountA <= 0 || reserveA <= 0 || reserveB <= 0)
-            {
-                Throw("amount or reserve Invalid", amountA, reserveA, reserveB);
-            }
-
+            Assert(amountA > 0 && reserveA > 0 && reserveB > 0, "Amount|Reserve Invalid", amountA, reserveA, reserveB);
             var amountB = amountA * reserveB / reserveA;
             return amountB;
         }
@@ -142,7 +137,7 @@ namespace FlamingoSwapRouter
         {
             //    Assert(amountIn > 0, "amountIn should be positive number");
             //    Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
-            Assert(amountIn > 0 && reserveIn > 0 && reserveOut > 0, "amountOut and reserve should be positive number");
+            Assert(amountIn > 0 && reserveIn > 0 && reserveOut > 0, "AmountIn Must > 0");
 
             var amountInWithFee = amountIn * 997;
             var numerator = amountInWithFee * reserveOut;
@@ -162,7 +157,7 @@ namespace FlamingoSwapRouter
         {
             //Assert(amountOut > 0, "amountOut should be positive number");
             //Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
-            Assert(amountOut > 0 && reserveIn > 0 && reserveOut > 0, "amountOut and reserve should be positive number");
+            Assert(amountOut > 0 && reserveIn > 0 && reserveOut > 0, "AmountOut Must > 0");
             var numerator = reserveIn * amountOut * 1000;
             var denominator = (reserveOut - amountOut) * 997;
             var amountIn = (numerator / denominator) + 1;
@@ -246,7 +241,7 @@ namespace FlamingoSwapRouter
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsOut(amountIn, paths);
-            Assert(amounts[amounts.Length - 1] >= amountOutMin, "INSUFFICIENT_OUTPUT_AMOUNT");
+            Assert(amounts[amounts.Length - 1] >= amountOutMin, "Insufficient AmountOut");
 
             var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
             //先将用户的token转入第一个交易对合约
@@ -273,7 +268,7 @@ namespace FlamingoSwapRouter
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsIn(amountOut, paths);
-            Assert(amounts[0] <= amountInMax, "EXCESSIVE_INPUT_AMOUNT");
+            Assert(amounts[0] <= amountInMax, "Excessive AmountIn");
 
             var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
             //先将用户的token转入第一个交易对合约

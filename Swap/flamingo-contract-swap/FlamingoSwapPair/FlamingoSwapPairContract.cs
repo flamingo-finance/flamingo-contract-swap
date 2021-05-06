@@ -21,111 +21,6 @@ namespace FlamingoSwapPair
         /// </summary>
         const long MINIMUM_LIQUIDITY = 1000;
 
-        #region 通知
-
-        /// <summary>
-        /// 同步持有量Synced（reserve0，reserve1）
-        /// </summary>
-        private static event SyncedEvent Synced;
-        private delegate void SyncedEvent(BigInteger balance0, BigInteger balance1);
-
-        /// <summary>
-        /// 铸币事件 Minted(caller,amount0,amount1,liquidity)
-        /// </summary>
-        private static event MintedEvent Minted;
-        private delegate void MintedEvent(UInt160 caller, BigInteger amount0, BigInteger amount1, BigInteger liquidity);
-
-        /// <summary>
-        /// 销毁事件 Burned(caller,liquidity,amount0,amount1,to)
-        /// </summary>
-        private static event BurnedEvent Burned;
-        private delegate void BurnedEvent(UInt160 caller, BigInteger liquidity, BigInteger amount0, BigInteger amount1, UInt160 to);
-
-        /// <summary>
-        /// 兑换事件
-        /// </summary>
-        private static event SwappedEvent Swapped;
-        private delegate void SwappedEvent(UInt160 caller, BigInteger amount0In, BigInteger amount1In, BigInteger amount0Out, BigInteger amount1Out, UInt160 to);
-
-        /// <summary>
-        /// Deploy事件
-        /// </summary>
-        private static event DeployedEvent Deployed;
-        private delegate void DeployedEvent(UInt160 token0, UInt160 token1);
-
-        [DisplayName("Transfer")]
-        public static event OnTransferEvent OnTransfer;
-        public delegate void OnTransferEvent(UInt160 from, UInt160 to, BigInteger amount);
-        #endregion
-
-
-        //public static object Main(string method, object[] args)
-        //{
-        //    if (Runtime.Trigger == TriggerType.Verification)
-        //    {
-        //        return Runtime.CheckWitness(GetAdmin());
-        //    }
-        //    else if (Runtime.Trigger == TriggerType.Application)
-        //    {
-        //        //合约调用时，等价以太坊的msg.sender
-        //        //直接调用时，此处为 tx.Script.ToScriptHash();
-        //        var msgSender = ExecutionEngine.CallingScriptHash;
-
-        //        if (method == "getReserves") return ReservePair;
-
-        //        if (method == "mint") return Mint(msgSender, (byte[])args[0]);//msgSender应当为router
-
-        //        if (method == "burn") return Burn(msgSender, (byte[])args[0]);//msgSender应当为router
-
-        //        if (method == "swap") return Swap(msgSender, (BigInteger)args[0], (BigInteger)args[1], (byte[])args[2]);
-
-        //        if (method == "transfer") return Transfer((byte[])args[0], (byte[])args[1], (BigInteger)args[2], msgSender);
-
-        //        if (method == "balanceOf") return BalanceOf((byte[])args[0]);
-
-        //        if (method == "decimals") return Decimals();
-
-        //        if (method == "name") return Name();
-
-        //        if (method == "symbol") return Symbol();
-
-        //        if (method == "supportedStandards") return SupportedStandards();
-
-        //        if (method == "totalSupply") return GetTotalSupply();
-
-        //        if (method == "getToken0") return Token0;
-
-        //        if (method == "getToken1") return Token1;
-
-        //        if (method == "getAdmin") return GetAdmin();
-
-        //        if (method == "setAdmin") return SetAdmin((byte[])args[0]);
-
-        //        if (method == "getWhiteListContract") return GetWhiteListContract();
-
-        //        if (method == "setWhiteListContract") return SetWhiteListContract((byte[])args[0]);
-
-        //        if (method == "checkIsRouter") return CheckIsRouter((byte[])args[0]);
-
-        //        if (method == "upgrade")
-        //        {
-        //            Assert(args.Length == 9, "upgrade: args.Length != 9");
-        //            byte[] script = (byte[])args[0];
-        //            byte[] plist = (byte[])args[1];
-        //            byte rtype = (byte)args[2];
-        //            ContractPropertyState cps = (ContractPropertyState)args[3];
-        //            string name = (string)args[4];
-        //            string version = (string)args[5];
-        //            string author = (string)args[6];
-        //            string email = (string)args[7];
-        //            string description = (string)args[8];
-        //            return Upgrade(script, plist, rtype, cps, name, version, author, email, description);
-        //        }
-
-        //    }
-        //    return false;
-        //}
-
 
         /// <summary>
         /// 合约初始化
@@ -202,13 +97,13 @@ namespace FlamingoSwapPair
             var me = Runtime.ExecutingScriptHash;
 
             //转出量必需一个为0一个为正数
-            Assert(amount0Out * amount1Out == 0 && (amount0Out > 0 || amount1Out > 0), "INSUFFICIENT_OUTPUT_AMOUNT");
+            Assert(amount0Out * amount1Out == 0 && (amount0Out > 0 || amount1Out > 0), "Invalid AmountOut");
             var r = ReservePair;
             var reserve0 = r.Reserve0;
             var reserve1 = r.Reserve1;
 
             //转出量小于持有量
-            Assert(amount0Out < reserve0 && amount1Out < reserve1, "INSUFFICIENT_LIQUIDITY");
+            Assert(amount0Out < reserve0 && amount1Out < reserve1, "Insufficient Liquidity");
             //禁止转到token本身的地址
             Assert(toAddress != (UInt160)Token0 && toAddress != (UInt160)Token1, "INVALID_TO");
             if (amount0Out > 0)
@@ -231,7 +126,7 @@ namespace FlamingoSwapPair
             var amount0In = balance0 > (reserve0 - amount0Out) ? balance0 - (reserve0 - amount0Out) : 0;
             var amount1In = balance1 > (reserve1 - amount1Out) ? balance1 - (reserve1 - amount1Out) : 0;
             //swap 时至少有一个转入
-            Assert(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
+            Assert(amount0In > 0 || amount1In > 0, "Invalid AmountIn");
 
             //amountIn 收取千分之三手续费
             var balance0Adjusted = balance0 * 1000 - amount0In * 3;
@@ -272,7 +167,7 @@ namespace FlamingoSwapPair
             var amount0 = liquidity * balance0 / totalSupply;//要销毁(转出)的token0额度：me持有的token0 * (me持有的me token/me token总量）
             var amount1 = liquidity * balance1 / totalSupply;
 
-            Assert(amount0 > 0 && amount1 > 0, "INSUFFICIENT_LIQUIDITY_BURNED");
+            Assert(amount0 > 0 && amount1 > 0, "Insufficient LP Burned");
             BurnToken(me, liquidity);
 
             //从本合约转出token
@@ -332,7 +227,7 @@ namespace FlamingoSwapPair
                 liquidity = liquidity0 > liquidity1 ? liquidity1 : liquidity0;
             }
 
-            Assert(liquidity > 0, "INSUFFICIENT_LIQUIDITY_MINTED");
+            Assert(liquidity > 0, "Insufficient LP Minted");
             MintToken(toAddress, liquidity);
 
             Update(balance0, balance1, r);
@@ -351,7 +246,7 @@ namespace FlamingoSwapPair
         {
             AssetStorage.Increase(toAddress, amount);
             TotalSupplyStorage.Increase(amount);
-            OnTransfer(null, toAddress, amount);
+            onTransfer(null, toAddress, amount);
         }
 
         /// <summary>
@@ -363,7 +258,7 @@ namespace FlamingoSwapPair
         {
             AssetStorage.Reduce(fromAddress, amount);
             TotalSupplyStorage.Reduce(amount);
-            OnTransfer(fromAddress, null, amount);
+            onTransfer(fromAddress, null, amount);
         }
 
 

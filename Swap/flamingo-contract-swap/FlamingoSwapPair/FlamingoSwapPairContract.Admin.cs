@@ -11,14 +11,16 @@ namespace FlamingoSwapPair
     {
         #region Settings
 
-        [InitialValue("NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp", Neo.SmartContract.ContractParameterType.Hash160)]
+#warning 检查此处的 Admin 地址是否为最新地址
+        [InitialValue("NPS3U9PduobRCai5ZUdK2P3Y8RjwzMVfSg", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
+#warning 检查此处的 WhiteList 地址是否为最新地址
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
         //注意此处是小端序
-        [InitialValue("07ec11148e5194cef505378f9c136647e014f731", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("e41472f02f6494363a6b48b85dcfdfb819416b84", Neo.SmartContract.ContractParameterType.ByteArray)]
         static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
@@ -31,10 +33,10 @@ namespace FlamingoSwapPair
         /// 两个token地址，无需排序
         /// </summary>
         //注意此处是小端序
-        [InitialValue("a906b8dfb4402a50415ac22f5d040e3218f65c90", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("df366d8b88c0cca6a77495b3ee4ab23575412e49", Neo.SmartContract.ContractParameterType.ByteArray)]
         static readonly UInt160 TokenA = default;
         //注意此处是小端序
-        [InitialValue("98e61d37cc1b60cbb40ec0d17d2e5beee56f96f9", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("d756d587ce4274bef30fff52811ec4fb5ffb9400", Neo.SmartContract.ContractParameterType.ByteArray)]
         static readonly UInt160 TokenB = default;
 
 
@@ -216,35 +218,17 @@ namespace FlamingoSwapPair
 
         #region Upgrade
 
-        //todo:升级
-        //public static byte[] Upgrade(byte[] newScript, byte[] paramList, byte returnType, ContractPropertyState cps, string name, string version, string author, string email, string description)
-        //{
-        //    Assert(Runtime.CheckWitness(GetAdmin()), "upgrade: CheckWitness failed!");
-
-        //    var me = ExecutionEngine.ExecutingScriptHash;
-        //    byte[] newContractHash = Hash160(newScript);
-        //    Assert(Blockchain.GetContract(newContractHash).Serialize().Equals(new byte[] { 0x00, 0x00 }), "upgrade: The contract already exists");
-
-        //    var r = ReservePair;
-        //    SafeTransfer(Token0, me, newContractHash, r.Reserve0);
-        //    SafeTransfer(Token1, me, newContractHash, r.Reserve1);
-
-        //    Contract newContract = Contract.Migrate(newScript, paramList, returnType, cps, name, version, author, email, description);
-
-        //    Runtime.Notify("upgrade", ExecutionEngine.ExecutingScriptHash, newContractHash);
-        //    return newContractHash;
-        //}
-
 
         /// <summary>
         /// 升级
         /// </summary>
         /// <param name="nefFile"></param>
         /// <param name="manifest"></param>
-        public static void Update(ByteString nefFile, string manifest)
+        /// <param name="data"></param>
+        public static void Update(ByteString nefFile, string manifest, object data)
         {
             if (!Verify()) throw new Exception("No authorization.");
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, data);
         }
 
         #endregion

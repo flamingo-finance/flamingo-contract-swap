@@ -9,15 +9,6 @@ namespace FlamingoSwapPair
     public partial class FlamingoSwapPairContract
     {
 
-        /// <summary>
-        /// send notify
-        /// </summary>
-        /// <param name="message"></param>
-        private static void Notify(string message)
-        {
-            Notify(message, new object[0]);
-        }
-
         [Syscall("System.Runtime.Notify")]
         private static extern void Notify(string eventName, params object[] data);
 
@@ -31,20 +22,24 @@ namespace FlamingoSwapPair
         {
             if (!condition)
             {
-                Notify("Fault:" + message);
                 throw new Exception(message);
             }
         }
 
-        ///// <summary>
-        ///// 断言,节约gas
-        ///// </summary>
-        ///// <param name="condition"></param>
-        ///// <param name="message"></param>
-        //[OpCode(OpCode.THROWIFNOT)]
-        //[OpCode(OpCode.DROP)]
-        //private static extern void Assert(bool condition, string message);
-
+        /// <summary>
+        /// 断言
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="message"></param>
+        /// <param name="data"></param>
+        private static void Assert(bool condition, string message, params object[] data)
+        {
+            if (!condition)
+            {
+                onFault(message, data);
+                throw new Exception(message);
+            }
+        }
 
 
         /// <summary>
@@ -86,14 +81,8 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
-            //var result = ((Func<string, object[], bool>)((byte[])token).ToDelegate())("transfer", new object[] { @from, to, amount, null });
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null});
-            if (!result)
-            {
-                Notify("TransferFail", token);
-                throw new Exception("TransferFail");
-            }
-            //Assert(result, "Transfer Fail", token);
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+            Assert(result, "Transfer Fail", token);
         }
 
         /// <summary>
@@ -104,8 +93,6 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static BigInteger DynamicBalanceOf(UInt160 token, UInt160 address)
         {
-            //args[0] = address;
-            //return ((Func<string, object[], BigInteger>)((byte[])token).ToDelegate())("balanceOf", new object[] { address });
             return (BigInteger)Contract.Call(token, "balanceOf", CallFlags.All, new object[] { address });
         }
 
