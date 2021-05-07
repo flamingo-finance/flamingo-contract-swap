@@ -59,30 +59,16 @@ namespace FlamingoSwapRouter
 
         #region Upgrade
 
-        //todo:升级
-        //public static byte[] Upgrade(byte[] newScript, byte[] paramList, byte returnType, ContractPropertyState cps, string name, string version, string author, string email, string description)
-        //{
-        //    Assert(Runtime.CheckWitness(GetAdmin()), "upgrade: CheckWitness failed!");
-
-        //    byte[] newContractHash = Hash160(newScript);
-        //    Assert(Blockchain.GetContract(newContractHash).Serialize().Equals(new byte[] { 0x00, 0x00 }), "upgrade: The contract already exists");
-
-        //    Contract newContract = Contract.Migrate(newScript, paramList, returnType, cps, name, version, author, email, description);
-        //    Runtime.Notify("upgrade", ExecutionEngine.ExecutingScriptHash, newContractHash);
-        //    return newContractHash;
-        //}
-
-
-
         /// <summary>
         /// 升级
         /// </summary>
         /// <param name="nefFile"></param>
         /// <param name="manifest"></param>
-        public static void Update(ByteString nefFile, string manifest)
+        /// <param name="data"></param>
+        public static void Update(ByteString nefFile, string manifest, object data)
         {
             if (!Verify()) throw new Exception("No authorization.");
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, data);
         }
 
         #endregion

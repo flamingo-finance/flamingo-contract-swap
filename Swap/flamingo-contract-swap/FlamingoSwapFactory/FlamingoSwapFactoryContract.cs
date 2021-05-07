@@ -17,28 +17,7 @@ namespace FlamingoSwapFactory
         /// <summary>
         /// 交易对列表的存储区前缀，只允许一字节
         /// </summary>
-        private static readonly byte[] ExchangeMapKey = new byte[]{ 0xff };
-
-
-        #region 通知
-
-        /// <summary>
-        /// params: tokenA,tokenB,exchangeContractHash
-        /// </summary>
-        [DisplayName("createExchange")]
-        private static event CreateExchangeEvent onCreateExchange;
-        private delegate void CreateExchangeEvent(UInt160 tokenA, UInt160 tokenB, UInt160 exchangeContractHash);
-
-        /// <summary>
-        /// params: tokenA,tokenB
-        /// </summary>
-        [DisplayName("removeExchange")]
-        private static event RemoveExchangeEvent onRemoveExchange;
-        private delegate void RemoveExchangeEvent(UInt160 tokenA, UInt160 tokenB);
-
-
-        #endregion
-
+        private static readonly byte[] ExchangeMapKey = new byte[] { 0xff };
 
         /// <summary>
         /// 查询交易对合约,ByteString 可以为null，交给调用端判断
@@ -53,7 +32,7 @@ namespace FlamingoSwapFactory
         }
 
         /// <summary>
-        /// 增加nep5资产的exchange合约映射
+        /// 增加nep17资产的exchange合约映射
         /// </summary>
         /// <param name="tokenA">Nep5 tokenA</param>
         /// <param name="tokenB">Nep5 tokenB</param>
@@ -65,7 +44,7 @@ namespace FlamingoSwapFactory
             Assert(tokenA != tokenB, "Identical Address", tokenA);
             var key = GetPairKey(tokenA, tokenB);
             var value = StorageGet(key);
-            Assert(value == null || value.Length == 0, "Exchange had created");
+            Assert(value == null || value.Length == 0, "Exchange Already Existed");
 
             StoragePut(key, exchangeContractHash);
             onCreateExchange(tokenA, tokenB, exchangeContractHash);
@@ -74,7 +53,7 @@ namespace FlamingoSwapFactory
 
 
         /// <summary>
-        /// 增加nep5资产的exchange合约映射
+        /// 增加nep17资产的exchange合约映射
         /// </summary>
         /// <param name="exchangeContractHash"></param>
         /// <returns></returns>
@@ -82,10 +61,10 @@ namespace FlamingoSwapFactory
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             var contract = ContractManagement.GetContract(exchangeContractHash);
-            Assert(contract != null, "ExchangeContractHash is not existed");
+            Assert(contract != null, "Not Deployed");
             var token0 = (UInt160)Contract.Call(exchangeContractHash, "getToken0", CallFlags.All, new object[0]);
             var token1 = (UInt160)Contract.Call(exchangeContractHash, "getToken1", CallFlags.All, new object[0]);
-            Assert(token0 != null && token1 != null, "token0 or token1 is not exited");
+            Assert(token0 != null && token1 != null, "Token Invalid");
             var key = GetPairKey(token0, token1);
             //var value = StorageGet(key);
             //if (value != null)
@@ -98,7 +77,7 @@ namespace FlamingoSwapFactory
         }
 
         /// <summary>
-        /// 删除nep5资产的exchange合约映射
+        /// 删除nep17资产的exchange合约映射
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
@@ -120,7 +99,7 @@ namespace FlamingoSwapFactory
 
 
         /// <summary>
-        /// 获得nep5资产的exchange合约映射
+        /// 获得nep17资产的exchange合约映射
         /// </summary>
         /// <returns></returns>
         public static ExchangePair[] GetAllExchangePair()

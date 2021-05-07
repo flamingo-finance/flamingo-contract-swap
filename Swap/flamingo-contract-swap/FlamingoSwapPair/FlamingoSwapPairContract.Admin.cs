@@ -15,6 +15,7 @@ namespace FlamingoSwapPair
         [InitialValue("NPS3U9PduobRCai5ZUdK2P3Y8RjwzMVfSg", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
+#warning 检查此处的 WhiteList 地址是否为最新地址
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
@@ -217,35 +218,17 @@ namespace FlamingoSwapPair
 
         #region Upgrade
 
-        //todo:升级
-        //public static byte[] Upgrade(byte[] newScript, byte[] paramList, byte returnType, ContractPropertyState cps, string name, string version, string author, string email, string description)
-        //{
-        //    Assert(Runtime.CheckWitness(GetAdmin()), "upgrade: CheckWitness failed!");
-
-        //    var me = ExecutionEngine.ExecutingScriptHash;
-        //    byte[] newContractHash = Hash160(newScript);
-        //    Assert(Blockchain.GetContract(newContractHash).Serialize().Equals(new byte[] { 0x00, 0x00 }), "upgrade: The contract already exists");
-
-        //    var r = ReservePair;
-        //    SafeTransfer(Token0, me, newContractHash, r.Reserve0);
-        //    SafeTransfer(Token1, me, newContractHash, r.Reserve1);
-
-        //    Contract newContract = Contract.Migrate(newScript, paramList, returnType, cps, name, version, author, email, description);
-
-        //    Runtime.Notify("upgrade", ExecutionEngine.ExecutingScriptHash, newContractHash);
-        //    return newContractHash;
-        //}
-
 
         /// <summary>
         /// 升级
         /// </summary>
         /// <param name="nefFile"></param>
         /// <param name="manifest"></param>
-        public static void Update(ByteString nefFile, string manifest)
+        /// <param name="data"></param>
+        public static void Update(ByteString nefFile, string manifest, object data)
         {
             if (!Verify()) throw new Exception("No authorization.");
-            ContractManagement.Update(nefFile, manifest, null);
+            ContractManagement.Update(nefFile, manifest, data);
         }
 
         #endregion

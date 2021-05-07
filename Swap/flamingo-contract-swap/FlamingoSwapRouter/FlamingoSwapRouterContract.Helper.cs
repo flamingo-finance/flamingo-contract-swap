@@ -8,30 +8,8 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract
     {
-        /// <summary>
-        /// send notify
-        /// </summary>
-        /// <param name="message"></param>
-        private static void Notify(string message)
-        {
-            Notify(message, new object[0]);
-        }
-
         [Syscall("System.Runtime.Notify")]
         private static extern void Notify(string eventName, params object[] data);
-
-        /// <summary>
-        /// 中断执行,节约gas
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="data"></param>
-        private static void Throw(string message, params object[] data)
-        {
-            Notify("Fault:" + message, data);
-            throw new Exception(message);
-        }
-
-
 
         /// <summary>
         /// 断言
@@ -42,25 +20,24 @@ namespace FlamingoSwapRouter
         {
             if (!condition)
             {
-                Notify("Fault:" + message);
                 throw new Exception(message);
             }
         }
 
-
-
-        ///// <summary>
-        ///// 断言,节约gas
-        ///// </summary>
-        ///// <param name="condition"></param>
-        ///// <param name="message"></param>
-        //[OpCode(OpCode.THROWIFNOT)]
-        //[OpCode(OpCode.DROP)]
-        //private static extern void Assert(bool condition, string message);
-
-
-
-
+        /// <summary>
+        /// 断言
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="message"></param>
+        /// <param name="data"></param>
+        private static void Assert(bool condition, string message, params object[] data)
+        {
+            if (!condition)
+            {
+                onFault(message, data);
+                throw new Exception(message);
+            }
+        }
 
         /// <summary>
         /// 安全查询交易对，查不到立即中断合约执行
@@ -71,11 +48,7 @@ namespace FlamingoSwapRouter
         public static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
         {
             var pairContract = (byte[])Contract.Call((UInt160)Factory, "getExchangePair", CallFlags.All, new object[] { tokenA, tokenB });
-            if (pairContract == null || pairContract.Length != 20)
-            {
-                Throw("Cannot Find PairContract", tokenA, tokenB);
-            }
-            //Assert(pairContract.Length == 20, "cannot find pairContract");//+0.02 gas
+            Assert(pairContract != null && pairContract.Length == 20, "PairContract Not Found", tokenA, tokenB);
             return (UInt160)pairContract;
         }
 
@@ -89,12 +62,8 @@ namespace FlamingoSwapRouter
         /// <param name="amount"></param>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to , amount, null });
-            if (!result)
-            {
-                Throw("Transfer Fail", token);
-            }
-            //Assert(result, "Transfer Fail", token);
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+            Assert(result, "Transfer Fail", token);
         }
 
 
