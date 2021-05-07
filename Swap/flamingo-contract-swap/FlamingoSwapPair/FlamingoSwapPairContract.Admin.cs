@@ -11,14 +11,15 @@ namespace FlamingoSwapPair
     {
         #region Settings
 
-        [InitialValue("NMA2FKN8up2cEwaJgtmAiDrZWB69ApnDfp", Neo.SmartContract.ContractParameterType.Hash160)]
+#warning 检查此处的 Admin 地址是否为最新地址
+        [InitialValue("NPS3U9PduobRCai5ZUdK2P3Y8RjwzMVfSg", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
         //注意此处是小端序
-        [InitialValue("07ec11148e5194cef505378f9c136647e014f731", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("fb19673ddbf7672042681ad018154bb100028556", Neo.SmartContract.ContractParameterType.ByteArray)]
         static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
@@ -31,10 +32,10 @@ namespace FlamingoSwapPair
         /// 两个token地址，无需排序
         /// </summary>
         //注意此处是小端序
-        [InitialValue("a906b8dfb4402a50415ac22f5d040e3218f65c90", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("9e515e197ca045415fe92f74eab5db800c0551b7", Neo.SmartContract.ContractParameterType.ByteArray)]
         static readonly UInt160 TokenA = default;
         //注意此处是小端序
-        [InitialValue("98e61d37cc1b60cbb40ec0d17d2e5beee56f96f9", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("69014dd6601062494e1c570b9f3fed2f46d3bbf8", Neo.SmartContract.ContractParameterType.ByteArray)]
         static readonly UInt160 TokenB = default;
 
 
