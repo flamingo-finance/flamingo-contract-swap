@@ -88,11 +88,9 @@ namespace FlamingoSwapPair
         /// <param name="amount0Out">已经计算好的token0 转出量</param>
         /// <param name="amount1Out">已经计算好的token1 转出量</param>
         /// <param name="toAddress"></param>
-        public static bool Swap(BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress)
+        public static bool Swap(BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress, byte[] data = null)
         {
             var caller = Runtime.CallingScriptHash;
-
-            Assert(CheckIsRouter(caller), "Only Router Can Swap");
 
             var me = Runtime.ExecutingScriptHash;
 
@@ -109,12 +107,12 @@ namespace FlamingoSwapPair
             if (amount0Out > 0)
             {
                 //从本合约转出目标token到目标地址
-                SafeTransfer(Token0, me, toAddress, amount0Out);
+                SafeTransfer(Token0, me, toAddress, amount0Out, data);
             }
 
             if (amount1Out > 0)
             {
-                SafeTransfer(Token1, me, toAddress, amount1Out);
+                SafeTransfer(Token1, me, toAddress, amount1Out, data);
             }
 
 
