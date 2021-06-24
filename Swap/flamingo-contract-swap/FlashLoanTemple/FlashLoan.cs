@@ -15,23 +15,39 @@ namespace FlashLoanTemple
     [ContractPermission("*")]//avoid native contract hash change
     public class FlashLoan : SmartContract
     {
-        [InitialValue("NaBUWGCLWFZTGK4V9f4pecuXmEijtGXMNX", ContractParameterType.Hash160)]
+        [InitialValue("NVWZmsKJaiKNdKMg6yQPPCNHP4GDZUELJW", ContractParameterType.Hash160)]
         private static readonly UInt160 InitialOwner;
 
-        public static void onNEP17Payment(UInt160 from, BigInteger amount, byte[] data)
+        public delegate void Notify(params object[] arg);
+        [DisplayName("event_name")]
+        public static event Notify OnNotify;
+
+        public static bool Verify()
+        {
+            return Runtime.CheckWitness(InitialOwner);
+        }
+
+        public static void onNEP17Payment(UInt160 from, BigInteger amount, BigInteger data)
         {
             UInt160 tokenHash = Runtime.CallingScriptHash;
+            if (!data.Equals(123)) return;
+
             BigInteger amountBack = amount * 1000 / 997 + 1;
+
             UInt160 @this = Runtime.ExecutingScriptHash;
 
-#region Do whatever you want
+            #region Do whatever you want
             //just for test
-            Contract.Call(tokenHash, "mint", CallFlags.All, new object[] { @this, @this, amount});
-            BigInteger balanceOf = (BigInteger)Contract.Call(tokenHash, "balanceOf", CallFlags.All, new object[] { @this });
-            Contract.Call(tokenHash, "transfer", CallFlags.All, new object[] { @this, InitialOwner, balanceOf - amountBack});
-#endregion
 
-            Contract.Call(tokenHash, "transfer", CallFlags.All, new object[] { @this, from, amountBack, null });
+            BigInteger balanceOf = (BigInteger)Contract.Call(tokenHash, "balanceOf", CallFlags.All, new object[] { @this });
+            OnNotify(data);
+            OnNotify("this is operation of flash loan...");
+            OnNotify(balanceOf);
+
+            Contract.Call(tokenHash, "transfer", CallFlags.All, new object[] { @this, InitialOwner, balanceOf - amountBack, data});
+            #endregion
+
+            Contract.Call(tokenHash, "transfer", CallFlags.All, new object[] { @this, from, amountBack, data });
         }
     }
 }
