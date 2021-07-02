@@ -80,6 +80,20 @@ namespace FlamingoSwapPair
         #endregion
 
 
+        public static class EnteredStorage
+        {
+            public static readonly string mapName = "entered";
+
+            public static void Put(BigInteger value) => new StorageMap(Storage.CurrentContext, mapName).Put(mapName, value);
+
+            public static BigInteger Get()
+            {
+                var value = new StorageMap(Storage.CurrentContext, mapName).Get(mapName);
+                return value is null ? 0 : (BigInteger)value;
+            }
+        }
+
+
         #region Swap
 
         /// <summary>
@@ -90,6 +104,10 @@ namespace FlamingoSwapPair
         /// <param name="toAddress"></param>
         public static bool Swap(BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress, byte[] data = null)
         {
+            //检查是否存在reentery的情况
+            Assert(EnteredStorage.Get() == 0, "Re-entered");
+            EnteredStorage.Put(1);
+
             var caller = Runtime.CallingScriptHash;
 
             var me = Runtime.ExecutingScriptHash;
@@ -136,6 +154,7 @@ namespace FlamingoSwapPair
             Update(balance0, balance1, r);
 
             Swapped(caller, amount0In, amount1In, amount0Out, amount1Out, toAddress);
+            EnteredStorage.Put(0);
             return true;
         }
 
@@ -152,6 +171,10 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         public static object Burn(UInt160 toAddress)
         {
+            //检查是否存在reentery的情况
+            Assert(EnteredStorage.Get() == 0, "Re-entered");
+            EnteredStorage.Put(1);
+
             var caller = Runtime.CallingScriptHash;
             Assert(CheckIsRouter(caller), "Only Router Can Burn");
             var me = Runtime.ExecutingScriptHash;
@@ -179,6 +202,7 @@ namespace FlamingoSwapPair
 
             Burned(caller, liquidity, amount0, amount1, toAddress);
 
+            EnteredStorage.Put(0);
             return new BigInteger[]
             {
                 amount0,
@@ -194,6 +218,9 @@ namespace FlamingoSwapPair
         /// <returns>返回本次铸币量</returns>
         public static BigInteger Mint(UInt160 toAddress)
         {
+            //检查是否存在reentery的情况
+            Assert(EnteredStorage.Get() == 0, "Re-entered");
+            EnteredStorage.Put(1);
             var caller = Runtime.CallingScriptHash;
             Assert(CheckIsRouter(caller), "Only Router Can Mint");
 
@@ -231,6 +258,8 @@ namespace FlamingoSwapPair
             Update(balance0, balance1, r);
 
             Minted(caller, amount0, amount1, liquidity);
+
+            EnteredStorage.Put(0);
             return liquidity;
         }
 
