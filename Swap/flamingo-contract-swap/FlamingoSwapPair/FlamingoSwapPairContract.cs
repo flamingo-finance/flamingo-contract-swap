@@ -104,7 +104,7 @@ namespace FlamingoSwapPair
         /// <param name="toAddress"></param>
         public static bool Swap(BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress, byte[] data = null)
         {
-            //检查是否存在reentery的情况
+            //检查是否存在reentered的情况
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
 
@@ -171,7 +171,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         public static object Burn(UInt160 toAddress)
         {
-            //检查是否存在reentery的情况
+            //检查是否存在reentered的情况
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
 
@@ -218,7 +218,7 @@ namespace FlamingoSwapPair
         /// <returns>返回本次铸币量</returns>
         public static BigInteger Mint(UInt160 toAddress)
         {
-            //检查是否存在reentery的情况
+            //检查是否存在reentered的情况
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
             var caller = Runtime.CallingScriptHash;
