@@ -8,14 +8,14 @@ namespace FlamingoSwapFactory
         /// <summary>
         /// params: tokenA,tokenB,exchangeContractHash
         /// </summary>
-        [DisplayName("createExchange")]
+        [DisplayName("CreateExchange")]
         public static event CreateExchangeEvent onCreateExchange;
         public delegate void CreateExchangeEvent(UInt160 tokenA, UInt160 tokenB, UInt160 exchangeContractHash);
 
         /// <summary>
         /// params: tokenA,tokenB
         /// </summary>
-        [DisplayName("removeExchange")]
+        [DisplayName("RemoveExchange")]
         public static event RemoveExchangeEvent onRemoveExchange;
         public delegate void RemoveExchangeEvent(UInt160 tokenA, UInt160 tokenB);
 
@@ -23,7 +23,7 @@ namespace FlamingoSwapFactory
         /// <summary>
         /// params: message, extend data
         /// </summary>
-        [DisplayName("fault")]
+        [DisplayName("Fault")]
         public static event FaultEvent onFault;
         public delegate void FaultEvent(string message, params object[] paras);
 

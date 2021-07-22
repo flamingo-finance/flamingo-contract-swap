@@ -9,14 +9,14 @@ namespace FlamingoSwapPairWhiteList
         /// <summary>
         /// params: routerHash
         /// </summary>
-        [DisplayName("addRouter")]
+        [DisplayName("AddRouter")]
         public static event AddRouterEvent onAddRouter;
         public delegate void AddRouterEvent(UInt160 router);
 
         /// <summary>
         /// params: routerHash
         /// </summary>
-        [DisplayName("removeRouter")]
+        [DisplayName("RemoveRouter")]
         public static event RemoveRouterEvent onRemoveRouter;
         public delegate void RemoveRouterEvent(UInt160 router);
 

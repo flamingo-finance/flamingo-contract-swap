@@ -8,8 +8,8 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract
     {
-        [Syscall("System.Runtime.Notify")]
-        private static extern void Notify(string eventName, params object[] data);
+        //[Syscall("System.Runtime.Notify")]
+        //private static extern void Notify(string eventName, params object[] data);
 
         /// <summary>
         /// 断言
@@ -47,7 +47,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
         {
-            var pairContract = (byte[])Contract.Call((UInt160)Factory, "getExchangePair", CallFlags.All, new object[] { tokenA, tokenB });
+            var pairContract = (byte[])Contract.Call(Factory, "getExchangePair", CallFlags.All, new object[] { tokenA, tokenB });
             Assert(pairContract != null && pairContract.Length == 20, "PairContract Not Found", tokenA, tokenB);
             return (UInt160)pairContract;
         }
