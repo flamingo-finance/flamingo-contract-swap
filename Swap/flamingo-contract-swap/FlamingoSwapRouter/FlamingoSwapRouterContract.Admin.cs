@@ -18,9 +18,9 @@ namespace FlamingoSwapRouter
         static readonly UInt160 superAdmin = default;
 
 #warning 检查此处的 Factory 地址是否为最新地址
-        //注意此处输入小端序
-        [InitialValue("0279fae657b85ff383672442dcf5d703bc2057c3", ContractParameterType.ByteArray)]
-        static readonly byte[] Factory = default;
+        //注意此处输入大端序
+        [InitialValue("0xbbc36c66566eccfea261c5dbc0bda6064ce07d05", ContractParameterType.Hash160)]
+        static readonly UInt160 Factory = default;
 
         const string AdminKey = nameof(superAdmin);
 

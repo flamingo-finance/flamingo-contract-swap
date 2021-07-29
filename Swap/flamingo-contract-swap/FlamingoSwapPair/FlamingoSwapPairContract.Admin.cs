@@ -19,8 +19,7 @@ namespace FlamingoSwapPair
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
-        //注意此处是小端序
-        [InitialValue("fb19673ddbf7672042681ad018154bb100028556", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("0x2b71423ef064a0ae424f76e8ce67336301334e38", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
@@ -32,11 +31,9 @@ namespace FlamingoSwapPair
         /// <summary>
         /// 两个token地址，无需排序
         /// </summary>
-        //注意此处是小端序
-        [InitialValue("9e515e197ca045415fe92f74eab5db800c0551b7", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("0xd56799d3d1dbcea66398a68f6761188972db3d42", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenA = default;
-        //注意此处是小端序
-        [InitialValue("69014dd6601062494e1c570b9f3fed2f46d3bbf8", Neo.SmartContract.ContractParameterType.ByteArray)]
+        [InitialValue("0xe35b29ea335d96a26e6150f8866c87fa7fd187d7", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
 
 
