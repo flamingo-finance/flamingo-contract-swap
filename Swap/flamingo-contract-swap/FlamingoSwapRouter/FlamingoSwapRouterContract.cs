@@ -308,7 +308,8 @@ namespace FlamingoSwapRouter
 
                 var pairContract = GetExchangePairWithAssert(input, output);
                 //从pair[n,n+1]中转出amount[n+1]到pair[n+1,n+2]
-                Contract.Call(pairContract, "swap", CallFlags.All, new object[] { amount0Out, amount1Out, to });
+                Contract.Call(pairContract, "swap", CallFlags.All, new object[] { amount0Out, amount1Out, to, null});
+
             }
         }
 

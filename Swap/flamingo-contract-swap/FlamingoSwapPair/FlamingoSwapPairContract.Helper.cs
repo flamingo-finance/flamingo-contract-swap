@@ -79,9 +79,9 @@ namespace FlamingoSwapPair
         /// <param name="to"></param>
         /// <param name="amount"></param>
         /// <returns></returns>
-        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
             Assert(result, "Transfer Fail", token);
         }
 
