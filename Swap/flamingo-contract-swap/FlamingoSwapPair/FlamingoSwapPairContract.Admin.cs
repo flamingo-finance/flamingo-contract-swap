@@ -173,6 +173,18 @@ namespace FlamingoSwapPair
             return true;
         }
 
+        public static void ClaimRewardFrombNEO(UInt160 bNEOAddress) 
+        {
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert((bool)Contract.Call(bNEOAddress, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEOAddress, 0), "claim fail");
+        }
+
+        public static void ReceiveGas(UInt160 address) 
+        {
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            GAS.Transfer(Runtime.ExecutingScriptHash, address, GAS.BalanceOf(Runtime.ExecutingScriptHash));
+        }
+
         #endregion
 
         #region WhiteContract
