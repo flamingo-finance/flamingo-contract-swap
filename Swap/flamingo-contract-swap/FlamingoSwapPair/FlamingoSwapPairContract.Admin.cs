@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using System.ComponentModel;
 using Neo;
 using Neo.SmartContract.Framework;
@@ -179,10 +180,10 @@ namespace FlamingoSwapPair
             Assert((bool)Contract.Call(bNEOAddress, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEOAddress, 0), "claim fail");
         }
 
-        public static void ReceiveGas(UInt160 address) 
+        public static void ReceiveGas(UInt160 address, BigInteger amount) 
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            GAS.Transfer(Runtime.ExecutingScriptHash, address, GAS.BalanceOf(Runtime.ExecutingScriptHash));
+            GAS.Transfer(Runtime.ExecutingScriptHash, address, amount);
         }
 
         #endregion
