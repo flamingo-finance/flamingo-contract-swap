@@ -3,8 +3,8 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-rc4" />
-    <PackageReference Include="Neo3.Compiler.CSharp.Dev" Version="3.0.0-rc4" />
+    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.3" />
+    <PackageReference Include="Neo3.Compiler.CSharp.Dev" Version="3.0.3" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

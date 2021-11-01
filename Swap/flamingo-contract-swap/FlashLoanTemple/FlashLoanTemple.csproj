@@ -8,6 +8,6 @@
     <None Remove="Neo.SmartContract.Framework" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.0-rc3" />
+    <PackageReference Include="Neo.SmartContract.Framework" Version="3.0.3" />
   </ItemGroup>
 </Project>
