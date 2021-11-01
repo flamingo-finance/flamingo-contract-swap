@@ -177,7 +177,7 @@ namespace FlamingoSwapPair
         public static void ClaimRewardFrombNEO(UInt160 bNEOAddress) 
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            Assert((bool)Contract.Call(bNEOAddress, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEOAddress, 0), "claim fail");
+            Assert((bool)Contract.Call(bNEOAddress, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEOAddress, 0, null), "claim fail");
         }
 
         public static void ReceiveGas(UInt160 address, BigInteger amount) 
