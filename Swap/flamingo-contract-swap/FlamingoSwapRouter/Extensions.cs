@@ -3,6 +3,7 @@ using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services;
+using Neo.SmartContract.Framework.Attributes;
 
 namespace FlamingoSwapRouter
 {

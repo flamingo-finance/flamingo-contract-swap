@@ -4,6 +4,7 @@ using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
+using Neo.SmartContract.Framework.Attributes;
 
 namespace FlamingoSwapFactory
 {

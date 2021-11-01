@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel;
+using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Services;
-using System.Numerics;
 
 namespace FlamingoSwapPairWhiteList
 {
