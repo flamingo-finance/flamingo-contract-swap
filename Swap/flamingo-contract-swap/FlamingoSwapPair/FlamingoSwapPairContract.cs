@@ -21,6 +21,8 @@ namespace FlamingoSwapPair
         /// </summary>
         const long MINIMUM_LIQUIDITY = 1000;
 
+        public static BigInteger FIXED = 100_000_000_000_000_000;
+
 
         /// <summary>
         /// 合约初始化
@@ -66,17 +68,29 @@ namespace FlamingoSwapPair
             set => StoragePut("token1", value);
         }
 
-
+        [Safe]
         public static UInt160 GetToken0()
         {
             return Token0;
         }
 
+        [Safe]
         public static UInt160 GetToken1()
         {
             return Token1;
         }
 
+        [Safe]
+        public static BigInteger Price0CumulativeLast()
+        {
+            return Cumulative.Price0CumulativeLast;
+        }
+
+        [Safe]
+        public static BigInteger Price1CumulativeLast()
+        {
+            return Cumulative.Price1CumulativeLast;
+        }
         #endregion
 
 
@@ -344,11 +358,20 @@ namespace FlamingoSwapPair
         /// <param name="reserve">旧的reserve数据</param>
         private static void Update(BigInteger balance0, BigInteger balance1, ReservesData reserve)
         {
+            BigInteger blockTimestamp = Runtime.Time / 1000 % 4294967296;
+            BigInteger timeElapsed = blockTimestamp - reserve.BlockTimestampLast;
+            if (timeElapsed > 0 && reserve.Reserve0 != 0 && reserve.Reserve1 != 0)
+            {
+                var priceCumulative = Cumulative;
+                priceCumulative.Price0CumulativeLast += reserve.Reserve1 * FIXED * timeElapsed / reserve.Reserve0;
+                priceCumulative.Price1CumulativeLast += reserve.Reserve0 * FIXED * timeElapsed / reserve.Reserve1;
+                Cumulative = priceCumulative;
+            }
+
             reserve.Reserve0 = balance0;
             reserve.Reserve1 = balance1;
-            reserve.BlockTimestampLast = Runtime.Time;
-            //优化写入次数
-            //SetReserves(reserve);
+            reserve.BlockTimestampLast = blockTimestamp;
+
             ReservePair = reserve;
             Synced(balance0, balance1);
         }
@@ -379,6 +402,25 @@ namespace FlamingoSwapPair
 
                 var val = StdLib.Serialize(value);
                 StoragePut(nameof(ReservePair), val);
+            }
+        }
+
+        private static PriceCumulative Cumulative
+        {
+            get
+            {
+                var val = StorageGet(nameof(Cumulative));
+                if (val is null || val.Length == 0)
+                {
+                    return new PriceCumulative() { Price0CumulativeLast = 0, Price1CumulativeLast = 0};
+                }
+                var b = (PriceCumulative)StdLib.Deserialize(val);
+                return b;
+            }
+            set
+            {
+                var val = StdLib.Serialize(value);
+                StoragePut(nameof(Cumulative), val);
             }
         }
 
