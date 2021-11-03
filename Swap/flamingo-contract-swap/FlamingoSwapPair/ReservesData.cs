@@ -6,6 +6,5 @@ namespace FlamingoSwapPair
     {
         public BigInteger Reserve0;
         public BigInteger Reserve1;
-        public BigInteger BlockTimestampLast;
     }
 }

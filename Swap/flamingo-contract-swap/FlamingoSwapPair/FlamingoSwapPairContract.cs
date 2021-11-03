@@ -82,6 +82,12 @@ namespace FlamingoSwapPair
         }
 
         [Safe]
+        public static PriceCumulative GetPriceCumulative()
+        {
+            return Cumulative;
+        }
+
+        [Safe]
         public static BigInteger Price0CumulativeLast()
         {
             return Cumulative.Price0CumulativeLast;
@@ -309,48 +315,6 @@ namespace FlamingoSwapPair
 
 
         #region SyncUpdate
-
-
-        ///// <summary>
-        ///// 更新最新持有量（reserve）、价格累计量（price0CumulativeLast）、区块时间戳(blockTimestamp)
-        ///// </summary>
-        ///// <param name="balance0">最新的token0持有量</param>
-        ///// <param name="balance1">最新的token1持有量</param>
-        ///// <param name="reserve0"></param>
-        ///// <param name="reserve1"></param>
-        //private static void Update(BigInteger balance0, BigInteger balance1, BigInteger reserve0, BigInteger reserve1)
-        //{
-        //    //require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
-        //    var r = ReservePair;
-        //    var blockTimestamp = Runtime.Time;
-        //    //var blockTimestampLast = r.BlockTimestampLast;
-        //    //var timeElapsed = blockTimestamp - blockTimestampLast;
-        //    //if (timeElapsed > 0 && reserve0 != 0 && reserve1 != 0)
-        //    //{
-        //    //    //todo:原始算法??
-        //    //    //price0CumulativeLast += (total1 * Q112) / total0 * timeElapsed;
-        //    //    // * never overflows, and + overflow is desired
-        //    //    // price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
-        //    //    // price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
-        //    //    var price0CumulativeLast = GetPrice0CumulativeLast() + reserve1 / reserve0 * timeElapsed;
-        //    //    var price1CumulativeLast = GetPrice1CumulativeLast() + reserve0 / reserve1 * timeElapsed;
-
-        //    //    SetPrice0CumulativeLast(price0CumulativeLast);
-        //    //    SetPrice1CumulativeLast(price1CumulativeLast);
-        //    //}
-
-
-        //    r.Reserve0 = balance0;
-        //    r.Reserve1 = balance1;
-        //    r.BlockTimestampLast = blockTimestamp;
-        //    //优化写入次数
-        //    ReservePair = r;
-
-        //    Synced(balance0, balance1);
-        //}
-
-
-
         /// <summary>
         /// 更新最新持有量（reserve）、区块时间戳(blockTimestamp)
         /// </summary>
@@ -360,18 +324,17 @@ namespace FlamingoSwapPair
         private static void Update(BigInteger balance0, BigInteger balance1, ReservesData reserve)
         {
             BigInteger blockTimestamp = Runtime.Time / 1000 % 4294967296;
-            BigInteger timeElapsed = blockTimestamp - reserve.BlockTimestampLast;
+            var priceCumulative = Cumulative;
+            BigInteger timeElapsed = blockTimestamp - Cumulative.BlockTimestampLast;
             if (timeElapsed > 0 && reserve.Reserve0 != 0 && reserve.Reserve1 != 0)
             {
-                var priceCumulative = Cumulative;
                 priceCumulative.Price0CumulativeLast += reserve.Reserve1 * FIXED * timeElapsed / reserve.Reserve0;
                 priceCumulative.Price1CumulativeLast += reserve.Reserve0 * FIXED * timeElapsed / reserve.Reserve1;
+                priceCumulative.BlockTimestampLast = blockTimestamp;
                 Cumulative = priceCumulative;
             }
-
             reserve.Reserve0 = balance0;
             reserve.Reserve1 = balance1;
-            reserve.BlockTimestampLast = blockTimestamp;
 
             ReservePair = reserve;
             Synced(balance0, balance1);
@@ -393,7 +356,7 @@ namespace FlamingoSwapPair
                 var val = StorageGet(nameof(ReservePair));
                 if (val is null || val.Length == 0)
                 {
-                    return new ReservesData() { Reserve0 = 0, Reserve1 = 0, BlockTimestampLast = 0 };
+                    return new ReservesData() { Reserve0 = 0, Reserve1 = 0};
                 }
                 var b = (ReservesData)StdLib.Deserialize(val);
                 return b;
@@ -413,7 +376,7 @@ namespace FlamingoSwapPair
                 var val = StorageGet(nameof(Cumulative));
                 if (val is null || val.Length == 0)
                 {
-                    return new PriceCumulative() { Price0CumulativeLast = 0, Price1CumulativeLast = 0};
+                    return new PriceCumulative() { Price0CumulativeLast = 0, Price1CumulativeLast = 0, BlockTimestampLast = 0 };
                 }
                 var b = (PriceCumulative)StdLib.Deserialize(val);
                 return b;
@@ -431,88 +394,5 @@ namespace FlamingoSwapPair
         }
 
         #endregion
-
-        #region PriceCumulativeLast累计价格
-
-
-        ///// <summary>
-        ///// 累计价格存储Key
-        ///// </summary>
-        //private const string Price0CumulativeLastStoreKey = "Price0CumulativeLast";
-        //private const string Price1StoreKey = "Price1CumulativeLast";
-
-
-        ///// <summary>
-        ///// 获取token0累计价格
-        ///// </summary>
-        ///// <returns></returns>
-        //private static BigInteger GetPrice0CumulativeLast()
-        //{
-        //    return Storage.Get(Price0CumulativeLastStoreKey).AsBigInteger();
-        //}
-
-
-        ///// <summary>
-        ///// 设置token0累计价格
-        ///// </summary>
-        ///// <param name="price0CumulativeLast"></param>
-        ///// <returns></returns>
-        //private static bool SetPrice0CumulativeLast(BigInteger price0CumulativeLast)
-        //{
-        //    Storage.Put(Price0CumulativeLastStoreKey, price0CumulativeLast);
-        //    return true;
-        //}
-
-
-
-        ///// <summary>
-        ///// 获取token1累计价格
-        ///// </summary>
-        ///// <returns></returns>
-        //private static BigInteger GetPrice1CumulativeLast()
-        //{
-        //    return Storage.Get(Price1StoreKey).AsBigInteger();
-        //}
-
-
-        ///// <summary>
-        ///// 设置token1累计价格
-        ///// </summary>
-        ///// <param name="price1CumulativeLast"></param>
-        ///// <returns></returns>
-        //private static bool SetPrice1CumulativeLast(BigInteger price1CumulativeLast)
-        //{
-        //    Storage.Put(Price1StoreKey, price1CumulativeLast);
-        //    return true;
-        //}
-
-        #endregion
-
-        #region K值
-
-
-        ///// <summary>
-        ///// 获取记录的KLast（reserve0 * reserve1,恒定积）
-        ///// </summary>
-        ///// <returns></returns>
-        //private static BigInteger GetKLast()
-        //{
-        //    return Storage.Get("KLast").AsBigInteger();
-        //}
-
-
-        ///// <summary>
-        ///// 记录的KLast(reserve0 * reserve1,恒定积)
-        ///// </summary>
-        ///// <param name="kLast"></param>
-        ///// <returns></returns>
-        //private static bool SetKLast(BigInteger kLast)
-        //{
-        //    Storage.Put("KLast", kLast);
-        //    return true;
-        //}
-
-        #endregion
-
     }
 }

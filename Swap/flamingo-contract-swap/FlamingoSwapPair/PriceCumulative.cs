@@ -8,5 +8,7 @@ namespace FlamingoSwapPair
         public BigInteger Price0CumulativeLast;
 
         public BigInteger Price1CumulativeLast;
+
+        public BigInteger BlockTimestampLast;
     }
 }
