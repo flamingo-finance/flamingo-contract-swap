@@ -133,8 +133,9 @@ namespace FlamingoSwapPair
 
             var me = Runtime.ExecutingScriptHash;
 
-            //转出量必需一个为0一个为正数
-            Assert(amount0Out * amount1Out == 0 && (amount0Out > 0 || amount1Out > 0), "Invalid AmountOut");
+            Assert(amount0Out >= 0 && amount1Out >= 0, "Invalid AmountOut");
+            Assert(amount0Out > 0 || amount1Out > 0, "Invalid AmountOut");
+
             var r = ReservePair;
             var reserve0 = r.Reserve0;
             var reserve1 = r.Reserve1;
@@ -143,12 +144,12 @@ namespace FlamingoSwapPair
             Assert(amount0Out < reserve0 && amount1Out < reserve1, "Insufficient Liquidity");
             //禁止转到token本身的地址
             Assert(toAddress != (UInt160)Token0 && toAddress != (UInt160)Token1, "INVALID_TO");
+
             if (amount0Out > 0)
             {
                 //从本合约转出目标token到目标地址
                 SafeTransfer(Token0, me, toAddress, amount0Out, data);
             }
-
             if (amount1Out > 0)
             {
                 SafeTransfer(Token1, me, toAddress, amount1Out, data);
@@ -157,8 +158,6 @@ namespace FlamingoSwapPair
 
             BigInteger balance0 = DynamicBalanceOf(Token0, me);
             BigInteger balance1 = DynamicBalanceOf(Token1, me);
-
-
             //计算转入的token量：转入转出后token余额balance>reserve，代表token转入，计算结果为正数
             var amount0In = balance0 > (reserve0 - amount0Out) ? balance0 - (reserve0 - amount0Out) : 0;
             var amount1In = balance1 > (reserve1 - amount1Out) ? balance1 - (reserve1 - amount1Out) : 0;
@@ -242,10 +241,11 @@ namespace FlamingoSwapPair
             //检查是否存在reentered的情况
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
-            var caller = Runtime.CallingScriptHash;
+
+            var caller = Runtime.CallingScriptHash; //msg.sender
             Assert(CheckIsRouter(caller), "Only Router Can Mint");
 
-            var me = Runtime.ExecutingScriptHash;
+            var me = Runtime.ExecutingScriptHash; //address(this)
 
             var r = ReservePair;
             var reserve0 = r.Reserve0;
@@ -262,7 +262,6 @@ namespace FlamingoSwapPair
             if (totalSupply == 0)
             {
                 liquidity = Sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-                //第一笔注入资金过少，liquidity为负数，整个合约执行将中断回滚
 
                 MintToken(UInt160.Zero, MINIMUM_LIQUIDITY);// permanently lock the first MINIMUM_LIQUIDITY tokens,永久锁住第一波发行的 MINIMUM_LIQUIDITY token
             }
