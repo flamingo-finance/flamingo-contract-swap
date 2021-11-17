@@ -82,12 +82,6 @@ namespace FlamingoSwapPair
         }
 
         [Safe]
-        public static ReservesData GetReserve()
-        {
-            return ReservePair;
-        }
-
-        [Safe]
         public static BigInteger GetReserve0()
         {
             var r = ReservePair;
