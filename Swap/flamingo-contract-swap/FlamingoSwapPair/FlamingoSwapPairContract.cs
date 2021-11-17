@@ -82,6 +82,26 @@ namespace FlamingoSwapPair
         }
 
         [Safe]
+        public static ReservesData GetReserve()
+        {
+            return ReservePair;
+        }
+
+        [Safe]
+        public static BigInteger GetReserve0()
+        {
+            var r = ReservePair;
+            return r.Reserve0;
+        }
+
+        [Safe]
+        public static BigInteger GetReserve1()
+        {
+            var r = ReservePair;
+            return r.Reserve1;
+        }
+
+        [Safe]
         public static PriceCumulative GetPriceCumulative()
         {
             return Cumulative;
