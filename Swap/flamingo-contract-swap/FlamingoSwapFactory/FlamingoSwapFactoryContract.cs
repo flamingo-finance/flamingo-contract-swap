@@ -42,6 +42,7 @@ namespace FlamingoSwapFactory
         public static bool CreateExchangePair(UInt160 tokenA, UInt160 tokenB, UInt160 exchangeContractHash)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(tokenA.IsAddress() && tokenB.IsAddress(), "Invalid Address");
             Assert(tokenA != tokenB, "Identical Address", tokenA);
             var key = GetPairKey(tokenA, tokenB);
             var value = StorageGet(key);
@@ -85,8 +86,8 @@ namespace FlamingoSwapFactory
         /// <returns></returns>
         public static bool RemoveExchangePair(UInt160 tokenA, UInt160 tokenB)
         {
+            Assert(tokenA.IsAddress() && tokenB.IsAddress(), "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-
             var key = GetPairKey(tokenA, tokenB);
             var value = StorageGet(key);
             if (value?.Length > 0)

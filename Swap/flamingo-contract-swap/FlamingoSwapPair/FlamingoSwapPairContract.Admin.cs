@@ -170,18 +170,19 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         public static bool SetAdmin(UInt160 admin)
         {
+            Assert(admin.IsAddress(), "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             StoragePut(AdminKey, admin);
             return true;
         }
 
-        public static void ClaimRewardFrombNEO(UInt160 bNEOAddress) 
+        public static void ClaimRewardFrombNEO(UInt160 bNEOAddress)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             Assert((bool)Contract.Call(bNEOAddress, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEOAddress, 0, null), "claim fail");
         }
 
-        public static void ReceiveGas(UInt160 address, BigInteger amount) 
+        public static void ReceiveGas(UInt160 address, BigInteger amount)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             GAS.Transfer(Runtime.ExecutingScriptHash, address, amount);
@@ -210,6 +211,7 @@ namespace FlamingoSwapPair
         public static bool SetWhiteListContract(UInt160 whiteList)
         {
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(whiteList.IsAddress(), "Invalid Address");
             StoragePut(WhiteListContractKey, whiteList);
             return true;
         }
@@ -221,6 +223,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         public static bool CheckIsRouter(UInt160 callScript)
         {
+            Assert(callScript.IsAddress(), "Invalid CallScript Address");
             var whiteList = GetWhiteListContract();
             return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.All, new object[] { callScript });
         }

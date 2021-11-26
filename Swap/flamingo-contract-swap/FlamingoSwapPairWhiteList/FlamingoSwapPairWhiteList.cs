@@ -19,7 +19,7 @@ namespace FlamingoSwapPairWhiteList
         /// 白名单存储区前缀，只允许一字节
         /// todo:换成0xff?
         /// </summary>
-        private static readonly byte[] WhiteListPrefix = new byte[]{ 0x77 };
+        private static readonly byte[] WhiteListPrefix = new byte[] { 0x77 };
 
         /// <summary>
         /// 增加router白名单，加过白名单的router才能完成burn
@@ -28,6 +28,7 @@ namespace FlamingoSwapPairWhiteList
         /// <returns></returns>
         public static bool AddRouter(UInt160 router)
         {
+            Assert(router.IsValid, "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             var key = WhiteListPrefix.Concat((byte[])router);
             StoragePut(key, 1);
@@ -43,6 +44,7 @@ namespace FlamingoSwapPairWhiteList
         /// <returns></returns>
         public static bool RemoveRouter(UInt160 router)
         {
+            Assert(router.IsValid, "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             var key = WhiteListPrefix.Concat((byte[])router);
             StorageDelete(key);
@@ -58,6 +60,7 @@ namespace FlamingoSwapPairWhiteList
         /// <returns></returns>
         public static bool CheckRouter(UInt160 router)
         {
+            Assert(router.IsValid, "Invalid Address");
             var key = WhiteListPrefix.Concat(router);
             var getraw = StorageGet(key);
             if (getraw == null)

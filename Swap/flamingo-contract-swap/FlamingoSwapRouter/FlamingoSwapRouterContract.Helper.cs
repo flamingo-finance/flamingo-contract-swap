@@ -48,6 +48,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static UInt160 GetExchangePairWithAssert(UInt160 tokenA, UInt160 tokenB)
         {
+            Assert(tokenA.IsValid && tokenB.IsValid, "Invalid A or B Address");
             var pairContract = (byte[])Contract.Call(Factory, "getExchangePair", CallFlags.All, new object[] { tokenA, tokenB });
             Assert(pairContract != null && pairContract.Length == 20, "PairContract Not Found", tokenA, tokenB);
             return (UInt160)pairContract;
