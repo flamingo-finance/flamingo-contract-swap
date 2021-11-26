@@ -45,25 +45,8 @@ namespace FlamingoSwapPair
         /// <param name="data"></param>
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            //if (AssetStorage.GetPaymentStatus())
-            //{
-            //    if (ExecutionEngine.CallingScriptHash == NEO.Hash)
-            //    {
-            //        Mint(amount * TokensPerNEO);
-            //    }
-            //    else if (ExecutionEngine.CallingScriptHash == GAS.Hash)
-            //    {
-            //        if (from != null) Mint(amount * TokensPerGAS);
-            //    }
-            //    else
-            //    {
-            //        throw new Exception("Wrong calling script hash");
-            //    }
-            //}
-            //else
-            //{
-            //    throw new Exception("Payment is disable on this contract!");
-            //}
+            UInt160 asset = Runtime.CallingScriptHash;
+            Assert(asset == Token0 || asset == Token1, "Invalid Asset");
         }
 
         public static class TotalSupplyStorage
