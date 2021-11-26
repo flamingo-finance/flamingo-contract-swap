@@ -17,7 +17,7 @@ namespace FlamingoSwapPair
         public static bool Transfer(UInt160 from, UInt160 to, BigInteger amount, object data)
         {
             Assert(amount > 0, "The parameter amount MUST be greater than 0.");
-            Assert(Runtime.CheckWitness(from) || from.Equals(Runtime.CallingScriptHash), "No authorization.");
+            Assert(Runtime.CheckWitness(from), "No authorization.");
             var me = Runtime.ExecutingScriptHash;
             if (to == me)
             {

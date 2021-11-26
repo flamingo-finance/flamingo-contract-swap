@@ -15,7 +15,11 @@ namespace FlamingoSwapFactory
         /// <param name="message"></param>
         private static void Assert(bool condition, string message)
         {
-            Assert(condition, message);
+            if (!condition)
+            {
+                onFault(message);
+                ExecutionEngine.Assert(false);
+            }
         }
 
         /// <summary>
