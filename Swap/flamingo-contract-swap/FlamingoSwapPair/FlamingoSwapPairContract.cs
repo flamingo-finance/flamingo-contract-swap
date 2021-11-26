@@ -275,7 +275,7 @@ namespace FlamingoSwapPair
             BigInteger liquidity;
             if (totalSupply == 0)
             {
-                liquidity = Sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
+                liquidity = (amount0 * amount1).Sqrt() - MINIMUM_LIQUIDITY;
 
                 MintToken(UInt160.Zero, MINIMUM_LIQUIDITY);// permanently lock the first MINIMUM_LIQUIDITY tokens,永久锁住第一波发行的 MINIMUM_LIQUIDITY token
             }
