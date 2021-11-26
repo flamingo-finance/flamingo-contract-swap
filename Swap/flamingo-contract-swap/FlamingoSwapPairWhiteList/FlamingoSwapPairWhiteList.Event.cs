@@ -20,5 +20,12 @@ namespace FlamingoSwapPairWhiteList
         public static event RemoveRouterEvent onRemoveRouter;
         public delegate void RemoveRouterEvent(UInt160 router);
 
+        /// <summary>
+        /// params: message, extend data
+        /// </summary>
+        [DisplayName("Fault")]
+        public static event FaultEvent onFault;
+        public delegate void FaultEvent(string message, params object[] paras);
+
     }
 }

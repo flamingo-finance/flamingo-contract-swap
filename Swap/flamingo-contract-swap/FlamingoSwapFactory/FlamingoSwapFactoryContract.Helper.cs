@@ -15,10 +15,7 @@ namespace FlamingoSwapFactory
         /// <param name="message"></param>
         private static void Assert(bool condition, string message)
         {
-            if (!condition)
-            {
-                throw new Exception(message);
-            }
+            Assert(condition, message);
         }
 
         /// <summary>
@@ -32,7 +29,7 @@ namespace FlamingoSwapFactory
             if (!condition)
             {
                 onFault(message, data);
-                throw new Exception(message);
+                ExecutionEngine.Assert(false);
             }
         }
 

@@ -238,7 +238,7 @@ namespace FlamingoSwapPair
         /// <param name="data"></param>
         public static void Update(ByteString nefFile, string manifest, object data)
         {
-            if (!Verify()) throw new Exception("No authorization.");
+            Assert(Verify(), "No authorization.");
             ContractManagement.Update(nefFile, manifest, data);
         }
 

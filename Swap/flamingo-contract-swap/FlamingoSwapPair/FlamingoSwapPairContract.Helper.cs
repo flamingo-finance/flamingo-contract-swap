@@ -23,7 +23,8 @@ namespace FlamingoSwapPair
         {
             if (!condition)
             {
-                throw new Exception(message);
+                onFault(message, null);
+                ExecutionEngine.Assert(false);
             }
         }
 
@@ -38,7 +39,7 @@ namespace FlamingoSwapPair
             if (!condition)
             {
                 onFault(message, data);
-                throw new Exception(message);
+                ExecutionEngine.Assert(false);
             }
         }
 
@@ -50,7 +51,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static BigInteger Sqrt(BigInteger y)
         {
-            if (y < 0) throw new InvalidOperationException("y can not be negative");
+            Assert(y >= 0, "y can not be negative");
             if (y > 3)
             {
                 var z = y;
