@@ -94,7 +94,7 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static BigInteger DynamicBalanceOf(UInt160 token, UInt160 address)
         {
-            return (BigInteger)Contract.Call(token, "balanceOf", CallFlags.All, new object[] { address });
+            return (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { address });
         }
 
 
