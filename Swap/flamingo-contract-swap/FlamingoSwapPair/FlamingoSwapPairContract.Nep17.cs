@@ -46,6 +46,8 @@ namespace FlamingoSwapPair
         /// <param name="data"></param>
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
+            UInt160 asset = Runtime.CallingScriptHash;
+            Assert(asset == Token0 || asset == Token1, "Invalid Asset");
         }
 
         public static class TotalSupplyStorage

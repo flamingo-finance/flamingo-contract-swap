@@ -222,7 +222,7 @@ namespace FlamingoSwapPair
         public static bool CheckIsRouter(UInt160 callScript)
         {
             var whiteList = GetWhiteListContract();
-            return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.All, new object[] { callScript });
+            return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.ReadOnly, new object[] { callScript });
         }
 
         #endregion
