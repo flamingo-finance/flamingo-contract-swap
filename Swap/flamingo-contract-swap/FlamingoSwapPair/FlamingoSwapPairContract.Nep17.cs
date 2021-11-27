@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using Neo;
+using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
@@ -15,14 +16,14 @@ namespace FlamingoSwapPair
 
         public static bool Transfer(UInt160 from, UInt160 to, BigInteger amount, object data)
         {
-            if (amount <= 0) throw new Exception("The parameter amount MUST be greater than 0.");
-            if (!Runtime.CheckWitness(from) && !from.Equals(Runtime.CallingScriptHash)) throw new Exception("No authorization.");
+            Assert(amount > 0, "The parameter amount MUST be greater than 0.");
+            Assert(Runtime.CheckWitness(from), "No authorization.");
             var me = Runtime.ExecutingScriptHash;
             if (to == me)
             {
                 Assert(CheckIsRouter(Runtime.CallingScriptHash), "Not Allowed To Transfer");
             }
-            if (AssetStorage.Get(from) < amount) throw new Exception("Insufficient balance.");
+            Assert(AssetStorage.Get(from) >= amount, "Insufficient balance.");
             if (from == to) return true;
 
             AssetStorage.Reduce(from, amount);

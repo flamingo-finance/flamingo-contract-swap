@@ -23,7 +23,8 @@ namespace FlamingoSwapPair
         {
             if (!condition)
             {
-                throw new Exception(message);
+                onFault(message, null);
+                ExecutionEngine.Assert(false);
             }
         }
 
@@ -38,39 +39,9 @@ namespace FlamingoSwapPair
             if (!condition)
             {
                 onFault(message, data);
-                throw new Exception(message);
+                ExecutionEngine.Assert(false);
             }
         }
-
-
-        /// <summary>
-        /// 求平方根
-        /// </summary>
-        /// <param name="y"></param>
-        /// <returns></returns>
-        private static BigInteger Sqrt(BigInteger y)
-        {
-            if (y < 0) throw new InvalidOperationException("y can not be negative");
-            if (y > 3)
-            {
-                var z = y;
-                var x = y / 2 + 1;
-                while (x < z)
-                {
-                    z = x;
-                    x = (y / x + x) / 2;
-                }
-
-                return z;
-            }
-            else if (y != 0)
-            {
-                return 1;
-            }
-            return 0;
-        }
-
-
 
         /// <summary>
         /// 调用其它Nep5合约的“transfer”
