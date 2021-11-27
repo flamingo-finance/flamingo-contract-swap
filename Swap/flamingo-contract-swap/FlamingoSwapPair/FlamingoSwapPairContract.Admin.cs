@@ -225,7 +225,7 @@ namespace FlamingoSwapPair
         {
             Assert(callScript.IsAddress(), "Invalid CallScript Address");
             var whiteList = GetWhiteListContract();
-            return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.All, new object[] { callScript });
+            return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.ReadOnly, new object[] { callScript });
         }
 
         #endregion
@@ -241,7 +241,7 @@ namespace FlamingoSwapPair
         /// <param name="data"></param>
         public static void Update(ByteString nefFile, string manifest, object data)
         {
-            if (!Verify()) throw new Exception("No authorization.");
+            Assert(Verify(), "No authorization.");
             ContractManagement.Update(nefFile, manifest, data);
         }
 

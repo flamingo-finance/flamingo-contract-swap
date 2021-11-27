@@ -9,16 +9,6 @@ namespace FlamingoSwapRouter
 {
     public static class Extensions
     {
-        /// <summary>
-        /// 调用pair合约的Mint铸币
-        /// </summary>
-        /// <param name="pairContract"></param>
-        /// <param name="toAddress"></param>
-        /// <returns></returns>
-        public static BigInteger DynamicMint(this byte[] pairContract, byte[] toAddress)
-        {
-            return (BigInteger)Contract.Call((UInt160)pairContract, "mint", CallFlags.All, new object[] { toAddress });
-        }
 
         /// <summary>
         /// 调用pair合约的Mint铸币
@@ -31,17 +21,6 @@ namespace FlamingoSwapRouter
             return (BigInteger)Contract.Call(pairContract, "mint", CallFlags.All, new object[] { toAddress });
         }
 
-        /// <summary>
-        /// 调用pair合约的burn销毁
-        /// </summary>
-        /// <param name="pairContract"></param>
-        /// <param name="toAddress"></param>
-        /// <returns></returns>
-        public static BigInteger[] DynamicBurn(this byte[] pairContract, byte[] toAddress)
-        {
-            return (BigInteger[])Contract.Call((UInt160)pairContract, "burn", CallFlags.All, new object[] { toAddress });
-
-        }
 
 
         /// <summary>

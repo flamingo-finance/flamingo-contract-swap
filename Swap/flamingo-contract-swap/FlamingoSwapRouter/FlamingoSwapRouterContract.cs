@@ -218,7 +218,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
         {
-            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.All, new object[] { });
+            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.ReadOnly, new object[] { });
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
