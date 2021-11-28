@@ -143,6 +143,7 @@ namespace FlamingoSwapPair
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
 
+            Assert(toAddress.IsAddress(), "Invalid To-Address");
             var caller = Runtime.CallingScriptHash;
 
             var me = Runtime.ExecutingScriptHash;
@@ -157,7 +158,7 @@ namespace FlamingoSwapPair
             //转出量小于持有量
             Assert(amount0Out < reserve0 && amount1Out < reserve1, "Insufficient Liquidity");
             //禁止转到token本身的地址
-            Assert(toAddress != (UInt160)Token0 && toAddress != (UInt160)Token1, "INVALID_TO");
+            Assert(toAddress != (UInt160)Token0 && toAddress != (UInt160)Token1 && toAddress != me, "INVALID_TO");
 
             if (amount0Out > 0)
             {
@@ -208,6 +209,7 @@ namespace FlamingoSwapPair
             //检查是否存在reentered的情况
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
+            Assert(toAddress.IsAddress(), "Invalid To-Address");
 
             var caller = Runtime.CallingScriptHash;
             Assert(CheckIsRouter(caller), "Only Router Can Burn");
@@ -255,6 +257,7 @@ namespace FlamingoSwapPair
             //检查是否存在reentered的情况
             Assert(EnteredStorage.Get() == 0, "Re-entered");
             EnteredStorage.Put(1);
+            Assert(toAddress.IsAddress(), "Invalid To-Address");
 
             var caller = Runtime.CallingScriptHash; //msg.sender
             Assert(CheckIsRouter(caller), "Only Router Can Mint");
@@ -369,7 +372,7 @@ namespace FlamingoSwapPair
                 var val = StorageGet(nameof(ReservePair));
                 if (val is null || val.Length == 0)
                 {
-                    return new ReservesData() { Reserve0 = 0, Reserve1 = 0};
+                    return new ReservesData() { Reserve0 = 0, Reserve1 = 0 };
                 }
                 var b = (ReservesData)StdLib.Deserialize(val);
                 return b;

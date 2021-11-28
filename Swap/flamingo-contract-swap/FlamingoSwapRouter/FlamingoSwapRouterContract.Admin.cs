@@ -48,6 +48,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static bool SetAdmin(UInt160 admin)
         {
+            Assert(admin.IsValid && !admin.IsZero, "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
             StoragePut(AdminKey, (ByteString)admin);
             return true;
