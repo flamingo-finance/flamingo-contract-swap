@@ -144,6 +144,7 @@ namespace FlamingoSwapPair
 
 
         const string AdminKey = nameof(superAdmin);
+        const string FundAddresskey = nameof(FundAddresskey);
         private const string WhiteListContractKey = nameof(WhiteListContract);
 
         // When this contract address is included in the transaction signature,
@@ -228,6 +229,32 @@ namespace FlamingoSwapPair
             return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.ReadOnly, new object[] { callScript });
         }
 
+        #endregion
+
+        #region FundFee
+
+        /// <summary>
+        /// 获取FundAddress
+        /// </summary>
+        /// <returns></returns>
+        public static UInt160 GetFundAddress()
+        {
+            var address = StorageGet(FundAddresskey);
+            return address?.Length == 20 ? (UInt160)address : null;
+        }
+
+        /// <summary>
+        /// 设置FundAddress
+        /// </summary>
+        /// <param name="admin"></param>
+        /// <returns></returns>
+        public static bool SetFundAddress(UInt160 address)
+        {
+            Assert(address.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            StoragePut(FundAddresskey, address);
+            return true;
+        }
         #endregion
 
         #region Upgrade
