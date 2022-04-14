@@ -12,7 +12,7 @@ namespace FlamingoSwapPairWhiteList
         #region Admin
 
 #warning 检查此处的 Admin 地址是否为最新地址
-        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
         const string AdminKey = nameof(superAdmin);
 
