@@ -26,14 +26,14 @@ namespace FlamingoSwapPair
 
 
         [DisplayName("symbol")]
-        public static string Symbol() => "FLP-bNEO-fUSDT"; //symbol of the token
+        public static string Symbol() => "FRP-FLM-DOGEF"; //symbol of the token
 
         /// <summary>
         /// 两个token地址，无需排序
         /// </summary>
-        [InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0x1415ab3b409a95555b77bc4ab6a7d9d7be0eddbd", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenA = default;
-        [InitialValue("0x83c442b5dc4ee0ed0e5249352fa7c75f65d6bfd6", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0xf91230687638306d9f1fd2422f89445023d5caab", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
 
 
