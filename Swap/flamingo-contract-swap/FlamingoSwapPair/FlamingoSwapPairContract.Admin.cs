@@ -13,11 +13,9 @@ namespace FlamingoSwapPair
     {
         #region Settings
 
-#warning 检查此处的 Admin 地址是否为最新地址
         [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
-#warning 检查此处的 WhiteList 地址是否为最新地址
         /// <summary>
         /// WhiteList 合约地址
         /// </summary>
@@ -38,103 +36,6 @@ namespace FlamingoSwapPair
         [InitialValue("0x83c442b5dc4ee0ed0e5249352fa7c75f65d6bfd6", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
 
-
-        #endregion
-
-        #region TokenBC
-
-        ///// <summary>
-        ///// Token 0 地址(Token0放置合约hash小的token)
-        ///// </summary>
-        //static readonly byte[] Token0 = "f84be0412caec8e34a38eadf430734b1b65deab9".HexToBytes();
-
-        ///// <summary>
-        /////  Token 1 地址
-        ///// </summary>
-        //static readonly byte[] Token1 = "7c76490fc79a8a47068b904e83d78c0292590fd4".HexToBytes();
-
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "E-BC"; //symbol of the token
-
-        #endregion
-
-        #region pnWETH-nNEO
-
-        ///// <summary>
-        ///// nNEO 0 地址(Token0放置合约hash小的token)
-        ///// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
-        ///// </summary>
-        //static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
-
-        ///// <summary>
-        /////  pnWETH 1 地址
-        /////  0x23535b6fd46b8f867ed010bab4c2bd8ef0d0c64f
-        ///// </summary>
-        //static readonly byte[] Token1 = "4fc6d0f08ebdc2b4ba10d07e868f6bd46f5b5323".HexToBytes();
-
-
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "pnWETH-nNEO"; //symbol of the token
-
-        #endregion
-
-        #region pnWBTC-nNEO
-
-        ///// <summary>
-        ///// nNEO 0 地址(Token0放置合约hash小的token)
-        ///// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
-        ///// </summary>
-        //static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
-
-        ///// <summary>
-        /////  pnWBTC 1 地址
-        /////  0x69c57a716567a0f6910a0b3c1d4508fa163eb927
-        ///// </summary>
-        //static readonly byte[] Token1 = "27b93e16fa08451d3c0b0a91f6a06765717ac569".HexToBytes();
-
-
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "pnWBTC-nNEO"; //symbol of the token
-
-        #endregion
-
-        #region pONT-nNEO
-
-        ///// <summary>
-        ///// nNEO 0 地址(Token0放置合约hash小的token)
-        ///// 0x17da3881ab2d050fea414c80b3fa8324d756f60e
-        ///// </summary>
-        //static readonly byte[] Token0 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
-
-        ///// <summary>
-        /////  pONT 1 地址
-        /////  0x658cabf9c1f71ba0fa64098a7c17e52b94046ece
-        ///// </summary>
-        //static readonly byte[] Token1 = "ce6e04942be5177c8a0964faa01bf7c1f9ab8c65".HexToBytes();
-
-
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "pONT-nNEO"; //symbol of the token
-
-        #endregion
-
-        #region FLM-nNEO
-
-        ///// <summary>
-        ///// FLM 地址(Token0放置合约hash小的token)
-        ///// 0x083ea8071188c7fe5b5e4af96ded222670d76663
-        ///// </summary>
-        //static readonly byte[] Token0 = "6366d7702622ed6df94a5e5bfec7881107a83e08".HexToBytes();
-
-        ///// <summary>
-        /////  nNEO 地址
-        /////  0x17da3881ab2d050fea414c80b3fa8324d756f60e
-        ///// </summary>
-        //static readonly byte[] Token1 = "0ef656d72483fab3804c41ea0f052dab8138da17".HexToBytes();
-
-
-        //[DisplayName("symbol")]
-        //public static string Symbol() => "FLM-nNEO"; //symbol of the token
 
         #endregion
 
@@ -266,10 +167,10 @@ namespace FlamingoSwapPair
         /// <param name="nefFile"></param>
         /// <param name="manifest"></param>
         /// <param name="data"></param>
-        public static void Update(ByteString nefFile, string manifest, object data)
+        public static void Update(ByteString nefFile, string manifest)
         {
             Assert(Verify(), "No authorization.");
-            ContractManagement.Update(nefFile, manifest, data);
+            ContractManagement.Update(nefFile, manifest, null);
         }
 
         #endregion

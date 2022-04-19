@@ -192,13 +192,13 @@ namespace FlamingoSwapPair
             {
                 if (amount0In > 0)
                 {
-                    var fee = amount0In * 5 / 1000;
+                    var fee = amount0In * 5 / 10000;
                     SafeTransfer(Token0, me, fundAddress, fee, data);
                     balance0 = DynamicBalanceOf(Token0, me);
                 }
                 if (amount1In > 0)
                 {
-                    var fee = amount1In * 5 / 1000;
+                    var fee = amount1In * 5 / 10000;
                     SafeTransfer(Token1, me, fundAddress, fee, data);
                     balance1 = DynamicBalanceOf(Token1, me);
                 }
