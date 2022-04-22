@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract;
@@ -17,7 +18,7 @@ namespace FlamingoSwapRouter
     public partial class FlamingoSwapRouterContract : SmartContract
     {
 
-        [InitialValue("0x0ba7c1ff1d91811da9571f426bea1713e2ffb808", ContractParameterType.Hash160)]
+        [InitialValue("Nh1quymBgCUwjnxhJXeUdGM2axGXEzdqKF", ContractParameterType.Hash160)]
         static readonly UInt160 SuperOwner = default;
         /// <summary>
         /// 
@@ -34,7 +35,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] AddLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证权限
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(sender) || ContractManagement.GetContract(sender) != null, "Forbidden");
 
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
@@ -96,7 +97,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] RemoveLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证权限
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(sender) || ContractManagement.GetContract(sender) != null, "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
@@ -241,7 +242,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证权限
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(sender) || ContractManagement.GetContract(sender) != null, "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
@@ -268,7 +269,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证权限
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(sender) || ContractManagement.GetContract(sender) != null, "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
