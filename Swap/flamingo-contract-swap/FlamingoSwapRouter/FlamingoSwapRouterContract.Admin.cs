@@ -15,12 +15,12 @@ namespace FlamingoSwapRouter
         #region Admin
 
 #warning 检查此处的 Admin 地址是否为最新地址
-        [InitialValue("Nh1quymBgCUwjnxhJXeUdGM2axGXEzdqKF", ContractParameterType.Hash160)]
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
 #warning 检查此处的 Factory 地址是否为最新地址
         //注意此处输入大端序
-        [InitialValue("0x3e8d13f29a037dcb0e84fb57f18aeb5d3601febf", ContractParameterType.Hash160)]
+        [InitialValue("0xca2d20610d7982ebe0bed124ee7e9b2d580a6efc", ContractParameterType.Hash160)]
         static readonly UInt160 Factory = default;
 
         const string AdminKey = nameof(superAdmin);

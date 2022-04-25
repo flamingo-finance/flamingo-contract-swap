@@ -18,7 +18,7 @@ namespace FlamingoSwapRouter
     public partial class FlamingoSwapRouterContract : SmartContract
     {
 
-        [InitialValue("Nh1quymBgCUwjnxhJXeUdGM2axGXEzdqKF", ContractParameterType.Hash160)]
+        [InitialValue("0x0ba7c1ff1d91811da9571f426bea1713e2ffb808", ContractParameterType.Hash160)]
         static readonly UInt160 SuperOwner = default;
         /// <summary>
         /// 

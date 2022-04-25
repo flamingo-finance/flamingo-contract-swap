@@ -19,11 +19,11 @@ namespace ProxyTemplate
         private static readonly UInt160 Pair01 = default;
 
 #warning Update the token address if necessary
-        [InitialValue("0x18a2a8c032bf77b1a4f8bdeac665ed817530f592", ContractParameterType.Hash160)]
+        [InitialValue("0xf0151f528127558851b39c2cd8aa47da7418ab28", ContractParameterType.Hash160)]
         private static readonly UInt160 Token0 = default;
 
 #warning Update the token address if necessary
-        [InitialValue("0x14dbf9feabea7b81df6553ca2d7a0f72c1b43085", ContractParameterType.Hash160)]
+        [InitialValue("0x340720c7107ef5721e44ed2ea8e314cce5c130fa", ContractParameterType.Hash160)]
         private static readonly UInt160 Token1 = default;
 
         private const byte Prefix_Allowed_Token0 = 0x00;
