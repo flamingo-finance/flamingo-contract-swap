@@ -14,48 +14,70 @@ namespace ProxyTemplate
     [ContractPermission("*")]
     public partial class ProxyTemplate : SmartContract
     {
-        public static void Deposit(UInt160 from, UInt160 token, BigInteger amount)
+        /// <summary>
+        /// Deposit NEP17 token from owner to contract 
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="token"></param>
+        /// <param name="amount"></param>
+        public static void Deposit(UInt160 owner, UInt160 token, BigInteger amount)
         {
             // Global
             // Check sender and token address
-            Assert(Runtime.CheckWitness(from), "Forbidden");
+            Assert(Runtime.CheckWitness(owner), "Forbidden");
             Assert(token == Token0 || token == Token1, "Unsupported Token");
 
             // Transfer
             UInt160 me = Runtime.ExecutingScriptHash;
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, me, amount, null });
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { owner, me, amount, null });
             Assert(result, "Transfer Fail", token);
 
             // Mint yToken
-            YMint(token, from, amount);
-            onDeposit(token, from, amount);
+            YMint(token, owner, amount);
+            onDeposit(token, owner, amount);
         }
 
-        public static void Withdraw(UInt160 to, UInt160 token, BigInteger amount)
+        /// <summary>
+        /// Withdraw NEP17 token from contract to owner 
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="token"></param>
+        /// <param name="amount"></param>
+        public static void Withdraw(UInt160 owner, UInt160 token, BigInteger amount)
         {
             // CalledByEntry
             // Check owner and token address
-            Assert(Runtime.CheckWitness(to), "Forbidden");
+            Assert(Runtime.CheckWitness(owner), "Forbidden");
             Assert(token == Token0 || token == Token1, "Unsupported Token");
 
             // Check balance
-            Assert(DepositOf(token, to) >= amount, "Insufficient Balance");
+            Assert(DepositOf(token, owner) >= amount, "Insufficient Balance");
 
             // Burn yToken
-            YBurn(token, to, amount);
+            YBurn(token, owner, amount);
 
             // Transfer
             UInt160 me = Runtime.ExecutingScriptHash;
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { me, to, amount, null });
+            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { me, owner, amount, null });
             Assert(result, "Transfer Fail", token);
-            onWithdraw(token, to, amount);
+            onWithdraw(token, owner, amount);
         }
 
-        public static BigInteger[] ProxyAddLiquidity(UInt160 sender, BigInteger amount0Desired, BigInteger amount1Desired, BigInteger amount0Min, BigInteger amount1Min, BigInteger deadLine)
+        /// <summary>
+        /// Add liquidity with deposited tokens and receive LP token
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="amount0Desired">Desired input amount of Token0</param>
+        /// <param name="amount1Desired">Desired input amount of Token1</param>
+        /// <param name="amount0Min">Minimal input amount of Token0</param>
+        /// <param name="amount1Min">Minimal input amount of Token1</param>
+        /// <param name="deadLine"></param>
+        /// <returns></returns>
+        public static BigInteger[] ProxyAddLiquidity(UInt160 owner, BigInteger amount0Desired, BigInteger amount1Desired, BigInteger amount0Min, BigInteger amount1Min, BigInteger deadLine)
         {
             // CalledByEntry
             // Check sender
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(owner), "Forbidden");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -65,9 +87,9 @@ namespace ProxyTemplate
 
             // Approve transfer
             Assert(amount0Desired >= 0 && amount1Desired >= 0, "Insufficient parameters");
-            Assert(Approve(Token0, sender, Pair01, amount0Desired), "Insufficient Token0 balance");
+            Assert(Approve(Token0, owner, Pair01, amount0Desired), "Insufficient Token0 balance");
             onApprove(Token0, Pair01, amount0Desired);
-            Assert(Approve(Token1, sender, Pair01, amount1Desired), "Insufficient Token1 balance");
+            Assert(Approve(Token1, owner, Pair01, amount1Desired), "Insufficient Token1 balance");
             onApprove(Token1, Pair01, amount1Desired);
 
             // Add liquidity
@@ -86,18 +108,27 @@ namespace ProxyTemplate
             onAdd(balance0Before - balance0After, balance1Before - balance1After);
 
             // Mint yLPToken
-            YBurn(Token0, sender, balance0Before - balance0After);
-            YBurn(Token1, sender, balance1Before - balance1After);
-            YMint(Pair01, sender, balanceLPAfter - balanceLPBefore);
+            YBurn(Token0, owner, balance0Before - balance0After);
+            YBurn(Token1, owner, balance1Before - balance1After);
+            YMint(Pair01, owner, balanceLPAfter - balanceLPBefore);
 
             return (BigInteger[])result;
         }
 
-        public static BigInteger[] ProxyRemoveLiquidity(UInt160 sender, BigInteger liquidity, BigInteger amount0Min, BigInteger amount1Min, BigInteger deadLine)
+        /// <summary>
+        /// Remove liquidity with deposited LP token and receive Token0, Token1
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="liquidity">Input amount of LP token</param>
+        /// <param name="amount0Min">Minimal output amount of Token0</param>
+        /// <param name="amount1Min">Minimal output amount of Token1</param>
+        /// <param name="deadLine"></param>
+        /// <returns></returns>
+        public static BigInteger[] ProxyRemoveLiquidity(UInt160 owner, BigInteger liquidity, BigInteger amount0Min, BigInteger amount1Min, BigInteger deadLine)
         {
             // CalledByEntry
             // Check sender
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(owner), "Forbidden");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -107,7 +138,7 @@ namespace ProxyTemplate
 
             // Approve transfer
             Assert(liquidity >= 0, "Insufficient parameters");
-            Assert(Approve(Pair01, sender, Pair01, liquidity), "Insufficient LPToken balance");
+            Assert(Approve(Pair01, owner, Pair01, liquidity), "Insufficient LPToken balance");
             onApprove(Pair01, Pair01, liquidity);
 
             // Remove liquidity
@@ -124,28 +155,37 @@ namespace ProxyTemplate
             onRemove(balance0After - balance0Before, balance1After - balance1Before);
 
             // Burn yLPToken
-            YBurn(Pair01, sender, balanceLPBefore - balanceLPAfter);
-            YMint(Token0, sender, balance0After - balance0Before);
-            YMint(Token1, sender, balance1After - balance1Before);
+            YBurn(Pair01, owner, balanceLPBefore - balanceLPAfter);
+            YMint(Token0, owner, balance0After - balance0Before);
+            YMint(Token1, owner, balance1After - balance1Before);
 
             return (BigInteger[])result;
         }
 
-        public static bool ProxySwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, bool isToken0to1, BigInteger deadLine)
+        /// <summary>
+        /// Swap deposited tokens with a fixed input amount
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="amountIn">Input amount of deposited token</param>
+        /// <param name="amountOutMin">Minimal amount of the output</param>
+        /// <param name="isToken0to1">If swap from Token0 to Token1</param>
+        /// <param name="deadLine"></param>
+        /// <returns></returns>
+        public static bool ProxySwapTokenInForTokenOut(UInt160 owner, BigInteger amountIn, BigInteger amountOutMin, bool isToken0to1, BigInteger deadLine)
         {
             // CalledByEntry
             // Check sender
-            Assert(Runtime.CheckWitness(sender), "Forbidden");
+            Assert(Runtime.CheckWitness(owner), "Forbidden");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
-            UInt160[] path = isToken0to1 ? new UInt160[] { Token0, Token1 } : new UInt160[] { Token1, Token1 };
+            UInt160[] path = isToken0to1 ? new UInt160[] { Token0, Token1 } : new UInt160[] { Token1, Token0 };
             UInt160 unpredictableSpent = isToken0to1 ? Token1 : Token0;
             BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
 
             // Approve transfer
             Assert(amountIn >= 0, "Insufficient parameters");
-            Assert(Approve(path[0], sender, Pair01, amountIn), "Insufficient Token balance");
+            Assert(Approve(path[0], owner, Pair01, amountIn), "Insufficient Token balance");
             onApprove(path[0], Pair01, amountIn);
 
             // Swap in for out
@@ -159,12 +199,21 @@ namespace ProxyTemplate
             BigInteger balanceAfter = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
 
             // Burn yToken
-            YBurn(path[0], sender, amountIn);
-            YMint(path[1], sender, balanceAfter - balanceBefore);
+            YBurn(path[0], owner, amountIn);
+            YMint(path[1], owner, balanceAfter - balanceBefore);
 
             return (bool)result;
         }
 
+        /// <summary>
+        /// Swap deposited tokens with a fixed output amount
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="amountOut">Output amount of deposited token</param>
+        /// <param name="amountInMax">Maximal amount of the input</param>
+        /// <param name="isToken0to1">If swap from Token0 to Token1</param>
+        /// <param name="deadLine"></param>
+        /// <returns></returns>
         public static bool ProxySwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, bool isToken0to1, BigInteger deadLine)
         {
             // CalledByEntry
@@ -173,7 +222,7 @@ namespace ProxyTemplate
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
-            UInt160[] path = isToken0to1 ? new UInt160[] { Token0, Token1 } : new UInt160[] { Token1, Token1 };
+            UInt160[] path = isToken0to1 ? new UInt160[] { Token0, Token1 } : new UInt160[] { Token1, Token0 };
             UInt160 unpredictableSpent = isToken0to1 ? Token0 : Token1;
             BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
 
