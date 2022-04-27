@@ -30,6 +30,10 @@ namespace FlamingoSwapPair
             else
             {
                 Assert(Runtime.CheckWitness(from), "No authorization.");
+                if (to == me)
+                {
+                    Assert(CheckIsRouter(Runtime.CallingScriptHash), "Not Allowed To Transfer");
+                }
             }
             Assert(AssetStorage.Get(from) >= amount, "Insufficient balance.");
             if (from == to) return true;
