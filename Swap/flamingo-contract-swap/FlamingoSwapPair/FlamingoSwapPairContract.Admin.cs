@@ -13,27 +13,32 @@ namespace FlamingoSwapPair
     {
         #region Settings
 
-        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
+        ////Test
+        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 superAdmin = default;
+
+        //[InitialValue("0x06f12a6aa2b5689ce97f16979b179fb3e31d63d7", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 WhiteListContract = default;
+
+        //Main
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
-        /// <summary>
-        /// WhiteList 合约地址
-        /// </summary>
-        [InitialValue("0x06f12a6aa2b5689ce97f16979b179fb3e31d63d7", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
 
 
         [DisplayName("symbol")]
-        public static string Symbol() => "FRP-FLM-DOGEF"; //symbol of the token
+        public static string Symbol() => "FRP-FLM-DOGER"; //symbol of the token
 
         /// <summary>
         /// 两个token地址，无需排序
         /// </summary>
-        [InitialValue("0x1415ab3b409a95555b77bc4ab6a7d9d7be0eddbd", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0xf0151f528127558851b39c2cd8aa47da7418ab28", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenA = default;
-        [InitialValue("0xf91230687638306d9f1fd2422f89445023d5caab", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0x322b5a366ca724801a1aa01e669b5f3d7f8c7f6f", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
 
 
@@ -45,6 +50,7 @@ namespace FlamingoSwapPair
 
 
         const string AdminKey = nameof(superAdmin);
+        const string GASAdminKey = nameof(GASAdminKey);
         const string FundAddresskey = nameof(FundAddresskey);
         private const string WhiteListContractKey = nameof(WhiteListContract);
 
@@ -78,16 +84,29 @@ namespace FlamingoSwapPair
             return true;
         }
 
-        public static void ClaimRewardFrombNEO(UInt160 bNEOAddress)
+        public static void ClaimGASFrombNEO(UInt160 receiveAddress)
         {
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            Assert((bool)Contract.Call(bNEOAddress, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEOAddress, 0, null), "claim fail");
+            Assert(Runtime.CheckWitness(GetGASAdmin()), "Forbidden");
+            var me = Runtime.ExecutingScriptHash;
+            BigInteger beforeBalance = GAS.BalanceOf(me);
+            Assert((bool)Contract.Call(TokenA, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, TokenA, 0, null), "claim fail");
+            BigInteger afterBalance = GAS.BalanceOf(me);
+
+            GAS.Transfer(me, receiveAddress, afterBalance - beforeBalance);
         }
 
-        public static void ReceiveGas(UInt160 address, BigInteger amount)
+        public static UInt160 GetGASAdmin()
         {
+            var admin = StorageGet(GASAdminKey);
+            return (UInt160)admin;
+        }
+
+        public static bool SetGASAdmin(UInt160 GASAdmin)
+        {
+            Assert(GASAdmin.IsAddress(), "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
-            GAS.Transfer(Runtime.ExecutingScriptHash, address, amount);
+            StoragePut(GASAdminKey, GASAdmin);
+            return true;
         }
 
         #endregion
