@@ -22,18 +22,11 @@ namespace FlamingoSwapPair
         {
             Assert(from.IsValid && to.IsValid, "Invalid From or To Address");
             Assert(amount > 0, "The parameter amount MUST be greater than 0.");
+            Assert(Runtime.CheckWitness(from), "No authorization.");
             var me = Runtime.ExecutingScriptHash;
-            if (ContractManagement.GetContract(from) != null)
+            if (to == me)
             {
-                Assert(Runtime.CallingScriptHash == from && to == me, "Not Allowed To Transfer");
-            }
-            else
-            {
-                Assert(Runtime.CheckWitness(from), "No authorization.");
-                if (to == me)
-                {
-                    Assert(CheckIsRouter(Runtime.CallingScriptHash), "Not Allowed To Transfer");
-                }
+                Assert(CheckIsRouter(Runtime.CallingScriptHash), "Not Allowed To Transfer");
             }
             Assert(AssetStorage.Get(from) >= amount, "Insufficient balance.");
             if (from == to) return true;

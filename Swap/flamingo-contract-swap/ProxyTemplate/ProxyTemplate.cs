@@ -93,7 +93,7 @@ namespace ProxyTemplate
             onApprove(Token1, Pair01, amount1Desired);
 
             // Add liquidity
-            var result = Contract.Call(Router, "addLiquidity", CallFlags.All, new object[] { me, Token0, Token1, amount0Desired, amount1Desired, amount0Min, amount1Min, deadLine });
+            var result = Contract.Call(Router, "addLiquidity", CallFlags.All, new object[] { Token0, Token1, amount0Desired, amount1Desired, amount0Min, amount1Min, deadLine });
 
             // Retrieve allowance
             Retrieve(Token0, Pair01);
@@ -138,15 +138,15 @@ namespace ProxyTemplate
 
             // Approve transfer
             Assert(liquidity >= 0, "Insufficient parameters");
-            Assert(Approve(Pair01, owner, Pair01, liquidity), "Insufficient LPToken balance");
-            onApprove(Pair01, Pair01, liquidity);
+            Assert(Approve(Pair01, owner, Router, liquidity), "Insufficient LPToken balance");
+            onApprove(Pair01, Router, liquidity);
 
             // Remove liquidity
-            var result = Contract.Call(Router, "removeLiquidity", CallFlags.All, new object[] { me, Token0, Token1, liquidity, amount0Min, amount1Min, deadLine });
+            var result = Contract.Call(Router, "removeLiquidity", CallFlags.All, new object[] { Token0, Token1, liquidity, amount0Min, amount1Min, deadLine });
 
             // Retrieve allowance
-            Retrieve(Pair01, Pair01);
-            onRetrieve(Pair01, Pair01);
+            Retrieve(Pair01, Router);
+            onRetrieve(Pair01, Router);
 
             // Get balance again
             BigInteger balance0After = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.All, new object[] { me });
@@ -189,7 +189,7 @@ namespace ProxyTemplate
             onApprove(path[0], Pair01, amountIn);
 
             // Swap in for out
-            var result = Contract.Call(Router, "swapTokenInForTokenOut", CallFlags.All, new object[] { me, amountIn, amountOutMin, path, deadLine });
+            var result = Contract.Call(Router, "swapTokenInForTokenOut", CallFlags.All, new object[] { amountIn, amountOutMin, path, deadLine });
 
             // Retrieve allowance
             Retrieve(path[0], Pair01);
@@ -232,7 +232,7 @@ namespace ProxyTemplate
             onApprove(path[0], Pair01, amountInMax);
 
             // Swap in for out
-            var result = Contract.Call(Router, "swapTokenOutForTokenIn", CallFlags.All, new object[] { me, amountOut, amountInMax, path, deadLine });
+            var result = Contract.Call(Router, "swapTokenOutForTokenIn", CallFlags.All, new object[] { amountOut, amountInMax, path, deadLine });
 
             // Retrieve allowance
             Retrieve(path[0], Pair01);
