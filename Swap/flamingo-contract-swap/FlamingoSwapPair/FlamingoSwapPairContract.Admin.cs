@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 using System.ComponentModel;
 using Neo;
 using Neo.SmartContract.Framework;
@@ -31,14 +30,14 @@ namespace FlamingoSwapPair
 
 
         [DisplayName("symbol")]
-        public static string Symbol() => "FRP-FLM-DOGER"; //symbol of the token
+        public static string Symbol() => "FLP-fWBTC-fUSDT"; //symbol of the token
 
-        /// <summary>
-        /// 两个token地址，无需排序
-        /// </summary>
-        [InitialValue("0xf0151f528127558851b39c2cd8aa47da7418ab28", Neo.SmartContract.ContractParameterType.Hash160)]
+        #region tokenA
+        [InitialValue("0xd6abe115ecb75e1fa0b42f5e85934ce8c1ae2893", Neo.SmartContract.ContractParameterType.Hash160)] //bENO
         static readonly UInt160 TokenA = default;
-        [InitialValue("0x322b5a366ca724801a1aa01e669b5f3d7f8c7f6f", Neo.SmartContract.ContractParameterType.Hash160)]
+        #endregion
+
+        [InitialValue("0xcd48b160c1bbc9d74997b803b9a7ad50a4bef020", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
 
 

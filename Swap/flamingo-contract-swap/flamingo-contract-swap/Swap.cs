@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services;
+﻿using Neo.SmartContract.Framework;
 
 
 namespace flamingo_contract_swap
