@@ -9,17 +9,11 @@ namespace FlamingoSwapRouter
 {
     public partial class FlamingoSwapRouterContract
     {
-
-
         #region Admin
-
-#warning 检查此处的 Admin 地址是否为最新地址
-        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
-#warning 检查此处的 Factory 地址是否为最新地址
-        //注意此处输入大端序
-        [InitialValue("0x701f7fe4c8d325487b64d718419a2a5a4a5e38eb", ContractParameterType.Hash160)]
+        [InitialValue("0xca2d20610d7982ebe0bed124ee7e9b2d580a6efc", ContractParameterType.Hash160)]
         static readonly UInt160 Factory = default;
 
         const string AdminKey = nameof(superAdmin);
@@ -66,10 +60,10 @@ namespace FlamingoSwapRouter
         /// <param name="nefFile"></param>
         /// <param name="manifest"></param>
         /// <param name="data"></param>
-        public static void Update(ByteString nefFile, string manifest, object data)
+        public static void Update(ByteString nefFile, string manifest)
         {
             Assert(Verify(), "No authorization.");
-            ContractManagement.Update(nefFile, manifest, data);
+            ContractManagement.Update(nefFile, manifest, null);
         }
 
         #endregion
