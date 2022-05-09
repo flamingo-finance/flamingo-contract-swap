@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.ComponentModel;
 using Neo;
 using Neo.SmartContract.Framework;

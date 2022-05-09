@@ -4,6 +4,7 @@ using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services;
 using Neo.SmartContract.Framework.Attributes;
+using Neo.SmartContract;
 
 namespace FlamingoSwapRouter
 {
@@ -14,6 +15,9 @@ namespace FlamingoSwapRouter
     [ContractPermission("*")]//avoid native contract hash change
     public partial class FlamingoSwapRouterContract : SmartContract
     {
+
+        [InitialValue("0x0ba7c1ff1d91811da9571f426bea1713e2ffb808", ContractParameterType.Hash160)]
+        static readonly UInt160 SuperOwner = default;
         /// <summary>
         /// 
         /// </summary>
@@ -217,7 +221,7 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
         {
-            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.ReadOnly, new object[] { });
+            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.All, new object[] { });
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
@@ -309,6 +313,10 @@ namespace FlamingoSwapRouter
         private static void Swap(BigInteger[] amounts, UInt160[] paths, UInt160 toAddress)
         {
             var max = paths.Length - 1;
+            if (paths[0] == paths[max])
+            {
+                Assert(toAddress == SuperOwner, "Invalid Path");
+            }
             for (int i = 0; i < max; i++)
             {
                 var input = paths[i];
