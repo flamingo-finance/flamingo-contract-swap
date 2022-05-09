@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
@@ -226,6 +225,35 @@ namespace FlamingoSwapRouter
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
+        /// <summary>
+        /// 接受nep17 token必备方法
+        /// SwapTokenInForTokenOut
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="amount"></param>
+        /// <param name="data"></param>
+        public static void OnNEP17Payment(UInt160 sender, BigInteger amountIn, object data)
+        {
+            UInt160 me = Runtime.ExecutingScriptHash;
+            UInt160 asset = Runtime.CallingScriptHash;
+            var parameters = (object[])data;
+            Assert(parameters.Length == 3, "Miss swap parameters");
+            BigInteger amountOutMin = (BigInteger)parameters[0];
+            UInt160[] paths = (UInt160[])parameters[1];
+            BigInteger deadLine = (BigInteger)parameters[2];
+
+            Assert(asset == paths[0], "Invalid swap path");
+            //看看有没有超过最后期限
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
+
+            var amounts = GetAmountsOut(amountIn, paths);
+            Assert(amounts[amounts.Length - 1] >= amountOutMin, "Insufficient AmountOut");
+
+            var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
+            //先将用户的token转入第一个交易对合约
+            SafeTransfer(paths[0], me, pairContract, amounts[0]);
+            Swap(amounts, paths, sender);
+        }
 
 
 

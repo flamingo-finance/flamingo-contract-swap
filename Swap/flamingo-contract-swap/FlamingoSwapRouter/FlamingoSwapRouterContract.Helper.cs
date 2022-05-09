@@ -3,7 +3,6 @@ using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services;
-using Neo.SmartContract.Framework.Attributes;
 
 namespace FlamingoSwapRouter
 {
@@ -65,8 +64,15 @@ namespace FlamingoSwapRouter
         /// <param name="amount"></param>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
-            Assert(result, "Transfer Fail", token);
+            try
+            {
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+                Assert(result, "Transfer Fail in Router", token);
+            }
+            catch (Exception)
+            {
+                Assert(false, "Transfer Error in Router", token);
+            }
         }
 
 
