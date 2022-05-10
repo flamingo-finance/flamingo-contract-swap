@@ -33,13 +33,13 @@ namespace ProxyTemplate
 
         const string AdminKey = nameof(superAdmin);
 
-        private const byte Prefix_Allowed_Token0 = 0x00;
-        private const byte Prefix_Allowed_Token1 = 0x01;
-        private const byte Prefix_Allowed_LPToken = 0x02;
+        const byte Prefix_Allowed_Token0 = 0x00;
+        const byte Prefix_Allowed_Token1 = 0x01;
+        const byte Prefix_Allowed_LPToken = 0x02;
 
-        private const byte Prefix_Deposit_Balance0 = 0x03;
-        private const byte Prefix_Deposit_Balance1 = 0x04;
-        private const byte Prefix_Balance_LPToken = 0x05;
+        const byte Prefix_Deposit_Balance0 = 0x03;
+        const byte Prefix_Deposit_Balance1 = 0x04;
+        const byte Prefix_Balance_LPToken = 0x05;
 
         public static bool Verify() => Runtime.CheckWitness(GetAdmin());
 
