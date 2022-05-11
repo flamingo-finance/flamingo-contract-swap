@@ -186,6 +186,30 @@ namespace FlamingoSwapPair
             //恒定积
             Assert(balance0Adjusted * balance1Adjusted >= reserve0 * reserve1 * 1_000_000, "K");
 
+            //fund fee
+            var fundAddress = GetFundAddress();
+            if (fundAddress != null)
+            {
+                if (amount0In > 0)
+                {
+                    var fee = amount0In * 5 / 10000;
+                    if (fee > 0)
+                    {
+                        SafeTransfer(Token0, me, fundAddress, fee, data);
+                        balance0 = DynamicBalanceOf(Token0, me);
+                    }
+                }
+                if (amount1In > 0)
+                {
+                    var fee = amount1In * 5 / 10000;
+                    if (fee > 0)
+                    {
+                        SafeTransfer(Token1, me, fundAddress, fee, data);
+                        balance1 = DynamicBalanceOf(Token1, me);
+                    }
+                }
+            }
+
             Update(balance0, balance1, r);
 
             Swapped(caller, amount0In, amount1In, amount0Out, amount1Out, toAddress);

@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
@@ -303,10 +302,12 @@ namespace FlamingoSwapRouter
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
+
         public static void OnNEP17Payment(UInt160 sender, BigInteger amountIn, object data)
         {
             
         }
+
 
         /// <summary>
         /// 根据输入计算输出，并完成兑换

@@ -1,4 +1,3 @@
-﻿using System;
 using System.Numerics;
 using System.ComponentModel;
 using Neo;
@@ -12,28 +11,35 @@ namespace FlamingoSwapPair
     partial class FlamingoSwapPairContract
     {
         #region Settings
-        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)] //Test
-        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", Neo.SmartContract.ContractParameterType.Hash160)] //Main
+
+        ////Test
+        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 superAdmin = default;
+
+        //[InitialValue("0x06f12a6aa2b5689ce97f16979b179fb3e31d63d7", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 WhiteListContract = default;
+
+        //Main
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
-
-        //[InitialValue("0x06f12a6aa2b5689ce97f16979b179fb3e31d63d7", Neo.SmartContract.ContractParameterType.Hash160)] //Test
-        [InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)] //Main
+        [InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
 
 
         [DisplayName("symbol")]
-        public static string Symbol() => "FRP-FLM-NUDES"; //symbol of the token
+        public static string Symbol() => "FLP-fWBTC-fUSDT"; //symbol of the token
 
-        /// <summary>
-        /// 两个token地址，无需排序
-        /// </summary>
-        [InitialValue("0xf0151f528127558851b39c2cd8aa47da7418ab28", Neo.SmartContract.ContractParameterType.Hash160)]
+        #region tokenA
+        [InitialValue("0xd6abe115ecb75e1fa0b42f5e85934ce8c1ae2893", Neo.SmartContract.ContractParameterType.Hash160)] //bENO
         static readonly UInt160 TokenA = default;
-        [InitialValue("0x340720c7107ef5721e44ed2ea8e314cce5c130fa", Neo.SmartContract.ContractParameterType.Hash160)]
+        #endregion
+
+        [InitialValue("0xcd48b160c1bbc9d74997b803b9a7ad50a4bef020", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
+
 
         #endregion
 
@@ -41,8 +47,10 @@ namespace FlamingoSwapPair
 
         #region Admin
 
+
         const string AdminKey = nameof(superAdmin);
         const string GASAdminKey = nameof(GASAdminKey);
+        const string FundAddresskey = nameof(FundAddresskey);
         private const string WhiteListContractKey = nameof(WhiteListContract);
 
         // When this contract address is included in the transaction signature,
@@ -50,6 +58,12 @@ namespace FlamingoSwapPair
         // For example, this method needs to be called when withdrawing token from the contract.
         public static bool Verify() => Runtime.CheckWitness(GetAdmin());
 
+
+
+        /// <summary>
+        /// 获取合约管理员
+        /// </summary>
+        /// <returns></returns>
         public static UInt160 GetAdmin()
         {
             var admin = StorageGet(AdminKey);
@@ -136,6 +150,32 @@ namespace FlamingoSwapPair
 
         #endregion
 
+        #region FundFee
+
+        /// <summary>
+        /// 获取FundAddress
+        /// </summary>
+        /// <returns></returns>
+        public static UInt160 GetFundAddress()
+        {
+            var address = StorageGet(FundAddresskey);
+            return address?.Length == 20 ? (UInt160)address : null;
+        }
+
+        /// <summary>
+        /// 设置FundAddress
+        /// </summary>
+        /// <param name="admin"></param>
+        /// <returns></returns>
+        public static bool SetFundAddress(UInt160 address)
+        {
+            Assert(address.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            StoragePut(FundAddresskey, address);
+            return true;
+        }
+        #endregion
+
         #region Upgrade
 
 
@@ -148,7 +188,7 @@ namespace FlamingoSwapPair
         public static void Update(ByteString nefFile, string manifest)
         {
             Assert(Verify(), "No authorization.");
-            ContractManagement.Update(nefFile, manifest);
+            ContractManagement.Update(nefFile, manifest, null);
         }
 
         #endregion

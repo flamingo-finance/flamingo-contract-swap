@@ -53,8 +53,15 @@ namespace FlamingoSwapPair
         /// <returns></returns>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
-            Assert(result, "Transfer Fail", token);
+            try
+            {
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
+                Assert(result, "Transfer Fail in Pair", token);
+            }
+            catch (Exception)
+            {
+                Assert(false, "Catch Transfer Error in Pair", token);
+            }
         }
 
         /// <summary>
