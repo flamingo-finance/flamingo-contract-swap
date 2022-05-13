@@ -48,7 +48,7 @@ namespace ProxyTemplate
         public static UInt160 GetAdmin()
         {
             var admin = Storage.Get(Storage.CurrentContext, AdminKey);
-            return (UInt160)admin;
+            return admin?.Length == 20 ? (UInt160)admin : superAdmin;
         }
 
         public static bool SetAdmin(UInt160 admin)
