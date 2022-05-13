@@ -16,7 +16,7 @@ namespace ProxyTemplate
         /// <param name="amount"></param>
         /// <param name="data"></param>
         /// <returns></returns>
-        public static void ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount)
+        public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data = null)
         {
             // Check token
             Assert(token.IsValid && to.IsValid && amount >= 0, "Invalid Parameters");
@@ -28,7 +28,8 @@ namespace ProxyTemplate
 
             // Transfer
             UInt160 me = Runtime.ExecutingScriptHash;
-            SafeTransfer(token, me, to, amount);
+            SafeTransfer(token, me, to, amount, data);
+            return true;
         }
 
         /// <summary>
@@ -38,11 +39,11 @@ namespace ProxyTemplate
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="amount"></param>
-        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
             try
             {
-                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
                 Assert(result, "Transfer Fail in Proxy", token);
             }
             catch (Exception)
