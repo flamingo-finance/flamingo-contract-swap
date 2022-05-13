@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services;
@@ -15,19 +16,39 @@ namespace ProxyTemplate
         /// <param name="amount"></param>
         /// <param name="data"></param>
         /// <returns></returns>
-        public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data)
+        public static void ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount)
         {
             // Check token
+            Assert(token.IsValid && to.IsValid && amount >= 0, "Invalid Parameters");
             Assert(token == Token0 || token == Token1 || token == Pair01, "Unsupported Token");
-            Assert(amount >= 0, "Insufficient Parameters");
 
             // Find allowed
-            Assert(AllowedOf(token, to) >= amount, "Inefficient Allowed");
+            Assert(AllowedOf(token, to) >= amount, "Insufficient Allowed");
             Consume(token, to, amount);
 
             // Transfer
             UInt160 me = Runtime.ExecutingScriptHash;
-            return (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { me, to, amount, data });
+            SafeTransfer(token, me, to, amount);
+        }
+
+        /// <summary>
+        /// Tranfer as the receiver
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="amount"></param>
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
+        {
+            try
+            {
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+                Assert(result, "Transfer Fail in Proxy", token);
+            }
+            catch (Exception)
+            {
+                Assert(false, "Transfer Error in Proxy", token);
+            }
         }
 
         public static void onNEP17Payment(UInt160 from, BigInteger amount, BigInteger data)
@@ -98,6 +119,8 @@ namespace ProxyTemplate
 
         public static BigInteger DepositOf(UInt160 token, UInt160 owner)
         {
+            Assert(token.IsValid && owner.IsValid, "Invalid Parameters");
+            Assert(token == Token0 || token == Token1 || token == Pair01, "Unsupported Token");
             StorageMap depositMap = new(Storage.CurrentContext, token == Token0 ? Prefix_Deposit_Balance0 : (token == Token1 ? Prefix_Deposit_Balance1 : Prefix_Balance_LPToken));
             return (BigInteger)depositMap.Get(owner);
         }

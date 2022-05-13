@@ -41,8 +41,10 @@ namespace ProxyTemplate
         const byte Prefix_Deposit_Balance1 = 0x04;
         const byte Prefix_Balance_LPToken = 0x05;
 
+        [Safe]
         public static bool Verify() => Runtime.CheckWitness(GetAdmin());
 
+        [Safe]
         public static UInt160 GetAdmin()
         {
             var admin = Storage.Get(Storage.CurrentContext, AdminKey);

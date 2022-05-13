@@ -25,14 +25,13 @@ namespace ProxyTemplate
         {
             // Global
             // Check sender and parameters
+            Assert(owner.IsValid && token.IsValid && amount >= 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
             Assert(token == Token0 || token == Token1, "Unsupported Token");
-            Assert(amount >= 0, "Insufficient Parameters");
 
             // Transfer
             UInt160 me = Runtime.ExecutingScriptHash;
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { owner, me, amount, null });
-            Assert(result, "Transfer Fail", token);
+            SafeTransfer(token, owner, me, amount);
 
             // Mint yToken
             YMint(token, owner, amount);
@@ -51,9 +50,9 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check owner and parameters
+            Assert(owner.IsValid && token.IsValid && amount >= 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
             Assert(token == Token0 || token == Token1, "Unsupported Token");
-            Assert(amount >= 0, "Insufficient Parameters");
 
             // Check balance
             Assert(DepositOf(token, owner) >= amount, "Insufficient Balance");
@@ -63,8 +62,7 @@ namespace ProxyTemplate
 
             // Transfer
             UInt160 me = Runtime.ExecutingScriptHash;
-            var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { me, owner, amount, null });
-            Assert(result, "Transfer Fail", token);
+            SafeTransfer(token, me, owner, amount);
             onWithdraw(token, owner, amount);
             return true;
         }
@@ -83,8 +81,8 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check sender and parameters
+            Assert(owner.IsValid && amount0Desired >= 0 && amount1Desired >= 0 && amount0Min >= 0 && amount1Min >= 0 && deadLine > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
-            Assert(amount0Desired >= 0 && amount1Desired >= 0 && amount0Min >= 0 && amount1Min >= 0, "Insufficient Parameters");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -131,8 +129,8 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check sender and parameters
+            Assert(owner.IsValid && liquidity >= 0 && amount0Min >= 0 && amount1Min >= 0 && deadLine > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
-            Assert(liquidity >= 0 && amount0Min >= 0 && amount1Min >= 0, "Insufficient Parameters");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -171,12 +169,12 @@ namespace ProxyTemplate
         /// <param name="isToken0to1">If swap from Token0 to Token1</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool ProxySwapTokenInForTokenOut(UInt160 owner, BigInteger amountIn, BigInteger amountOutMin, bool isToken0to1, BigInteger deadLine)
+        public static bool ProxySwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, bool isToken0to1, BigInteger deadLine)
         {
             // CalledByEntry
             // Check sender and parameters
-            Assert(Runtime.CheckWitness(owner), "Forbidden");
-            Assert(amountIn >= 0 && amountOutMin >= 0, "Insufficient Parameters");
+            Assert(sender.IsValid && amountIn >= 0 && amountOutMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(Runtime.CheckWitness(sender), "Forbidden");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -185,8 +183,8 @@ namespace ProxyTemplate
             BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Approve transfer
-            Assert(DepositOf(Pair01, owner) >= amountIn, "Insufficient Balance");
-            Approve(path[0], owner, Pair01, amountIn);
+            Assert(DepositOf(Pair01, sender) >= amountIn, "Insufficient Balance");
+            Approve(path[0], sender, Pair01, amountIn);
 
             // Swap in for out
             var result = Contract.Call(Router, "swapTokenInForTokenOut", CallFlags.All, new object[] { amountIn, amountOutMin, path, deadLine });
@@ -198,8 +196,8 @@ namespace ProxyTemplate
             BigInteger balanceAfter = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Burn yToken
-            YBurn(path[0], owner, amountIn);
-            YMint(path[1], owner, balanceAfter - balanceBefore);
+            YBurn(path[0], sender, amountIn);
+            YMint(path[1], sender, balanceAfter - balanceBefore);
 
             return (bool)result;
         }
@@ -217,8 +215,8 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check sender and parameters
+            Assert(sender.IsValid && amountOut >= 0 && amountInMax >= 0 && deadLine > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(sender), "Forbidden");
-            Assert(amountOut >= 0 && amountInMax >= 0, "Insufficient Parameters");
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
