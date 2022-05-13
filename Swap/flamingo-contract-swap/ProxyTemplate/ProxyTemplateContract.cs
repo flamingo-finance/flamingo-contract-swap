@@ -12,7 +12,7 @@ namespace ProxyTemplate
     [ManifestExtra("Email", "developer@neo.org")]
     [ManifestExtra("Description", "This is a ProxyTemplate")]
     [ContractPermission("*")]
-    public partial class ProxyTemplate : SmartContract
+    public partial class ProxyTemplateContract : SmartContract
     {
         /// <summary>
         /// Deposit NEP17 token from owner to contract 

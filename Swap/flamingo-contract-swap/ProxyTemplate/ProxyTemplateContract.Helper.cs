@@ -6,7 +6,7 @@ using Neo.SmartContract.Framework.Services;
 
 namespace ProxyTemplate
 {
-    public partial class ProxyTemplate : SmartContract
+    public partial class ProxyTemplateContract : SmartContract
     {
         /// <summary>
         /// Check approval and tranfer as the caller

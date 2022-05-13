@@ -5,7 +5,7 @@ using Neo.SmartContract.Framework;
 
 namespace ProxyTemplate
 {
-    public partial class ProxyTemplate : SmartContract
+    public partial class ProxyTemplateContract : SmartContract
     {
         [DisplayName("Deposit")]
         public static event DepositEvent onDeposit;

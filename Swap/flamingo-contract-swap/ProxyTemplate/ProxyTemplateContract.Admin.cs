@@ -7,7 +7,7 @@ using Neo.SmartContract.Framework.Attributes;
 
 namespace ProxyTemplate
 {
-    public partial class ProxyTemplate : SmartContract
+    public partial class ProxyTemplateContract : SmartContract
     {
         #region Admin
 
