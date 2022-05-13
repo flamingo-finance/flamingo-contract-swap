@@ -88,9 +88,9 @@ namespace ProxyTemplate
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
-            BigInteger balance0Before = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.All, new object[] { me });
-            BigInteger balance1Before = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.All, new object[] { me });
-            BigInteger balanceLPBefore = (BigInteger)Contract.Call(Pair01, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balance0Before = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.ReadOnly, new object[] { me });
+            BigInteger balance1Before = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.ReadOnly, new object[] { me });
+            BigInteger balanceLPBefore = (BigInteger)Contract.Call(Pair01, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Approve transfer
             Assert(DepositOf(Token0, owner) >= amount0Desired && DepositOf(Token1, owner) >= amount1Desired, "Insufficient Balance");
@@ -105,9 +105,9 @@ namespace ProxyTemplate
             Retrieve(Token1, Pair01);
 
             // Get balance again
-            BigInteger balance0After = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.All, new object[] { me });
-            BigInteger balance1After = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.All, new object[] { me });
-            BigInteger balanceLPAfter = (BigInteger)Contract.Call(Pair01, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balance0After = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.ReadOnly, new object[] { me });
+            BigInteger balance1After = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.ReadOnly, new object[] { me });
+            BigInteger balanceLPAfter = (BigInteger)Contract.Call(Pair01, "balanceOf", CallFlags.ReadOnly, new object[] { me });
             onAdd(balance0Before - balance0After, balance1Before - balance1After);
 
             // Mint yLPToken
@@ -136,8 +136,8 @@ namespace ProxyTemplate
 
             // Record balance
             UInt160 me = Runtime.ExecutingScriptHash;
-            BigInteger balance0Before = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.All, new object[] { me });
-            BigInteger balance1Before = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balance0Before = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.ReadOnly, new object[] { me });
+            BigInteger balance1Before = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Approve transfer
             Assert(DepositOf(Pair01, owner) >= liquidity, "Insufficient Balance");
@@ -150,8 +150,8 @@ namespace ProxyTemplate
             Retrieve(Pair01, Router);
 
             // Get balance again
-            BigInteger balance0After = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.All, new object[] { me });
-            BigInteger balance1After = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balance0After = (BigInteger)Contract.Call(Token0, "balanceOf", CallFlags.ReadOnly, new object[] { me });
+            BigInteger balance1After = (BigInteger)Contract.Call(Token1, "balanceOf", CallFlags.ReadOnly, new object[] { me });
             onRemove(balance0After - balance0Before, balance1After - balance1Before);
 
             // Burn yLPToken
@@ -182,7 +182,7 @@ namespace ProxyTemplate
             UInt160 me = Runtime.ExecutingScriptHash;
             UInt160[] path = isToken0to1 ? new UInt160[] { Token0, Token1 } : new UInt160[] { Token1, Token0 };
             UInt160 unpredictableSpent = isToken0to1 ? Token1 : Token0;
-            BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Approve transfer
             Assert(DepositOf(Pair01, owner) >= amountIn, "Insufficient Balance");
@@ -195,7 +195,7 @@ namespace ProxyTemplate
             Retrieve(path[0], Pair01);
 
             // Get balance again
-            BigInteger balanceAfter = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balanceAfter = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Burn yToken
             YBurn(path[0], owner, amountIn);
@@ -224,7 +224,7 @@ namespace ProxyTemplate
             UInt160 me = Runtime.ExecutingScriptHash;
             UInt160[] path = isToken0to1 ? new UInt160[] { Token0, Token1 } : new UInt160[] { Token1, Token0 };
             UInt160 unpredictableSpent = isToken0to1 ? Token0 : Token1;
-            BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balanceBefore = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Approve transfer
             Assert(DepositOf(path[0], sender) >= amountInMax, "Insufficient Balance");
@@ -237,7 +237,7 @@ namespace ProxyTemplate
             Retrieve(path[0], Pair01);
 
             // Get balance again
-            BigInteger balanceAfter = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.All, new object[] { me });
+            BigInteger balanceAfter = (BigInteger)Contract.Call(unpredictableSpent, "balanceOf", CallFlags.ReadOnly, new object[] { me });
 
             // Burn yToken
             YBurn(path[0], sender, balanceBefore - balanceAfter);
