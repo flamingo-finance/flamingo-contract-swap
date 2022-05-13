@@ -33,12 +33,12 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] AddLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
+            //验证参数
+            Assert(sender.IsValid && tokenA.IsValid && tokenB.IsValid && amountADesired >= 0 && amountBDesired >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
-
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
-
 
             var reserves = GetReserves(tokenA, tokenB);
             var reserveA = reserves[0];
@@ -82,14 +82,13 @@ namespace FlamingoSwapRouter
 
         public static BigInteger[] AddLiquidity(UInt160 tokenA, UInt160 tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
-            var caller = Runtime.CallingScriptHash;
-            var me = Runtime.ExecutingScriptHash;
+            //验证参数
+            Assert(tokenA.IsValid && tokenB.IsValid && amountADesired >= 0 && amountBDesired >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
             //验证权限
+            var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
-
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
-
 
             var reserves = GetReserves(tokenA, tokenB);
             var reserveA = reserves[0];
@@ -145,11 +144,12 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] RemoveLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
+            //验证参数
+            Assert(sender.IsValid && tokenA.IsValid && tokenB.IsValid && liquidity >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
-
 
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             SafeTransfer(pairContract, sender, pairContract, liquidity);
@@ -168,14 +168,15 @@ namespace FlamingoSwapRouter
 
         public static BigInteger[] RemoveLiquidity(UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
-            var caller = Runtime.CallingScriptHash;
-            var me = Runtime.ExecutingScriptHash;
+            //验证参数
+            Assert(tokenA.IsValid && tokenB.IsValid && liquidity >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
             //验证权限
+            var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
-
+            var me = Runtime.ExecutingScriptHash;
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             RequestTransfer(pairContract, caller, me, liquidity);
             SafeTransfer(pairContract, me, pairContract, liquidity);
@@ -298,7 +299,8 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
         {
-            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.All, new object[] { });
+            Assert(tokenA.IsValid && tokenB.IsValid, "INVALID_TOKEN");
+            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.ReadOnly, new object[] { });
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
@@ -320,6 +322,8 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
+            //验证参数
+            Assert(sender.IsValid && amountIn >= 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -335,11 +339,12 @@ namespace FlamingoSwapRouter
             return true;
         }
 
-        public static bool SwapTokenInForTokenOut( BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
+        public static bool SwapTokenInForTokenOut(BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
-            var caller = Runtime.CallingScriptHash;
-            var me = Runtime.ExecutingScriptHash;
+            //验证参数
+            Assert(amountIn >= 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
+            var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
@@ -366,6 +371,8 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
+            //验证参数
+            Assert(sender.IsValid && amountOut >= 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -383,9 +390,10 @@ namespace FlamingoSwapRouter
 
         public static bool SwapTokenOutForTokenIn(BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
-            var caller = Runtime.CallingScriptHash;
-            var me = Runtime.ExecutingScriptHash;
+            //验证参数
+            Assert(amountOut >= 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
+            var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
