@@ -43,6 +43,7 @@ namespace FlamingoSwapOrderBook
                 baseToken = baseToken,
                 quoteToken = quoteToken
             });
+            onRegisterBook(pair, baseToken, quoteToken);
             return true;
         }
 
@@ -78,6 +79,7 @@ namespace FlamingoSwapOrderBook
                 amount = leftAmount
             };
             Assert(InsertOrder(pair, id, order, isBuy), "Add Order Fail");
+            onAddOrder(pair, sender, price, leftAmount, isBuy);
             return id;
         }
 
@@ -97,6 +99,7 @@ namespace FlamingoSwapOrderBook
 
             // Do remove
             Assert(RemoveOrder(pair, id, isBuy), "Remove Order Fail");
+            onCancelOrder(pair, id, order.amount);
 
             // Withdraw token
             UInt160 me = Runtime.ExecutingScriptHash;

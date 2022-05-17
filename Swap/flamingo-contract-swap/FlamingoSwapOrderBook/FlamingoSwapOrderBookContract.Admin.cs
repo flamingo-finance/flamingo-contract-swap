@@ -7,7 +7,7 @@ using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapOrderBook
 {
-    public partial class FlamingoSwapOrderBookContract : SmartContract
+    public partial class FlamingoSwapOrderBookContract
     {
         #region Admin
 

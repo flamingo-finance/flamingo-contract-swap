@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace FlamingoSwapOrderBook
 {
-    public partial class FlamingoSwapOrderBookContract : SmartContract
+    public partial class FlamingoSwapOrderBookContract
     {
         /// <summary>
         /// Insert a not-fully-deal limit order into orderbook
@@ -313,6 +313,7 @@ namespace FlamingoSwapOrderBook
                     // Do transfer
                     SafeTransfer(book.quoteToken, buyer, firstOrder.sender, firstOrder.amount * firstOrder.price);
                     SafeTransfer(book.baseToken, me, buyer, firstOrder.amount);
+                    onDealOrder(pair, GetFirstOrderID(pair, false), price, firstOrder.amount, 0);
                     // Remove full-fill order
                     RemoveFirstOrder(pair, false);
                 }
@@ -323,6 +324,7 @@ namespace FlamingoSwapOrderBook
                     // Do transfer
                     SafeTransfer(book.quoteToken, buyer, firstOrder.sender, amount * firstOrder.price);
                     SafeTransfer(book.baseToken, me, buyer, amount);
+                    onDealOrder(pair, GetFirstOrderID(pair, false), price, amount, firstOrder.amount);
                     // Update order
                     SetOrder(GetFirstOrderID(pair, false), firstOrder);
                     amount = 0;
@@ -356,6 +358,7 @@ namespace FlamingoSwapOrderBook
                     // Do transfer
                     SafeTransfer(book.baseToken, seller, firstOrder.sender, firstOrder.amount);
                     SafeTransfer(book.quoteToken, me, seller, firstOrder.amount * firstOrder.price);
+                    onDealOrder(pair, GetFirstOrderID(pair, true), price, firstOrder.amount, 0);
                     // Remove full-fill order
                     RemoveFirstOrder(pair, true);
                 }
@@ -366,6 +369,7 @@ namespace FlamingoSwapOrderBook
                     // Do transfer
                     SafeTransfer(book.baseToken, seller, firstOrder.sender, amount);
                     SafeTransfer(book.quoteToken, me, seller, amount * firstOrder.price);
+                    onDealOrder(pair, GetFirstOrderID(pair, true), price, amount, firstOrder.amount);
                     // Update order
                     SetOrder(GetFirstOrderID(pair, true), firstOrder);
                     amount = 0;
