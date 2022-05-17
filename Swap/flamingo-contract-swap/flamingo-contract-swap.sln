@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30309.148
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32319.34
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "flamingo-contract-swap", "flamingo-contract-swap\flamingo-contract-swap.csproj", "{56E0E672-43DB-441E-A223-5AC158AAD487}"
 EndProject
@@ -9,11 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapPair", "Flaming
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapRouter", "FlamingoSwapRouter\FlamingoSwapRouter.csproj", "{6B1E966F-2F8F-4B8F-9613-BC64EAE32783}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapPairWhiteList", "FlamingoSwapPairWhiteList\FlamingoSwapPairWhiteList.csproj", "{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapPairWhiteList", "FlamingoSwapPairWhiteList\FlamingoSwapPairWhiteList.csproj", "{F1EAFA3A-A911-4433-8C66-1C54CF7964B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashLoanTemple", "FlashLoanTemple\FlashLoanTemple.csproj", "{B4C0E2F9-E311-4502-8BDA-008EBD5C5BE7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashLoanTemple", "FlashLoanTemple\FlashLoanTemple.csproj", "{B4C0E2F9-E311-4502-8BDA-008EBD5C5BE7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapFactory", "FlamingoSwapFactory\FlamingoSwapFactory.csproj", "{7F4FDB74-D11E-45A7-B6A0-C85D4528748A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapFactory", "FlamingoSwapFactory\FlamingoSwapFactory.csproj", "{7F4FDB74-D11E-45A7-B6A0-C85D4528748A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlamingoSwapOrderBook", "FlamingoSwapOrderBook\FlamingoSwapOrderBook.csproj", "{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{7F4FDB74-D11E-45A7-B6A0-C85D4528748A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7F4FDB74-D11E-45A7-B6A0-C85D4528748A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7F4FDB74-D11E-45A7-B6A0-C85D4528748A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
