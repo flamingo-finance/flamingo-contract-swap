@@ -11,6 +11,7 @@ namespace FlamingoSwapOrderBook
     [ManifestExtra("Author", "NEO")]
     [ManifestExtra("Email", "developer@neo.org")]
     [ManifestExtra("Description", "This is a FlamingoSwapOrderBook")]
+    [ContractPermission("*")]
     public partial class FlamingoSwapOrderBookContract : SmartContract
     {
         public struct LimitOrder
@@ -117,7 +118,7 @@ namespace FlamingoSwapOrderBook
         public static BigInteger MatchBuy(UInt160 pair, BigInteger price, BigInteger amount)
         {
             Assert(BookExists(pair), "Book Not Exists");
-            if (GetFirstOrderID(pair, false).Equals(0)) return amount;
+            if (GetFirstOrderID(pair, false) == 0) return amount;
             LimitOrder currentOrder = GetFirstOrder(pair, false);
 
             while (amount > 0)
@@ -144,7 +145,7 @@ namespace FlamingoSwapOrderBook
         public static BigInteger MatchSell(UInt160 pair, BigInteger price, BigInteger amount)
         {
             Assert(BookExists(pair), "Book Not Exists");
-            if (GetFirstOrderID(pair, true).Equals(0)) return amount;
+            if (GetFirstOrderID(pair, true) == 0) return amount;
             LimitOrder currentOrder = GetFirstOrder(pair, true);
 
             while (amount > 0)
@@ -172,7 +173,7 @@ namespace FlamingoSwapOrderBook
         {
             Assert(BookExists(pair), "Book Not Exists");
             BigInteger result = 0;
-            if (GetFirstOrderID(pair, false).Equals(0)) return result;
+            if (GetFirstOrderID(pair, false) == 0) return result;
             LimitOrder currentOrder = GetFirstOrder(pair, false);
             while (amount > 0)
             {
@@ -209,7 +210,7 @@ namespace FlamingoSwapOrderBook
         {
             Assert(BookExists(pair), "Book Not Exists");
             BigInteger result = 0;
-            if (GetFirstOrderID(pair, true).Equals(0)) return result;
+            if (GetFirstOrderID(pair, true) == 0) return result;
             LimitOrder currentOrder = GetFirstOrder(pair, true);
             while (amount > 0)
             {
@@ -248,7 +249,7 @@ namespace FlamingoSwapOrderBook
         {
             // Check if can deal
             Assert(BookExists(pair), "Book Not Exists");
-            if (GetFirstOrderID(pair, !isBuy).Equals(0)) return amount;
+            if (GetFirstOrderID(pair, !isBuy) == 0) return amount;
 
             LimitOrder firstOrder = GetFirstOrder(pair, !isBuy);
             bool canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
@@ -279,7 +280,7 @@ namespace FlamingoSwapOrderBook
         public static BigInteger GetBuyPrice(UInt160 pair)
         {
             Assert(BookExists(pair), "Book Not Exists");
-            if (GetFirstOrderID(pair, false).Equals(0)) return 0;
+            if (GetFirstOrderID(pair, false) == 0) return 0;
 
             LimitOrder firstSellOrder = GetFirstOrder(pair, false);
             return firstSellOrder.price;
@@ -293,10 +294,15 @@ namespace FlamingoSwapOrderBook
         public static BigInteger GetSellPrice(UInt160 pair)
         {
             Assert(BookExists(pair), "Book Not Exists");
-            if (GetFirstOrderID(pair, true).Equals(0)) return 0;
+            if (GetFirstOrderID(pair, true) == 0) return 0;
 
             LimitOrder firstBuyOrder = GetFirstOrder(pair, true);
             return firstBuyOrder.price;
+        }
+
+        public static void OnNEP17Payment(UInt160 sender, BigInteger amountIn, object data)
+        {
+            
         }
     }
 }

@@ -21,7 +21,7 @@ namespace FlamingoSwapOrderBook
             uint firstID = GetFirstOrderID(pair, isBuy);
 
             // Check if there is no order
-            bool canBeFirst = firstID.Equals(0);
+            bool canBeFirst = firstID == 0;
             if (!canBeFirst)
             {
                 // Check if this order is the worthiest
@@ -48,14 +48,14 @@ namespace FlamingoSwapOrderBook
             uint currentID = firstID; 
             LimitOrder currentOrder;
             LimitOrder nextOrder;
-            while (!currentID.Equals(0))
+            while (currentID != 0)
             {
                 // Check before
                 currentOrder = GetOrder(currentID);
                 bool canFollow = (isBuy && (order.price <= currentOrder.price)) || (!isBuy && (order.price >= currentOrder.price));
                 if (!canFollow) break;
 
-                if (!currentOrder.nextID.Equals(0))
+                if (currentOrder.nextID != 0)
                 {
                     // Check after
                     nextOrder = GetOrder(currentOrder.nextID);
@@ -126,8 +126,8 @@ namespace FlamingoSwapOrderBook
             // Remove from BookMap
             Orderbook book = GetOrderbook(pair);
             uint firstID = isBuy ? book.firstBuyID : book.firstSellID;
-            if (firstID.Equals(0)) return false;
-            if (firstID.Equals(id))
+            if (firstID == 0) return false;
+            if (firstID == id)
             {
                 // Delete the first
                 SetFirstOrderID(pair, GetOrder(firstID).nextID, isBuy);
@@ -145,7 +145,7 @@ namespace FlamingoSwapOrderBook
         {
             uint currentID = firstID; 
             LimitOrder currentOrder = GetOrder(currentID);
-            while (!currentOrder.nextID.Equals(0))
+            while (currentOrder.nextID != 0)
             {
                 // Check next
                 if (currentOrder.nextID == id)
@@ -300,7 +300,7 @@ namespace FlamingoSwapOrderBook
         {
             Orderbook book = GetOrderbook(pair);
             UInt160 me = Runtime.ExecutingScriptHash;
-            while (amount > 0 && !GetFirstOrderID(pair, false).Equals(0))
+            while (amount > 0 && GetFirstOrderID(pair, false) != 0)
             {
                 // Check the lowest sell price
                 if (GetMarketPrice(pair, false) > price) break;
@@ -345,7 +345,7 @@ namespace FlamingoSwapOrderBook
         {
             Orderbook book = GetOrderbook(pair);
             UInt160 me = Runtime.ExecutingScriptHash;
-            while (amount > 0 && !GetFirstOrderID(pair, true).Equals(0))
+            while (amount > 0 && GetFirstOrderID(pair, true) != 0)
             {
                 // Check the highest buy price
                 if (GetMarketPrice(pair, true) < price) break;
@@ -358,7 +358,7 @@ namespace FlamingoSwapOrderBook
                     // Do transfer
                     SafeTransfer(book.baseToken, seller, firstOrder.sender, firstOrder.amount);
                     SafeTransfer(book.quoteToken, me, seller, firstOrder.amount * firstOrder.price);
-                    onDealOrder(pair, GetFirstOrderID(pair, true), price, firstOrder.amount, 0);
+                    onDealOrder(pair, GetFirstOrderID(pair, true), firstOrder.price, firstOrder.amount, 0);
                     // Remove full-fill order
                     RemoveFirstOrder(pair, true);
                 }
@@ -369,7 +369,7 @@ namespace FlamingoSwapOrderBook
                     // Do transfer
                     SafeTransfer(book.baseToken, seller, firstOrder.sender, amount);
                     SafeTransfer(book.quoteToken, me, seller, amount * firstOrder.price);
-                    onDealOrder(pair, GetFirstOrderID(pair, true), price, amount, firstOrder.amount);
+                    onDealOrder(pair, GetFirstOrderID(pair, true), firstOrder.price, amount, firstOrder.amount);
                     // Update order
                     SetOrder(GetFirstOrderID(pair, true), firstOrder);
                     amount = 0;
