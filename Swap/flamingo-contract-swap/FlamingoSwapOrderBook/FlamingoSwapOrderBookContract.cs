@@ -43,6 +43,9 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         public static bool RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals)
         {
+            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+
             var pairKey = GetPairKey(baseToken, quoteToken);
             if (BookExists(pairKey)) return false;
             SetOrderbook(pairKey, new Orderbook(){
@@ -51,6 +54,18 @@ namespace FlamingoSwapOrderBook
                 quoteDecimals = quoteDecimals
             });
             onRegisterBook(baseToken, quoteToken, quoteDecimals);
+            return true;
+        }
+
+        public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        {
+            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+
+            var pairKey = GetPairKey(baseToken, quoteToken);
+            if (!BookExists(pairKey)) return false;
+            DeleteOrderBook(pairKey);
+            onRemoveBook(baseToken, quoteToken);
             return true;
         }
 

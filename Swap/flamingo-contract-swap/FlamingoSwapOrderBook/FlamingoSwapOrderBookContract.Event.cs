@@ -7,10 +7,16 @@ namespace FlamingoSwapOrderBook
     public partial class FlamingoSwapOrderBookContract
     {
         /// <summary>
-        /// When register order
+        /// When register orderbook
         /// </summary>
         public static event RegisterBookEvent onRegisterBook;
         public delegate void RegisterBookEvent(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals);
+
+        /// <summary>
+        /// When remove orderbook
+        /// </summary>
+        public static event RemoveBookEvent onRemoveBook;
+        public delegate void RemoveBookEvent(UInt160 baseToken, UInt160 quoteToken);
 
         /// <summary>
         /// When deal order

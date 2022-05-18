@@ -16,5 +16,15 @@ namespace FlamingoSwapOrderBook
         [OpCode(OpCode.CAT)]
         [OpCode(OpCode.CONVERT, "21")]
         public static extern BigInteger ToUInteger(this UInt160 val);
+
+        /// <summary>
+        /// Is Valid and not Zero address
+        /// </summary>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static bool IsAddress(this UInt160 address)
+        {
+            return address.IsValid && !address.IsZero;
+        }
     }
 }
