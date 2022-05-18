@@ -12,13 +12,13 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Insert a not-fully-deal limit order into orderbook
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="order"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static bool InsertOrder(UInt160 pair, uint id, LimitOrder order, bool isBuy)
+        private static bool InsertOrder(byte[] pairKey, uint id, LimitOrder order, bool isBuy)
         {
-            uint firstID = GetFirstOrderID(pair, isBuy);
+            uint firstID = GetFirstOrderID(pairKey, isBuy);
 
             // Check if there is no order
             bool canBeFirst = firstID == 0;
@@ -31,7 +31,7 @@ namespace FlamingoSwapOrderBook
             if (canBeFirst)
             {
                 // Insert to the first
-                SetFirstOrderID(pair, id, isBuy);
+                SetFirstOrderID(pairKey, id, isBuy);
                 order.nextID = firstID;
                 SetOrder(id, order);
                 return true;
@@ -79,58 +79,58 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Get the first limit order id
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static uint GetFirstOrderID(UInt160 pair, bool isBuy)
+        private static uint GetFirstOrderID(byte[] pairKey, bool isBuy)
         {
-            Orderbook book = GetOrderbook(pair);
+            Orderbook book = GetOrderbook(pairKey);
             return isBuy ? book.firstBuyID : book.firstSellID;
         }
 
         /// <summary>
         /// Set the first limit order id
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="id"></param>
         /// <param name="isBuy"></param>
-        private static void SetFirstOrderID(UInt160 pair, uint id, bool isBuy)
+        private static void SetFirstOrderID(byte[] pairKey, uint id, bool isBuy)
         {
-            Orderbook book = GetOrderbook(pair);
+            Orderbook book = GetOrderbook(pairKey);
             if (isBuy) book.firstBuyID = id;
             else book.firstSellID = id;
-            SetOrderbook(pair, book);
+            SetOrderbook(pairKey, book);
         }
 
         /// <summary>
         /// Get the first limit order
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static LimitOrder GetFirstOrder(UInt160 pair, bool isBuy)
+        private static LimitOrder GetFirstOrder(byte[] pairKey, bool isBuy)
         {
-            uint id = GetFirstOrderID(pair, isBuy);
+            uint id = GetFirstOrderID(pairKey, isBuy);
             return GetOrder(id);
         }
 
         /// <summary>
         /// Remove a canceled limit order from orderbook
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="id"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static bool RemoveOrder(UInt160 pair, uint id, bool isBuy)
+        private static bool RemoveOrder(byte[] pairKey, uint id, bool isBuy)
         {
             // Remove from BookMap
-            Orderbook book = GetOrderbook(pair);
+            Orderbook book = GetOrderbook(pairKey);
             uint firstID = isBuy ? book.firstBuyID : book.firstSellID;
             if (firstID == 0) return false;
             if (firstID == id)
             {
                 // Delete the first
-                SetFirstOrderID(pair, GetOrder(firstID).nextID, isBuy);
+                SetFirstOrderID(pairKey, GetOrder(firstID).nextID, isBuy);
                 DeleteOrder(firstID);
                 return true;
             }
@@ -166,15 +166,15 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Remove a fully-deal limit order from orderbook
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="isBuy"></param>
-        private static void RemoveFirstOrder(UInt160 pair, bool isBuy)
+        private static void RemoveFirstOrder(byte[] pairKey, bool isBuy)
         {
             // Remove from BookMap
-            Orderbook book = GetOrderbook(pair);
+            Orderbook book = GetOrderbook(pairKey);
             uint firstID = isBuy ? book.firstBuyID : book.firstSellID;
             // Delete the first
-            SetFirstOrderID(pair, GetOrder(firstID).nextID, isBuy);
+            SetFirstOrderID(pairKey, GetOrder(firstID).nextID, isBuy);
             DeleteOrder(firstID);
         }
 
@@ -194,10 +194,10 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        private static bool BookExists(UInt160 pair)
+        private static bool BookExists(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return bookMap.Get(pair) is not null;
+            return bookMap.Get(pairKey) is not null;
         }
 
         /// <summary>
@@ -236,35 +236,35 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Get the detail of a book 
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <returns></returns>
-        private static Orderbook GetOrderbook(UInt160 pair)
+        private static Orderbook GetOrderbook(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return (Orderbook)StdLib.Deserialize(bookMap.Get(pair));
+            return (Orderbook)StdLib.Deserialize(bookMap.Get(pairKey));
         }
 
-        private static UInt160 GetBaseToken(UInt160 pair)
+        private static UInt160 GetBaseToken(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return ((Orderbook)StdLib.Deserialize(bookMap.Get(pair))).baseToken;
+            return ((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).baseToken;
         }
 
-        private static UInt160 GetQuoteToken(UInt160 pair)
+        private static UInt160 GetQuoteToken(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return ((Orderbook)StdLib.Deserialize(bookMap.Get(pair))).quoteToken;
+            return ((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteToken;
         }
 
         /// <summary>
         /// Update a book 
         /// </summary>
-        /// <param name="pair"></param>
+        /// <param name="pairKey"></param>
         /// <param name="book"></param>
-        private static void SetOrderbook(UInt160 pair, Orderbook book)
+        private static void SetOrderbook(byte[] pairKey, Orderbook book)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            bookMap.Put(pair, StdLib.Serialize(book));
+            bookMap.Put(pairKey, StdLib.Serialize(book));
         }
 
         /// <summary>
@@ -289,108 +289,6 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Buy below the expected price
-        /// </summary>
-        /// <param name="pair"></param>
-        /// <param name="buyer"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
-        private static BigInteger DealBuy(UInt160 pair, UInt160 buyer, BigInteger price, BigInteger amount)
-        {
-            Orderbook book = GetOrderbook(pair);
-            UInt160 me = Runtime.ExecutingScriptHash;
-            while (amount > 0 && GetFirstOrderID(pair, false) != 0)
-            {
-                // Check the lowest sell price
-                if (GetMarketPrice(pair, false) > price) break;
-
-                LimitOrder firstOrder = GetFirstOrder(pair, false);
-                if (firstOrder.amount <= amount)
-                {
-                    // Full-fill
-                    amount -= firstOrder.amount;
-                    // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, firstOrder.amount * firstOrder.price);
-                    SafeTransfer(book.baseToken, me, buyer, firstOrder.amount);
-                    onDealOrder(pair, GetFirstOrderID(pair, false), price, firstOrder.amount, 0);
-                    // Remove full-fill order
-                    RemoveFirstOrder(pair, false);
-                }
-                else
-                {
-                    // Part-fill
-                    firstOrder.amount -= amount;
-                    // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, amount * firstOrder.price);
-                    SafeTransfer(book.baseToken, me, buyer, amount);
-                    onDealOrder(pair, GetFirstOrderID(pair, false), price, amount, firstOrder.amount);
-                    // Update order
-                    SetOrder(GetFirstOrderID(pair, false), firstOrder);
-                    amount = 0;
-                }
-            }
-            return amount;
-        }
-
-        /// <summary>
-        /// Sell above the expected price
-        /// </summary>
-        /// <param name="pair"></param>
-        /// <param name="seller"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
-        private static BigInteger DealSell(UInt160 pair, UInt160 seller, BigInteger price, BigInteger amount)
-        {
-            Orderbook book = GetOrderbook(pair);
-            UInt160 me = Runtime.ExecutingScriptHash;
-            while (amount > 0 && GetFirstOrderID(pair, true) != 0)
-            {
-                // Check the highest buy price
-                if (GetMarketPrice(pair, true) < price) break;
-
-                LimitOrder firstOrder = GetFirstOrder(pair, true);
-                if (firstOrder.amount <= amount)
-                {
-                    // Full-fill
-                    amount -= firstOrder.amount;
-                    // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, firstOrder.amount);
-                    SafeTransfer(book.quoteToken, me, seller, firstOrder.amount * firstOrder.price);
-                    onDealOrder(pair, GetFirstOrderID(pair, true), firstOrder.price, firstOrder.amount, 0);
-                    // Remove full-fill order
-                    RemoveFirstOrder(pair, true);
-                }
-                else
-                {
-                    // Part-fill
-                    firstOrder.amount -= amount;
-                    // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, amount);
-                    SafeTransfer(book.quoteToken, me, seller, amount * firstOrder.price);
-                    onDealOrder(pair, GetFirstOrderID(pair, true), firstOrder.price, amount, firstOrder.amount);
-                    // Update order
-                    SetOrder(GetFirstOrderID(pair, true), firstOrder);
-                    amount = 0;
-                }
-            }
-            return amount;
-        }
-
-        /// <summary>
-        /// Internal price reporter
-        /// </summary>
-        /// <param name="pair"></param>
-        /// <param name="isBuy"></param>
-        /// <returns></returns>
-        private static BigInteger GetMarketPrice(UInt160 pair, bool isBuy)
-        {
-            LimitOrder firstOrder = GetFirstOrder(pair, isBuy);
-            return firstOrder.price;
-        }
-
-        /// <summary>
         /// Handle NEP-5 transaction
         /// </summary>
         /// <param name="receiver"></param>
@@ -408,6 +306,19 @@ namespace FlamingoSwapOrderBook
             {
                 Assert(false, "Catch Transfer Error in Pair", token);
             }
+        }
+
+        /// <summary>
+        /// Get unique pair key
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <returns></returns>
+        private static byte[] GetPairKey(UInt160 tokenA, UInt160 tokenB)
+        {
+            return tokenA.ToUInteger() < tokenB.ToUInteger()
+                ? BookMapKey.Concat(tokenA).Concat(tokenB)
+                : BookMapKey.Concat(tokenB).Concat(tokenA);
         }
 
         /// <summary>
