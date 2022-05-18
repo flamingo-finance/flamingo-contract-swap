@@ -311,7 +311,7 @@ namespace FlamingoSwapOrderBook
                     // Full-fill
                     amount -= firstOrder.amount;
                     // Do transfer
-                    SafeTransfer(book.quoteToken, buyer, firstOrder.sender, firstOrder.amount * firstOrder.price);
+                    SafeTransfer(book.quoteToken, me, firstOrder.sender, firstOrder.amount * firstOrder.price);
                     SafeTransfer(book.baseToken, me, buyer, firstOrder.amount);
                     onDealOrder(pair, GetFirstOrderID(pair, false), price, firstOrder.amount, 0);
                     // Remove full-fill order
@@ -322,7 +322,7 @@ namespace FlamingoSwapOrderBook
                     // Part-fill
                     firstOrder.amount -= amount;
                     // Do transfer
-                    SafeTransfer(book.quoteToken, buyer, firstOrder.sender, amount * firstOrder.price);
+                    SafeTransfer(book.quoteToken, me, firstOrder.sender, amount * firstOrder.price);
                     SafeTransfer(book.baseToken, me, buyer, amount);
                     onDealOrder(pair, GetFirstOrderID(pair, false), price, amount, firstOrder.amount);
                     // Update order
@@ -337,7 +337,7 @@ namespace FlamingoSwapOrderBook
         /// Sell above the expected price
         /// </summary>
         /// <param name="pair"></param>
-        /// <param name="buyer"></param>
+        /// <param name="seller"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns></returns>
@@ -356,7 +356,7 @@ namespace FlamingoSwapOrderBook
                     // Full-fill
                     amount -= firstOrder.amount;
                     // Do transfer
-                    SafeTransfer(book.baseToken, seller, firstOrder.sender, firstOrder.amount);
+                    SafeTransfer(book.baseToken, me, firstOrder.sender, firstOrder.amount);
                     SafeTransfer(book.quoteToken, me, seller, firstOrder.amount * firstOrder.price);
                     onDealOrder(pair, GetFirstOrderID(pair, true), firstOrder.price, firstOrder.amount, 0);
                     // Remove full-fill order
@@ -367,7 +367,7 @@ namespace FlamingoSwapOrderBook
                     // Part-fill
                     firstOrder.amount -= amount;
                     // Do transfer
-                    SafeTransfer(book.baseToken, seller, firstOrder.sender, amount);
+                    SafeTransfer(book.baseToken, me, firstOrder.sender, amount);
                     SafeTransfer(book.quoteToken, me, seller, amount * firstOrder.price);
                     onDealOrder(pair, GetFirstOrderID(pair, true), firstOrder.price, amount, firstOrder.amount);
                     // Update order

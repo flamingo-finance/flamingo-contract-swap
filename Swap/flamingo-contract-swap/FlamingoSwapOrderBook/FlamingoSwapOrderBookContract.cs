@@ -57,7 +57,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="amount"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        public static uint AddOrder(UInt160 pair, UInt160 sender, BigInteger price, BigInteger amount, bool isBuy)
+        public static uint AddLimitOrder(UInt160 pair, UInt160 sender, BigInteger price, BigInteger amount, bool isBuy)
         {
             // Check Authorization
             Assert(Runtime.CheckWitness(sender), "No Authorization");
@@ -163,7 +163,7 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Calculate how much quote token should be paid
+        /// Calculate how much quote token should be paid when buy
         /// </summary>
         /// <param name="pair"></param>
         /// <param name="price"></param>
@@ -200,7 +200,7 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Calculate how much base token should be paid
+        /// Calculate how much base token should be paid when sell
         /// </summary>
         /// <param name="pair"></param>
         /// <param name="price"></param>
@@ -245,7 +245,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="amount"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        public static BigInteger DealOrder(UInt160 pair, UInt160 sender, BigInteger price, BigInteger amount, bool isBuy)
+        public static BigInteger DealMarketOrder(UInt160 pair, UInt160 sender, BigInteger price, BigInteger amount, bool isBuy)
         {
             // Check if can deal
             Assert(BookExists(pair), "Book Not Exists");
@@ -302,7 +302,7 @@ namespace FlamingoSwapOrderBook
 
         public static void OnNEP17Payment(UInt160 sender, BigInteger amountIn, object data)
         {
-            
+
         }
     }
 }
