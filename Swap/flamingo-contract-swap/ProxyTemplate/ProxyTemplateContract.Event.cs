@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel;
 using System.Numerics;
 using Neo;
-using Neo.SmartContract.Framework;
 
 namespace ProxyTemplate
 {
-    public partial class ProxyTemplateContract : SmartContract
+    partial class ProxyTemplateContract
     {
         [DisplayName("Deposit")]
         public static event DepositEvent onDeposit;
