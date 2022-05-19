@@ -256,6 +256,12 @@ namespace FlamingoSwapOrderBook
             return ((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteToken;
         }
 
+        private static int GetQuoteDecimals(byte[] pairKey)
+        {
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            return (int)((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteDecimals;
+        }
+
         /// <summary>
         /// Update a book 
         /// </summary>
@@ -267,11 +273,11 @@ namespace FlamingoSwapOrderBook
             bookMap.Put(pairKey, StdLib.Serialize(book));
         }
 
-        private static void DeleteOrderBook(byte[] pairKey)
-        {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            bookMap.Delete(pairKey);
-        }
+        // private static void DeleteOrderBook(byte[] pairKey)
+        // {
+        //     StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+        //     bookMap.Delete(pairKey);
+        // }
 
         /// <summary>
         /// Find a random number as order ID 

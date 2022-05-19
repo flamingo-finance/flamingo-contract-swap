@@ -57,17 +57,17 @@ namespace FlamingoSwapOrderBook
             return true;
         }
 
-        public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
-        {
-            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+        // public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        // {
+        //     Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+        //     Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
 
-            var pairKey = GetPairKey(baseToken, quoteToken);
-            if (!BookExists(pairKey)) return false;
-            DeleteOrderBook(pairKey);
-            onRemoveBook(baseToken, quoteToken);
-            return true;
-        }
+        //     var pairKey = GetPairKey(baseToken, quoteToken);
+        //     if (!BookExists(pairKey)) return false;
+        //     DeleteOrderBook(pairKey);
+        //     onRemoveBook(baseToken, quoteToken);
+        //     return true;
+        // }
 
         /// <summary>
         /// Add a new order into orderbook but try deal it first
@@ -87,8 +87,8 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
             UInt160 me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), sender, me, amount * price);
-            else SafeTransfer(GetBaseToken(pairKey), sender, me, amount);
+            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), sender, me, leftAmount * price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+            else SafeTransfer(GetBaseToken(pairKey), sender, me, leftAmount);
 
             // Do add
             uint id = GetUnusedID();
@@ -109,8 +109,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
         /// <param name="id"></param>
-        /// <param name="isBuy"></param>
-        public static void CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, uint id, bool isBuy)
+        public static void CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, uint id)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
@@ -120,12 +119,13 @@ namespace FlamingoSwapOrderBook
             Assert(Runtime.CheckWitness(order.sender), "No Authorization");
 
             // Do remove
+            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
             Assert(RemoveOrder(pairKey, id, isBuy), "Remove Order Fail");
             onCancelOrder(id, order.amount);
 
             // Withdraw token
             UInt160 me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), me, order.sender, order.amount * order.price);
+            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
             else SafeTransfer(GetBaseToken(pairKey), me, order.sender, order.amount);
         }
 
@@ -237,13 +237,13 @@ namespace FlamingoSwapOrderBook
                 // Full-fill
                 if (currentOrder.amount <= amount)
                 {
-                    result += currentOrder.amount * currentOrder.price;
+                    result += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
                     amount -= currentOrder.amount;
                 }
                 // Part-fill
                 else 
                 {
-                    result += amount * currentOrder.price;
+                    result += amount * currentOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
                     amount = 0;
                 }
 
@@ -337,7 +337,6 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static BigInteger DealBuy(byte[] pairKey, UInt160 buyer, BigInteger price, BigInteger amount)
         {
-            Orderbook book = GetOrderbook(pairKey);
             UInt160 me = Runtime.ExecutingScriptHash;
             while (amount > 0 && GetFirstOrderID(pairKey, false) != 0)
             {
@@ -350,9 +349,9 @@ namespace FlamingoSwapOrderBook
                     // Full-fill
                     amount -= firstOrder.amount;
                     // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, firstOrder.amount * firstOrder.price);
-                    SafeTransfer(book.baseToken, me, buyer, firstOrder.amount);
-                    onDealOrder(GetFirstOrderID(pairKey, false), price, firstOrder.amount, 0);
+                    SafeTransfer(GetQuoteToken(pairKey), me, firstOrder.sender, firstOrder.amount * firstOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+                    SafeTransfer(GetBaseToken(pairKey), me, buyer, firstOrder.amount);
+                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, firstOrder.amount, 0);
                     // Remove full-fill order
                     RemoveFirstOrder(pairKey, false);
                 }
@@ -361,9 +360,9 @@ namespace FlamingoSwapOrderBook
                     // Part-fill
                     firstOrder.amount -= amount;
                     // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, amount * firstOrder.price);
-                    SafeTransfer(book.baseToken, me, buyer, amount);
-                    onDealOrder(GetFirstOrderID(pairKey, false), price, amount, firstOrder.amount);
+                    SafeTransfer(GetQuoteToken(pairKey), me, firstOrder.sender, amount * firstOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+                    SafeTransfer(GetBaseToken(pairKey), me, buyer, amount);
+                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, amount, firstOrder.amount);
                     // Update order
                     SetOrder(GetFirstOrderID(pairKey, false), firstOrder);
                     amount = 0;
@@ -382,7 +381,6 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static BigInteger DealSell(byte[] pairKey, UInt160 seller, BigInteger price, BigInteger amount)
         {
-            Orderbook book = GetOrderbook(pairKey);
             UInt160 me = Runtime.ExecutingScriptHash;
             while (amount > 0 && GetFirstOrderID(pairKey, true) != 0)
             {
@@ -395,8 +393,8 @@ namespace FlamingoSwapOrderBook
                     // Full-fill
                     amount -= firstOrder.amount;
                     // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, firstOrder.amount);
-                    SafeTransfer(book.quoteToken, me, seller, firstOrder.amount * firstOrder.price);
+                    SafeTransfer(GetBaseToken(pairKey), me, firstOrder.sender, firstOrder.amount);
+                    SafeTransfer(GetQuoteToken(pairKey), me, seller, firstOrder.amount * firstOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
                     onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, firstOrder.amount, 0);
                     // Remove full-fill order
                     RemoveFirstOrder(pairKey, true);
@@ -406,8 +404,8 @@ namespace FlamingoSwapOrderBook
                     // Part-fill
                     firstOrder.amount -= amount;
                     // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, amount);
-                    SafeTransfer(book.quoteToken, me, seller, amount * firstOrder.price);
+                    SafeTransfer(GetBaseToken(pairKey), me, firstOrder.sender, amount);
+                    SafeTransfer(GetQuoteToken(pairKey), me, seller, amount * firstOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
                     onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, amount, firstOrder.amount);
                     // Update order
                     SetOrder(GetFirstOrderID(pairKey, true), firstOrder);
