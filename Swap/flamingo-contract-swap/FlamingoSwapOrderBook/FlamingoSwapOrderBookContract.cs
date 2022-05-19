@@ -161,8 +161,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenTo"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
-        public static BigInteger TryMatch(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amount)
+        /// <returns>Left amount and total price</returns>
+        public static BigInteger[] MatchOrder(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amount)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
@@ -178,10 +178,11 @@ namespace FlamingoSwapOrderBook
         /// <param name="pairKey"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
-        private static BigInteger MatchBuy(byte[] pairKey, BigInteger price, BigInteger amount)
+        /// <returns>Left amount and total price</returns>
+        private static BigInteger[] MatchBuy(byte[] pairKey, BigInteger price, BigInteger amount)
         {
-            if (GetFirstOrderID(pairKey, false) == 0) return amount;
+            BigInteger totalPayment = 0;
+            if (GetFirstOrderID(pairKey, false) == 0) return new BigInteger[] { amount, totalPayment };
             LimitOrder currentOrder = GetFirstOrder(pairKey, false);
 
             while (amount > 0)
@@ -189,13 +190,21 @@ namespace FlamingoSwapOrderBook
                 // Check sell price
                 if (currentOrder.price > price) break;
 
-                if (currentOrder.amount <= amount) amount -= currentOrder.amount;
-                else amount = 0;
+                if (currentOrder.amount <= amount) 
+                {
+                    totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
+                    amount -= currentOrder.amount;
+                }
+                else
+                {
+                    totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
+                    amount = 0;
+                }
 
                 if (currentOrder.nextID == 0) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
-            return amount;
+            return new BigInteger[] { amount, totalPayment };
         }
 
         /// <summary>
@@ -204,10 +213,11 @@ namespace FlamingoSwapOrderBook
         /// <param name="pairKey"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
-        private static BigInteger MatchSell(byte[] pairKey, BigInteger price, BigInteger amount)
+        /// <returns>Left amount and total price</returns>
+        private static BigInteger[] MatchSell(byte[] pairKey, BigInteger price, BigInteger amount)
         {
-            if (GetFirstOrderID(pairKey, true) == 0) return amount;
+            BigInteger totalPayment = 0;
+            if (GetFirstOrderID(pairKey, true) == 0) return new BigInteger[] { amount, totalPayment };
             LimitOrder currentOrder = GetFirstOrder(pairKey, true);
 
             while (amount > 0)
@@ -215,31 +225,21 @@ namespace FlamingoSwapOrderBook
                 // Check buy price
                 if (currentOrder.price < price) break;
 
-                if (currentOrder.amount <= amount) amount -= currentOrder.amount;
-                else amount = 0;
+                if (currentOrder.amount <= amount)
+                {
+                    totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
+                    amount -= currentOrder.amount;
+                }
+                else
+                {
+                    totalPayment += amount * currentOrder.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
+                    amount = 0;
+                }
 
                 if (currentOrder.nextID == 0) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
-            return amount;
-        }
-
-        /// <summary>
-        /// Calculate how much quote token should be paid when buy
-        /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
-        public static BigInteger GetTotalPayment(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amount)
-        {
-            // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
-            Assert(BookExists(pairKey), "Book Not Exists");
-
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
-            return isBuy ? GetQuoteAmount(pairKey, price, amount) : GetBaseAmount(pairKey, price, amount);
+            return new BigInteger[] { amount, totalPayment };
         }
 
         /// <summary>
