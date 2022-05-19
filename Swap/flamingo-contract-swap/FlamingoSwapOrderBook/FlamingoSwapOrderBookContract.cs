@@ -130,6 +130,31 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
+        /// Get first N limit orders and their details
+        /// </summary>
+        /// <param name="tokenFrom"></param>
+        /// <param name="tokenTo"></param>
+        /// <param name="id"></param>
+        public static LimitOrder[] GetFirstNOrders(UInt160 tokenFrom, UInt160 tokenTo, uint n)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            Assert(BookExists(pairKey), "Book Not Exists");
+
+            LimitOrder[] results = new LimitOrder[n];
+            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            if (GetFirstOrderID(pairKey, isBuy) == 0) return results;
+            LimitOrder currentOrder = GetFirstOrder(pairKey, isBuy);
+            for (int i = 0; i < n; i++)
+            {
+                results[i] = currentOrder;
+                if (currentOrder.nextID == 0) break;
+                currentOrder = GetOrder(currentOrder.nextID);
+            }
+            return results;
+        }
+
+        /// <summary>
         /// Try to match without real payment
         /// </summary>
         /// <param name="tokenFrom"></param>
