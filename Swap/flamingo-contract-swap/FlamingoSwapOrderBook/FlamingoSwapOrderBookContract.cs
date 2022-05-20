@@ -19,7 +19,7 @@ namespace FlamingoSwapOrderBook
             public UInt160 sender;
             public BigInteger price;
             public BigInteger amount;
-            public uint nextID;
+            public ByteString nextID;
         }
 
         public struct Orderbook
@@ -28,8 +28,8 @@ namespace FlamingoSwapOrderBook
             public UInt160 quoteToken;
             public uint quoteDecimals;
 
-            public uint firstBuyID;
-            public uint firstSellID;
+            public ByteString firstBuyID;
+            public ByteString firstSellID;
         }
 
         const uint MAX_ID = 1 << 24;
@@ -77,11 +77,12 @@ namespace FlamingoSwapOrderBook
         /// <param name="sender"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
-        public static uint DealLimitOrder(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger price, BigInteger amount)
+        /// <returns>Null or a new order id</returns>
+        public static ByteString DealLimitOrder(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger price, BigInteger amount)
         {
             // Deal as market order
             BigInteger leftAmount = DealMarketOrder(tokenFrom, tokenTo, sender, price, amount);
+            if (leftAmount == 0) return null;
 
             // Deposit token
             var pairKey = GetPairKey(tokenFrom, tokenTo);
@@ -91,7 +92,7 @@ namespace FlamingoSwapOrderBook
             else SafeTransfer(GetBaseToken(pairKey), sender, me, leftAmount);
 
             // Do add
-            uint id = GetUnusedID();
+            ByteString id = GetUnusedID();
             LimitOrder order = new LimitOrder()
             {
                 sender = sender,
@@ -109,7 +110,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
         /// <param name="id"></param>
-        public static void CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, uint id)
+        public static void CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, ByteString id)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
@@ -143,12 +144,12 @@ namespace FlamingoSwapOrderBook
 
             LimitOrder[] results = new LimitOrder[n];
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
-            if (GetFirstOrderID(pairKey, isBuy) == 0) return results;
+            if (GetFirstOrderID(pairKey, isBuy) is null) return results;
             LimitOrder currentOrder = GetFirstOrder(pairKey, isBuy);
             for (int i = 0; i < n; i++)
             {
                 results[i] = currentOrder;
-                if (currentOrder.nextID == 0) break;
+                if (currentOrder.nextID is null) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return results;
@@ -182,7 +183,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger[] MatchBuy(byte[] pairKey, BigInteger price, BigInteger amount)
         {
             BigInteger totalPayment = 0;
-            if (GetFirstOrderID(pairKey, false) == 0) return new BigInteger[] { amount, totalPayment };
+            if (GetFirstOrderID(pairKey, false) is null) return new BigInteger[] { amount, totalPayment };
             LimitOrder currentOrder = GetFirstOrder(pairKey, false);
 
             while (amount > 0)
@@ -201,7 +202,7 @@ namespace FlamingoSwapOrderBook
                     amount = 0;
                 }
 
-                if (currentOrder.nextID == 0) break;
+                if (currentOrder.nextID is null) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return new BigInteger[] { amount, totalPayment };
@@ -217,7 +218,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger[] MatchSell(byte[] pairKey, BigInteger price, BigInteger amount)
         {
             BigInteger totalPayment = 0;
-            if (GetFirstOrderID(pairKey, true) == 0) return new BigInteger[] { amount, totalPayment };
+            if (GetFirstOrderID(pairKey, true) is null) return new BigInteger[] { amount, totalPayment };
             LimitOrder currentOrder = GetFirstOrder(pairKey, true);
 
             while (amount > 0)
@@ -236,7 +237,7 @@ namespace FlamingoSwapOrderBook
                     amount = 0;
                 }
 
-                if (currentOrder.nextID == 0) break;
+                if (currentOrder.nextID is null) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return new BigInteger[] { amount, totalPayment };
@@ -252,7 +253,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger GetQuoteAmount(byte[] pairKey, BigInteger price, BigInteger amount)
         {
             BigInteger result = 0;
-            if (GetFirstOrderID(pairKey, false) == 0) return result;
+            if (GetFirstOrderID(pairKey, false) is null) return result;
             LimitOrder currentOrder = GetFirstOrder(pairKey, false);
             while (amount > 0)
             {
@@ -272,7 +273,7 @@ namespace FlamingoSwapOrderBook
                     amount = 0;
                 }
 
-                if (currentOrder.nextID == 0) break;
+                if (currentOrder.nextID is null) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return result;
@@ -288,7 +289,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger GetBaseAmount(byte[] pairKey, BigInteger price, BigInteger amount)
         {
             BigInteger result = 0;
-            if (GetFirstOrderID(pairKey, true) == 0) return result;
+            if (GetFirstOrderID(pairKey, true) is null) return result;
             LimitOrder currentOrder = GetFirstOrder(pairKey, true);
             while (amount > 0)
             {
@@ -308,7 +309,7 @@ namespace FlamingoSwapOrderBook
                     amount = 0;
                 }
 
-                if (currentOrder.nextID == 0) break;
+                if (currentOrder.nextID is null) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return result;
@@ -329,7 +330,7 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
-            if (GetFirstOrderID(pairKey, !isBuy) == 0) return amount;
+            if (GetFirstOrderID(pairKey, !isBuy) is null) return amount;
 
             LimitOrder firstOrder = GetFirstOrder(pairKey, !isBuy);
             bool canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
@@ -363,7 +364,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger DealBuy(byte[] pairKey, UInt160 buyer, BigInteger price, BigInteger amount)
         {
             UInt160 me = Runtime.ExecutingScriptHash;
-            while (amount > 0 && GetFirstOrderID(pairKey, false) != 0)
+            while (amount > 0 && GetFirstOrderID(pairKey, false) is not null)
             {
                 // Check the lowest sell price
                 if (GetBuyPrice(pairKey) > price) break;
@@ -407,7 +408,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger DealSell(byte[] pairKey, UInt160 seller, BigInteger price, BigInteger amount)
         {
             UInt160 me = Runtime.ExecutingScriptHash;
-            while (amount > 0 && GetFirstOrderID(pairKey, true) != 0)
+            while (amount > 0 && GetFirstOrderID(pairKey, true) is not null)
             {
                 // Check the highest buy price
                 if (GetSellPrice(pairKey) < price) break;
@@ -463,7 +464,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static BigInteger GetBuyPrice(byte[] pairKey)
         {
-            if (GetFirstOrderID(pairKey, false) == 0) return 0;
+            if (GetFirstOrderID(pairKey, false) is null) return 0;
 
             LimitOrder firstSellOrder = GetFirstOrder(pairKey, false);
             return firstSellOrder.price;
@@ -476,7 +477,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static BigInteger GetSellPrice(byte[] pairKey)
         {
-            if (GetFirstOrderID(pairKey, true) == 0) return 0;
+            if (GetFirstOrderID(pairKey, true) is null) return 0;
 
             LimitOrder firstBuyOrder = GetFirstOrder(pairKey, true);
             return firstBuyOrder.price;

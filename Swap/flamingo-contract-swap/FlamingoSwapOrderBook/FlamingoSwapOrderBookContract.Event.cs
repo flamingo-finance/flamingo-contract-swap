@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Numerics;
 using Neo;
+using Neo.SmartContract.Framework;
 
 namespace FlamingoSwapOrderBook
 {
@@ -22,7 +23,7 @@ namespace FlamingoSwapOrderBook
         /// When deal order
         /// </summary>
         public static event DealOrderEvent onDealOrder;
-        public delegate void DealOrderEvent(uint id, BigInteger price, BigInteger amount, BigInteger leftAmount);
+        public delegate void DealOrderEvent(ByteString id, BigInteger price, BigInteger amount, BigInteger leftAmount);
 
         /// <summary>
         /// When add order
@@ -34,7 +35,7 @@ namespace FlamingoSwapOrderBook
         /// When cancel order
         /// </summary>
         public static event CancelOrderEvent onCancelOrder;
-        public delegate void CancelOrderEvent(uint id, BigInteger leftAmount);
+        public delegate void CancelOrderEvent(ByteString id, BigInteger leftAmount);
 
         [DisplayName("Fault")]
         public static event FaultEvent onFault;

@@ -16,12 +16,12 @@ namespace FlamingoSwapOrderBook
         /// <param name="order"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static bool InsertOrder(byte[] pairKey, uint id, LimitOrder order, bool isBuy)
+        private static bool InsertOrder(byte[] pairKey, ByteString id, LimitOrder order, bool isBuy)
         {
-            uint firstID = GetFirstOrderID(pairKey, isBuy);
+            ByteString firstID = GetFirstOrderID(pairKey, isBuy);
 
             // Check if there is no order
-            bool canBeFirst = firstID == 0;
+            bool canBeFirst = firstID is null;
             if (!canBeFirst)
             {
                 // Check if this order is the worthiest
@@ -43,19 +43,19 @@ namespace FlamingoSwapOrderBook
             }
         }
 
-        private static bool InsertNotFirst(uint firstID, uint id, LimitOrder order, bool isBuy)
+        private static bool InsertNotFirst(ByteString firstID, ByteString id, LimitOrder order, bool isBuy)
         {
-            uint currentID = firstID; 
+            ByteString currentID = firstID; 
             LimitOrder currentOrder;
             LimitOrder nextOrder;
-            while (currentID != 0)
+            while (currentID is not null)
             {
                 // Check before
                 currentOrder = GetOrder(currentID);
                 bool canFollow = (isBuy && (order.price <= currentOrder.price)) || (!isBuy && (order.price >= currentOrder.price));
                 if (!canFollow) break;
 
-                if (currentOrder.nextID != 0)
+                if (currentOrder.nextID is not null)
                 {
                     // Check after
                     nextOrder = GetOrder(currentOrder.nextID);
@@ -82,7 +82,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="pairKey"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static uint GetFirstOrderID(byte[] pairKey, bool isBuy)
+        private static ByteString GetFirstOrderID(byte[] pairKey, bool isBuy)
         {
             Orderbook book = GetOrderbook(pairKey);
             return isBuy ? book.firstBuyID : book.firstSellID;
@@ -94,7 +94,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="pairKey"></param>
         /// <param name="id"></param>
         /// <param name="isBuy"></param>
-        private static void SetFirstOrderID(byte[] pairKey, uint id, bool isBuy)
+        private static void SetFirstOrderID(byte[] pairKey, ByteString id, bool isBuy)
         {
             Orderbook book = GetOrderbook(pairKey);
             if (isBuy) book.firstBuyID = id;
@@ -110,7 +110,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static LimitOrder GetFirstOrder(byte[] pairKey, bool isBuy)
         {
-            uint id = GetFirstOrderID(pairKey, isBuy);
+            ByteString id = GetFirstOrderID(pairKey, isBuy);
             return GetOrder(id);
         }
 
@@ -121,12 +121,12 @@ namespace FlamingoSwapOrderBook
         /// <param name="id"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        private static bool RemoveOrder(byte[] pairKey, uint id, bool isBuy)
+        private static bool RemoveOrder(byte[] pairKey, ByteString id, bool isBuy)
         {
             // Remove from BookMap
             Orderbook book = GetOrderbook(pairKey);
-            uint firstID = isBuy ? book.firstBuyID : book.firstSellID;
-            if (firstID == 0) return false;
+            ByteString firstID = isBuy ? book.firstBuyID : book.firstSellID;
+            if (firstID is null) return false;
             if (firstID == id)
             {
                 // Delete the first
@@ -141,17 +141,17 @@ namespace FlamingoSwapOrderBook
             }
         }
 
-        private static bool RemoveNotFirst(uint firstID, uint id)
+        private static bool RemoveNotFirst(ByteString firstID, ByteString id)
         {
-            uint currentID = firstID; 
+            ByteString currentID = firstID; 
             LimitOrder currentOrder = GetOrder(currentID);
-            while (currentOrder.nextID != 0)
+            while (currentOrder.nextID is not null)
             {
                 // Check next
                 if (currentOrder.nextID == id)
                 {
                     // Do remove
-                    uint newNextID = GetOrder(currentOrder.nextID).nextID;
+                    ByteString newNextID = GetOrder(currentOrder.nextID).nextID;
                     DeleteOrder(currentOrder.nextID);
                     currentOrder.nextID = newNextID;
                     SetOrder(currentID, currentOrder);
@@ -172,7 +172,7 @@ namespace FlamingoSwapOrderBook
         {
             // Remove from BookMap
             Orderbook book = GetOrderbook(pairKey);
-            uint firstID = isBuy ? book.firstBuyID : book.firstSellID;
+            ByteString firstID = isBuy ? book.firstBuyID : book.firstSellID;
             // Delete the first
             SetFirstOrderID(pairKey, GetOrder(firstID).nextID, isBuy);
             DeleteOrder(firstID);
@@ -183,10 +183,10 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        private static bool OrderExists(uint id)
+        private static bool OrderExists(ByteString id)
         {
             StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
-            return orderMap.Get(id.ToString()) is not null;
+            return orderMap.Get(id) is not null;
         }
 
         /// <summary>
@@ -205,10 +205,10 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        private static LimitOrder GetOrder(uint id)
+        private static LimitOrder GetOrder(ByteString id)
         {
             StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
-            return (LimitOrder)StdLib.Deserialize(orderMap.Get(id.ToString()));
+            return (LimitOrder)StdLib.Deserialize(orderMap.Get(id));
         }
 
         /// <summary>
@@ -216,10 +216,10 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="id"></param>
         /// <param name="order"></param>
-        private static void SetOrder(uint id, LimitOrder order)
+        private static void SetOrder(ByteString id, LimitOrder order)
         {
             StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
-            orderMap.Put(id.ToString(), StdLib.Serialize(order));
+            orderMap.Put(id, StdLib.Serialize(order));
         }
 
         /// <summary>
@@ -227,10 +227,10 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="id"></param>
         /// <param name="order"></param>
-        private static void DeleteOrder(uint id)
+        private static void DeleteOrder(ByteString id)
         {
             StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
-            orderMap.Delete(id.ToString());
+            orderMap.Delete(id);
         }
 
         /// <summary>
@@ -284,20 +284,14 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        private static uint GetUnusedID(uint id = 0)
+        private static ByteString GetUnusedID()
         {
-            if (id == 0)
-            {
-                id = (uint)(Runtime.GetRandom() % MAX_ID);
-            }
-            // Find available
-            for (int i = 0; i < 100 && id <= MAX_ID; i++)
-            {
-                if (!OrderExists(id)) return id;
-                id++;
-            }
-            Assert(false, "No Available Order ID");
-            return 0;
+            StorageContext context = Storage.CurrentContext;
+            ByteString counter = Storage.Get(context, OrderIDKey);
+            Storage.Put(context, OrderIDKey, (BigInteger)counter + 1);
+            ByteString data = Runtime.ExecutingScriptHash;
+            if (counter is not null) data += counter;
+            return CryptoLib.Sha256(data);
         }
 
         /// <summary>
