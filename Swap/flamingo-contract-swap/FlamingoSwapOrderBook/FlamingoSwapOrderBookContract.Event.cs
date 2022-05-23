@@ -16,8 +16,8 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// When remove orderbook
         /// </summary>
-        // public static event RemoveBookEvent onRemoveBook;
-        // public delegate void RemoveBookEvent(UInt160 baseToken, UInt160 quoteToken);
+        public static event RemoveBookEvent onRemoveBook;
+        public delegate void RemoveBookEvent(UInt160 baseToken, UInt160 quoteToken);
 
         /// <summary>
         /// When deal order
@@ -35,7 +35,7 @@ namespace FlamingoSwapOrderBook
         /// When cancel order
         /// </summary>
         public static event CancelOrderEvent onCancelOrder;
-        public delegate void CancelOrderEvent(ByteString id, BigInteger leftAmount);
+        public delegate void CancelOrderEvent(ByteString id, BigInteger price, BigInteger leftAmount);
 
         [DisplayName("Fault")]
         public static event FaultEvent onFault;

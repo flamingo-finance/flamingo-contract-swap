@@ -273,11 +273,11 @@ namespace FlamingoSwapOrderBook
             bookMap.Put(pairKey, StdLib.Serialize(book));
         }
 
-        // private static void DeleteOrderBook(byte[] pairKey)
-        // {
-        //     StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-        //     bookMap.Delete(pairKey);
-        // }
+        private static void DeleteOrderBook(byte[] pairKey)
+        {
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            bookMap.Delete(pairKey);
+        }
 
         /// <summary>
         /// Find a random number as order ID 

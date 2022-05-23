@@ -57,17 +57,48 @@ namespace FlamingoSwapOrderBook
             return true;
         }
 
-        // public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
-        // {
-        //     Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
-        //     Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+        public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        {
+            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
 
-        //     var pairKey = GetPairKey(baseToken, quoteToken);
-        //     if (!BookExists(pairKey)) return false;
-        //     DeleteOrderBook(pairKey);
-        //     onRemoveBook(baseToken, quoteToken);
-        //     return true;
-        // }
+            var pairKey = GetPairKey(baseToken, quoteToken);
+            if (!BookExists(pairKey)) return false;
+            if (GetBaseToken(pairKey) != baseToken) return false;
+            if (GetQuoteToken(pairKey) != quoteToken) return false;
+
+            // Cancel orders
+            ByteString firstBuyID;
+            while ((firstBuyID = GetFirstOrderID(pairKey, true)) is not null)
+            {
+                // Remove from book
+                LimitOrder order = GetOrder(firstBuyID);
+                Assert(RemoveOrder(pairKey, firstBuyID, true), "Remove Order Fail");
+                onCancelOrder(firstBuyID, order.price, order.amount);
+
+                // Sendback token
+                UInt160 me = Runtime.ExecutingScriptHash;
+                SafeTransfer(quoteToken, me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+            }
+
+            ByteString firstSellID;
+            while ((firstSellID = GetFirstOrderID(pairKey, false)) is not null)
+            {
+                // Remove from book
+                LimitOrder order = GetOrder(firstSellID);
+                Assert(RemoveOrder(pairKey, firstSellID, false), "Remove Order Fail");
+                onCancelOrder(firstSellID, order.price, order.amount);
+
+                // Sendback token
+                UInt160 me = Runtime.ExecutingScriptHash;
+                SafeTransfer(baseToken, me, order.sender, order.amount);
+            }
+
+            // Remove book
+            DeleteOrderBook(pairKey);
+            onRemoveBook(baseToken, quoteToken);
+            return true;
+        }
 
         /// <summary>
         /// Add a new order into orderbook but try deal it first
@@ -122,7 +153,7 @@ namespace FlamingoSwapOrderBook
             // Do remove
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
             Assert(RemoveOrder(pairKey, id, isBuy), "Remove Order Fail");
-            onCancelOrder(id, order.amount);
+            onCancelOrder(id, order.price, order.amount);
 
             // Withdraw token
             UInt160 me = Runtime.ExecutingScriptHash;
