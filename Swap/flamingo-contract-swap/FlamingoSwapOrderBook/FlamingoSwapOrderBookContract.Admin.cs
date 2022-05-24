@@ -4,6 +4,7 @@ using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
+using System.Numerics;
 
 namespace FlamingoSwapOrderBook
 {
@@ -14,7 +15,12 @@ namespace FlamingoSwapOrderBook
 #warning Update the admin address if necessary
         [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
+        [InitialValue("0xd6abe115ecb75e1fa0b42f5e85934ce8c1ae2893", ContractParameterType.Hash160)]
+        static readonly UInt160 bNEO = default;
+
         const string AdminKey = nameof(superAdmin);
+        const string GASAdminKey = nameof(GASAdminKey);
+        const string FundAddresskey = nameof(FundAddresskey);
 
         private static readonly byte[] BookMapKey = new byte[] { 0x00 };
         private static readonly byte[] OrderMapKey = new byte[] { 0x01 };
@@ -27,7 +33,7 @@ namespace FlamingoSwapOrderBook
 
         public static UInt160 GetAdmin()
         {
-            var admin = Storage.Get(Storage.CurrentContext, AdminKey);
+            var admin = StorageGet(AdminKey);
             return admin?.Length == 20 ? (UInt160)admin : superAdmin;
         }
 
@@ -35,7 +41,49 @@ namespace FlamingoSwapOrderBook
         {
             Assert(Verify(), "No Authorization");
             Assert(admin.IsValid && !admin.IsZero, "Invalid Address");
-            Storage.Put(Storage.CurrentContext, AdminKey, admin);
+            StoragePut(AdminKey, admin);
+            return true;
+        }
+
+        public static void ClaimGASFrombNEO(UInt160 receiveAddress)
+        {
+            Assert(Runtime.CheckWitness(GetGASAdmin()), "Forbidden");
+            var me = Runtime.ExecutingScriptHash;
+            BigInteger beforeBalance = GAS.BalanceOf(me);
+            Assert((bool)Contract.Call(bNEO, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEO, 0, null), "claim fail");
+            BigInteger afterBalance = GAS.BalanceOf(me);
+
+            GAS.Transfer(me, receiveAddress, afterBalance - beforeBalance);
+        }
+
+        public static UInt160 GetGASAdmin()
+        {
+            var admin = StorageGet(GASAdminKey);
+            return (UInt160)admin;
+        }
+
+        public static bool SetGASAdmin(UInt160 GASAdmin)
+        {
+            Assert(GASAdmin.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            StoragePut(GASAdminKey, GASAdmin);
+            return true;
+        }
+        #endregion
+
+        #region FundFee
+
+        public static UInt160 GetFundAddress()
+        {
+            var address = StorageGet(FundAddresskey);
+            return address?.Length == 20 ? (UInt160)address : null;
+        }
+
+        public static bool SetFundAddress(UInt160 address)
+        {
+            Assert(address.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            StoragePut(FundAddresskey, address);
             return true;
         }
         #endregion

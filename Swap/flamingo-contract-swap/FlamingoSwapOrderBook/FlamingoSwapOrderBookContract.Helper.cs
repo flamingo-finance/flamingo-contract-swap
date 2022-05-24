@@ -341,5 +341,15 @@ namespace FlamingoSwapOrderBook
                 ExecutionEngine.Assert(false);
             }
         }
+
+        private static ByteString StorageGet(ByteString key)
+        {
+            return Storage.Get(Storage.CurrentContext, key);
+        }
+
+        private static void StoragePut(ByteString key, ByteString value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
     }
 }
