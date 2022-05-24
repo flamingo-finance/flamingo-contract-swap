@@ -199,6 +199,7 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(expectedPrice > 0, "Invalid Price");
 
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
             return isBuy ? GetTotalBuyable(pairKey, expectedPrice) : GetTotalSellable(pairKey, expectedPrice);
@@ -263,6 +264,7 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
 
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
             return isBuy ? MatchBuy(pairKey, price, amount) : MatchSell(pairKey, price, amount);
@@ -430,6 +432,9 @@ namespace FlamingoSwapOrderBook
             // Check if can deal
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
+            Assert(Runtime.CheckWitness(sender), "No Authorization");
+
             bool isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (GetFirstOrderID(pairKey, !isBuy) is null) return amount;
 
@@ -439,7 +444,6 @@ namespace FlamingoSwapOrderBook
 
             // Do deal
             UInt160 me = Runtime.ExecutingScriptHash;
-            Assert(Runtime.CheckWitness(sender), "No Authorization");
             if (isBuy)
             {
                 BigInteger quoteAmount = GetQuoteAmount(pairKey, price, amount);
