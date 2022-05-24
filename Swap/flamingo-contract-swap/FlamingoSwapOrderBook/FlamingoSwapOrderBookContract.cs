@@ -81,7 +81,7 @@ namespace FlamingoSwapOrderBook
                 SafeTransfer(quoteToken, me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
             }
 
-            ByteString firstSellID;
+            ByteString firstSellID = null;
             while ((firstSellID = GetFirstOrderID(pairKey, false)) is not null)
             {
                 // Remove from book
@@ -184,6 +184,70 @@ namespace FlamingoSwapOrderBook
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return results;
+        }
+
+        /// <summary>
+        /// Get the total left amount of tradable order with an expected price
+        /// </summary>
+        /// <param name="tokenFrom"></param>
+        /// <param name="tokenTo"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        /// <returns>Left amount and total payment</returns>
+        public static BigInteger[] GetTotalTradable(UInt160 tokenFrom, UInt160 tokenTo, BigInteger expectedPrice)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            Assert(BookExists(pairKey), "Book Not Exists");
+
+            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            return isBuy ? GetTotalBuyable(pairKey, expectedPrice) : GetTotalSellable(pairKey, expectedPrice);
+        }
+
+        private static BigInteger[] GetTotalBuyable(byte[] pairKey, BigInteger expectedPrice)
+        {
+            BigInteger totalBuyable = 0;
+            BigInteger totalPayment = 0;
+            if (GetFirstOrderID(pairKey, false) is null) return new BigInteger[] { totalBuyable, totalPayment };
+
+            int quoteDecimals = GetQuoteDecimals(pairKey);
+            ByteString currentID = GetFirstOrderID(pairKey, false);
+
+            while (currentID is not null)
+            {
+                LimitOrder currentOrder = GetOrder(currentID);
+                // Check sell price
+                if (currentOrder.price > expectedPrice) break;
+
+                totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                totalBuyable += currentOrder.amount;
+
+                currentID = currentOrder.nextID;
+            }
+            return new BigInteger[] { totalBuyable, totalPayment };
+        }
+
+        private static BigInteger[] GetTotalSellable(byte[] pairKey, BigInteger expectedPrice)
+        {
+            BigInteger totalSellable = 0;
+            BigInteger totalPayment = 0;
+            if (GetFirstOrderID(pairKey, true) is null) return new BigInteger[] { totalSellable, totalPayment };
+
+            int quoteDecimals = GetQuoteDecimals(pairKey);
+            ByteString currentID = GetFirstOrderID(pairKey, true);
+
+            while (currentID is not null)
+            {
+                LimitOrder currentOrder = GetOrder(currentID);
+                // Check sell price
+                if (currentOrder.price < expectedPrice) break;
+
+                totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                totalSellable += currentOrder.amount;
+
+                currentID = currentOrder.nextID;
+            }
+            return new BigInteger[] { totalSellable, totalPayment };
         }
 
         /// <summary>
