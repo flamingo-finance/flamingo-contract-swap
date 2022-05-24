@@ -84,7 +84,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static ByteString GetFirstOrderID(byte[] pairKey, bool isBuy)
         {
-            Orderbook book = GetOrderbook(pairKey);
+            OrderBook book = GetOrderBook(pairKey);
             return isBuy ? book.firstBuyID : book.firstSellID;
         }
 
@@ -96,10 +96,10 @@ namespace FlamingoSwapOrderBook
         /// <param name="isBuy"></param>
         private static void SetFirstOrderID(byte[] pairKey, ByteString id, bool isBuy)
         {
-            Orderbook book = GetOrderbook(pairKey);
+            OrderBook book = GetOrderBook(pairKey);
             if (isBuy) book.firstBuyID = id;
             else book.firstSellID = id;
-            SetOrderbook(pairKey, book);
+            SetOrderBook(pairKey, book);
         }
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace FlamingoSwapOrderBook
         private static bool RemoveOrder(byte[] pairKey, ByteString id, bool isBuy)
         {
             // Remove from BookMap
-            Orderbook book = GetOrderbook(pairKey);
+            OrderBook book = GetOrderBook(pairKey);
             ByteString firstID = isBuy ? book.firstBuyID : book.firstSellID;
             if (firstID is null) return false;
             if (firstID == id)
@@ -171,7 +171,7 @@ namespace FlamingoSwapOrderBook
         private static void RemoveFirstOrder(byte[] pairKey, bool isBuy)
         {
             // Remove from BookMap
-            Orderbook book = GetOrderbook(pairKey);
+            OrderBook book = GetOrderBook(pairKey);
             ByteString firstID = isBuy ? book.firstBuyID : book.firstSellID;
             // Delete the first
             SetFirstOrderID(pairKey, GetOrder(firstID).nextID, isBuy);
@@ -238,28 +238,28 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="pairKey"></param>
         /// <returns></returns>
-        private static Orderbook GetOrderbook(byte[] pairKey)
+        private static OrderBook GetOrderBook(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return (Orderbook)StdLib.Deserialize(bookMap.Get(pairKey));
+            return (OrderBook)StdLib.Deserialize(bookMap.Get(pairKey));
         }
 
         private static UInt160 GetBaseToken(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return ((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).baseToken;
+            return ((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).baseToken;
         }
 
         private static UInt160 GetQuoteToken(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return ((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteToken;
+            return ((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteToken;
         }
 
         private static int GetQuoteDecimals(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
-            return (int)((Orderbook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteDecimals;
+            return (int)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteDecimals;
         }
 
         /// <summary>
@@ -267,7 +267,7 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="pairKey"></param>
         /// <param name="book"></param>
-        private static void SetOrderbook(byte[] pairKey, Orderbook book)
+        private static void SetOrderBook(byte[] pairKey, OrderBook book)
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
             bookMap.Put(pairKey, StdLib.Serialize(book));

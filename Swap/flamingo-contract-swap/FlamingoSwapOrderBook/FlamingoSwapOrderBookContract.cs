@@ -22,7 +22,7 @@ namespace FlamingoSwapOrderBook
             public ByteString nextID;
         }
 
-        public struct Orderbook
+        public struct OrderBook
         {
             public UInt160 baseToken;
             public UInt160 quoteToken;
@@ -48,7 +48,7 @@ namespace FlamingoSwapOrderBook
 
             var pairKey = GetPairKey(baseToken, quoteToken);
             if (BookExists(pairKey)) return false;
-            SetOrderbook(pairKey, new Orderbook(){
+            SetOrderBook(pairKey, new OrderBook(){
                 baseToken = baseToken,
                 quoteToken = quoteToken,
                 quoteDecimals = quoteDecimals
@@ -469,7 +469,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger DealBuy(byte[] pairKey, UInt160 buyer, BigInteger price, BigInteger leftAmount)
         {
             UInt160 me = Runtime.ExecutingScriptHash;
-            Orderbook book = GetOrderbook(pairKey);
+            OrderBook book = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
 
             while (leftAmount > 0 && GetFirstOrderID(pairKey, false) is not null)
@@ -537,7 +537,7 @@ namespace FlamingoSwapOrderBook
         private static BigInteger DealSell(byte[] pairKey, UInt160 seller, BigInteger price, BigInteger leftAmount)
         {
             UInt160 me = Runtime.ExecutingScriptHash;
-            Orderbook book = GetOrderbook(pairKey);
+            OrderBook book = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
 
             while (leftAmount > 0 && GetFirstOrderID(pairKey, true) is not null)
