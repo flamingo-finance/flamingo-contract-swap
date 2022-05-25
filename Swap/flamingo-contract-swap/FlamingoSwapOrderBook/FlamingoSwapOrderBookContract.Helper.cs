@@ -13,6 +13,7 @@ namespace FlamingoSwapOrderBook
         /// Insert a not-fully-deal limit order into orderbook
         /// </summary>
         /// <param name="pairKey"></param>
+        /// <param name="id"></param>
         /// <param name="order"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
@@ -192,7 +193,7 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Check if a order book exists
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="pairKey"></param>
         /// <returns></returns>
         private static bool BookExists(byte[] pairKey)
         {
@@ -226,7 +227,6 @@ namespace FlamingoSwapOrderBook
         /// Delete a limit order 
         /// </summary>
         /// <param name="id"></param>
-        /// <param name="order"></param>
         private static void DeleteOrder(ByteString id)
         {
             StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
@@ -282,7 +282,6 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Find a random number as order ID 
         /// </summary>
-        /// <param name="id"></param>
         /// <returns></returns>
         private static ByteString GetUnusedID()
         {
@@ -295,11 +294,13 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Handle NEP-5 transaction
+        /// Transfer NEP-5 tokens
         /// </summary>
-        /// <param name="receiver"></param>
         /// <param name="token"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
         /// <param name="amount"></param>
+        /// <param name="data"></param>
         /// <returns></returns>
         private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {

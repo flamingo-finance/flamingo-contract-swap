@@ -57,6 +57,12 @@ namespace FlamingoSwapOrderBook
             return true;
         }
 
+        /// <summary>
+        /// Remove a new book and cancel all existing orders
+        /// </summary>
+        /// <param name="baseToken"></param>
+        /// <param name="quoteToken"></param>
+        /// <returns></returns>
         public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
@@ -136,7 +142,7 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Cancel a limit order from orderbook
+        /// Cancel a limit order with its id
         /// </summary>
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
@@ -167,6 +173,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
         /// <param name="id"></param>
+        /// <returns></returns>
         public static LimitOrder[] GetFirstNOrders(UInt160 tokenFrom, UInt160 tokenTo, uint n)
         {
             // Check if exist
@@ -187,13 +194,12 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Get the total left amount of tradable order with an expected price
+        /// Get the total reverse of tradable orders with an expected price
         /// </summary>
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns>Left amount and total payment</returns>
+        /// <param name="expectedPrice"></param>
+        /// <returns>Tradable reverse and expected payment</returns>
         public static BigInteger[] GetTotalTradable(UInt160 tokenFrom, UInt160 tokenTo, BigInteger expectedPrice)
         {
             // Check if exist
@@ -205,6 +211,12 @@ namespace FlamingoSwapOrderBook
             return isBuy ? GetTotalBuyable(pairKey, expectedPrice) : GetTotalSellable(pairKey, expectedPrice);
         }
 
+        /// <summary>
+        /// Get the total buyable reverse below expected price
+        /// </summary>
+        /// <param name="pairKey"></param>
+        /// <param name="expectedPrice"></param>
+        /// <returns>Tradable reverse and expected payment</returns>
         private static BigInteger[] GetTotalBuyable(byte[] pairKey, BigInteger expectedPrice)
         {
             BigInteger totalBuyable = 0;
@@ -228,6 +240,12 @@ namespace FlamingoSwapOrderBook
             return new BigInteger[] { totalBuyable, totalPayment };
         }
 
+        /// <summary>
+        /// Get the total sellable amount above expected price
+        /// </summary>
+        /// <param name="pairKey"></param>
+        /// <param name="expectedPrice"></param>
+        /// <returns>Tradable amount and expected payment</returns>
         private static BigInteger[] GetTotalSellable(byte[] pairKey, BigInteger expectedPrice)
         {
             BigInteger totalSellable = 0;
@@ -345,80 +363,6 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Calculate how much quote token should be paid when buy
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
-        private static BigInteger GetQuoteAmount(byte[] pairKey, BigInteger price, BigInteger amount)
-        {
-            BigInteger result = 0;
-            if (GetFirstOrderID(pairKey, false) is null) return result;
-
-            int quoteDecimals = GetQuoteDecimals(pairKey);
-            LimitOrder currentOrder = GetFirstOrder(pairKey, false);
-            while (amount > 0)
-            {
-                // Check sell price
-                if (currentOrder.price > price) break;
-
-                // Full-fill
-                if (currentOrder.amount <= amount)
-                {
-                    result += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                    amount -= currentOrder.amount;
-                }
-                // Part-fill
-                else 
-                {
-                    result += amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                    amount = 0;
-                }
-
-                if (currentOrder.nextID is null) break;
-                currentOrder = GetOrder(currentOrder.nextID);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Calculate how much base token should be paid when sell
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
-        private static BigInteger GetBaseAmount(byte[] pairKey, BigInteger price, BigInteger amount)
-        {
-            BigInteger result = 0;
-            if (GetFirstOrderID(pairKey, true) is null) return result;
-            LimitOrder currentOrder = GetFirstOrder(pairKey, true);
-            while (amount > 0)
-            {
-                // Check buy price
-                if (currentOrder.price < price) break;
-
-                // Full-fill
-                if (currentOrder.amount <= amount)
-                {
-                    result += currentOrder.amount;
-                    amount -= currentOrder.amount;
-                }
-                // Part-fill
-                else 
-                {
-                    result += amount;
-                    amount = 0;
-                }
-
-                if (currentOrder.nextID is null) break;
-                currentOrder = GetOrder(currentOrder.nextID);
-            }
-            return result;
-        }
-
-        /// <summary>
         /// Try to make a market deal with orderbook
         /// </summary>
         /// <param name="tokenFrom"></param>
@@ -426,7 +370,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="sender"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
+        /// <returns>Left amount</returns>
         public static BigInteger DealMarketOrder(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger price, BigInteger amount)
         {
             // Check if can deal
@@ -442,17 +386,17 @@ namespace FlamingoSwapOrderBook
             bool canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
             if (!canDeal) return amount;
 
-            // Do deal
+            // Charge before settlement
             UInt160 me = Runtime.ExecutingScriptHash;
             if (isBuy)
             {
-                BigInteger quoteAmount = GetQuoteAmount(pairKey, price, amount);
+                BigInteger quoteAmount = MatchBuy(pairKey, price, amount)[1];
                 SafeTransfer(GetQuoteToken(pairKey), sender, me, quoteAmount);
                 return DealBuy(pairKey, sender, price, amount);
             }
             else
             {
-                BigInteger baseAmount = GetBaseAmount(pairKey, price, amount);
+                BigInteger baseAmount = amount - MatchSell(pairKey, price, amount)[0];
                 SafeTransfer(GetBaseToken(pairKey), sender, me, baseAmount);
                 return DealSell(pairKey, sender, price, amount);
             }
@@ -464,8 +408,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="pairKey"></param>
         /// <param name="buyer"></param>
         /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
+        /// <param name="leftAmount"></param>
+        /// <returns>Left amount</returns>
         private static BigInteger DealBuy(byte[] pairKey, UInt160 buyer, BigInteger price, BigInteger leftAmount)
         {
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -478,41 +422,43 @@ namespace FlamingoSwapOrderBook
                 if (GetBuyPrice(pairKey) > price) break;
 
                 LimitOrder firstOrder = GetFirstOrder(pairKey, false);
-                BigInteger dealQuoteAmount = 0;
-                BigInteger dealBaseAmount = 0;
+                BigInteger quoteAmount = 0;
+                BigInteger baseAmount = 0;
                 BigInteger makerFee = 0;
                 BigInteger takerFee = 0;
 
                 if (firstOrder.amount <= leftAmount)
                 {
                     // Full-fill
-                    dealQuoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
-                    dealBaseAmount = firstOrder.amount;
-                    makerFee = dealQuoteAmount * 15 / 10000;
-                    takerFee = dealBaseAmount * 15 / 10000;
-                    leftAmount -= firstOrder.amount;
+                    quoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
+                    baseAmount = firstOrder.amount;
+                    makerFee = quoteAmount * 15 / 10000;
+                    takerFee = baseAmount * 15 / 10000;
 
                     // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, dealQuoteAmount - makerFee);
-                    SafeTransfer(book.baseToken, me, buyer, dealBaseAmount - takerFee);
+                    SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
+                    SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
                     onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, firstOrder.amount, 0);
+
                     // Remove full-fill order
                     RemoveFirstOrder(pairKey, false);
+                    leftAmount -= firstOrder.amount;
                 }
                 else
                 {
                     // Part-fill
-                    dealQuoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
-                    dealBaseAmount = leftAmount;
-                    makerFee = dealQuoteAmount * 15 / 10000;
-                    takerFee = dealBaseAmount * 15 / 10000;
-                    firstOrder.amount -= leftAmount;
+                    quoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
+                    baseAmount = leftAmount;
+                    makerFee = quoteAmount * 15 / 10000;
+                    takerFee = baseAmount * 15 / 10000;
 
                     // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, dealQuoteAmount - makerFee);
-                    SafeTransfer(book.baseToken, me, buyer, dealBaseAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, leftAmount, firstOrder.amount);
+                    SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
+                    SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
+                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, leftAmount, firstOrder.amount - leftAmount);
+
                     // Update order
+                    firstOrder.amount -= leftAmount;
                     SetOrder(GetFirstOrderID(pairKey, false), firstOrder);
                     leftAmount = 0;
                 }
@@ -532,8 +478,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="pairKey"></param>
         /// <param name="seller"></param>
         /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns></returns>
+        /// <param name="leftAmount"></param>
+        /// <returns>Left amount</returns>
         private static BigInteger DealSell(byte[] pairKey, UInt160 seller, BigInteger price, BigInteger leftAmount)
         {
             UInt160 me = Runtime.ExecutingScriptHash;
@@ -546,41 +492,43 @@ namespace FlamingoSwapOrderBook
                 if (GetSellPrice(pairKey) < price) break;
 
                 LimitOrder firstOrder = GetFirstOrder(pairKey, true);
-                BigInteger dealQuoteAmount = 0;
-                BigInteger dealBaseAmount = 0;
+                BigInteger quoteAmount = 0;
+                BigInteger baseAmount = 0;
                 BigInteger makerFee = 0;
                 BigInteger takerFee = 0;
 
                 if (firstOrder.amount <= leftAmount)
                 {
                     // Full-fill
-                    dealBaseAmount = firstOrder.amount;
-                    dealQuoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
-                    makerFee = dealBaseAmount * 15 / 10000;
-                    takerFee = dealQuoteAmount * 15 / 10000;
-                    leftAmount -= firstOrder.amount;
+                    baseAmount = firstOrder.amount;
+                    quoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
+                    makerFee = baseAmount * 15 / 10000;
+                    takerFee = quoteAmount * 15 / 10000;
 
                     // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, dealBaseAmount - makerFee);
-                    SafeTransfer(book.quoteToken, me, seller, dealQuoteAmount - takerFee);
+                    SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
+                    SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
                     onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, firstOrder.amount, 0);
+
                     // Remove full-fill order
                     RemoveFirstOrder(pairKey, true);
+                    leftAmount -= firstOrder.amount;
                 }
                 else
                 {
                     // Part-fill
-                    dealBaseAmount = leftAmount;
-                    dealQuoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
-                    makerFee = dealBaseAmount * 15 / 10000;
-                    takerFee = dealQuoteAmount * 15 / 10000;
-                    firstOrder.amount -= leftAmount;
+                    baseAmount = leftAmount;
+                    quoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
+                    makerFee = baseAmount * 15 / 10000;
+                    takerFee = quoteAmount * 15 / 10000;
 
                     // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, dealBaseAmount - makerFee);
-                    SafeTransfer(book.quoteToken, me, seller, dealQuoteAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, leftAmount, firstOrder.amount);
+                    SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
+                    SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
+                    onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, leftAmount, firstOrder.amount - leftAmount);
+
                     // Update order
+                    firstOrder.amount -= leftAmount;
                     SetOrder(GetFirstOrderID(pairKey, true), firstOrder);
                     leftAmount = 0;
                 }
