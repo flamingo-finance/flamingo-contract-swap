@@ -435,13 +435,13 @@ namespace FlamingoSwapOrderBook
                     makerFee = quoteAmount * 15 / 10000;
                     takerFee = baseAmount * 15 / 10000;
 
+                    // Remove full-fill order
+                    RemoveFirstOrder(pairKey, false);
+
                     // Do transfer
                     SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
                     SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
                     onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, firstOrder.amount, 0);
-
-                    // Remove full-fill order
-                    RemoveFirstOrder(pairKey, false);
                     leftAmount -= firstOrder.amount;
                 }
                 else
@@ -452,14 +452,14 @@ namespace FlamingoSwapOrderBook
                     makerFee = quoteAmount * 15 / 10000;
                     takerFee = baseAmount * 15 / 10000;
 
-                    // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
-                    SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, leftAmount, firstOrder.amount - leftAmount);
-
                     // Update order
                     firstOrder.amount -= leftAmount;
                     SetOrder(GetFirstOrderID(pairKey, false), firstOrder);
+
+                    // Do transfer
+                    SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
+                    SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
+                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, leftAmount, firstOrder.amount);
                     leftAmount = 0;
                 }
 
@@ -505,13 +505,13 @@ namespace FlamingoSwapOrderBook
                     makerFee = baseAmount * 15 / 10000;
                     takerFee = quoteAmount * 15 / 10000;
 
+                    // Remove full-fill order
+                    RemoveFirstOrder(pairKey, true);
+
                     // Do transfer
                     SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
                     SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
                     onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, firstOrder.amount, 0);
-
-                    // Remove full-fill order
-                    RemoveFirstOrder(pairKey, true);
                     leftAmount -= firstOrder.amount;
                 }
                 else
@@ -522,14 +522,14 @@ namespace FlamingoSwapOrderBook
                     makerFee = baseAmount * 15 / 10000;
                     takerFee = quoteAmount * 15 / 10000;
 
-                    // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
-                    SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, leftAmount, firstOrder.amount - leftAmount);
-
                     // Update order
                     firstOrder.amount -= leftAmount;
                     SetOrder(GetFirstOrderID(pairKey, true), firstOrder);
+
+                    // Do transfer
+                    SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
+                    SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
+                    onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, leftAmount, firstOrder.amount);
                     leftAmount = 0;
                 }
 
