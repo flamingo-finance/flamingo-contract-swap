@@ -147,12 +147,13 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
         /// <param name="id"></param>
-        public static void CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, ByteString id)
+        /// <returns></returns>
+        public static bool CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, ByteString id)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
-            Assert(OrderExists(id), "Order Not Exists");
+            if (!OrderExists(id)) return false;
             LimitOrder order = GetOrder(id);
             Assert(Runtime.CheckWitness(order.sender), "No Authorization");
 
@@ -165,6 +166,7 @@ namespace FlamingoSwapOrderBook
             UInt160 me = Runtime.ExecutingScriptHash;
             if (isBuy) SafeTransfer(GetQuoteToken(pairKey), me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
             else SafeTransfer(GetBaseToken(pairKey), me, order.sender, order.amount);
+            return true;
         }
 
         /// <summary>
