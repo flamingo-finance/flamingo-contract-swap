@@ -176,6 +176,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenTo"></param>
         /// <param name="id"></param>
         /// <returns></returns>
+        [Safe]
         public static LimitOrder[] GetFirstNOrders(UInt160 tokenFrom, UInt160 tokenTo, uint n)
         {
             // Check if exist
@@ -202,6 +203,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenTo"></param>
         /// <param name="expectedPrice"></param>
         /// <returns>Tradable reverse and expected payment</returns>
+        [Safe]
         public static BigInteger[] GetTotalTradable(UInt160 tokenFrom, UInt160 tokenTo, BigInteger expectedPrice)
         {
             // Check if exist
@@ -279,6 +281,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns>Left amount and total payment</returns>
+        [Safe]
         public static BigInteger[] MatchOrder(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amount)
         {
             // Check if exist
@@ -550,6 +553,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
         /// <returns></returns>
+        [Safe]
         public static BigInteger GetMarketPrice(UInt160 tokenFrom, UInt160 tokenTo)
         {
             // Check if exist
@@ -566,6 +570,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenFrom"></param>
         /// <param name="tokenTo"></param>
         /// <returns></returns>
+        [Safe]
         public static UInt160 GetBaseToken(UInt160 tokenFrom, UInt160 tokenTo)
         {
             // Check if exist
@@ -575,6 +580,7 @@ namespace FlamingoSwapOrderBook
             return GetBaseToken(pairKey);
         }
 
+        [Safe]
         public static UInt160 GetQuoteToken(UInt160 tokenFrom, UInt160 tokenTo)
         {
             // Check if exist
@@ -584,6 +590,7 @@ namespace FlamingoSwapOrderBook
             return GetQuoteToken(pairKey);
         }
 
+        [Safe]
         public static int GetQuoteDecimals(UInt160 tokenFrom, UInt160 tokenTo)
         {
             // Check if exist

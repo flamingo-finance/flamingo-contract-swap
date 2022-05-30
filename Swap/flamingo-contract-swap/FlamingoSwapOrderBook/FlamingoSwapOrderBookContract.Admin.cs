@@ -29,8 +29,10 @@ namespace FlamingoSwapOrderBook
         // When this contract address is included in the transaction signature,
         // this method will be triggered as a VerificationTrigger to verify that the signature is correct.
         // For example, this method needs to be called when withdrawing token from the contract.
+        [Safe]
         public static bool Verify() => Runtime.CheckWitness(GetAdmin());
 
+        [Safe]
         public static UInt160 GetAdmin()
         {
             var admin = StorageGet(AdminKey);
@@ -56,6 +58,7 @@ namespace FlamingoSwapOrderBook
             GAS.Transfer(me, receiveAddress, afterBalance - beforeBalance);
         }
 
+        [Safe]
         public static UInt160 GetGASAdmin()
         {
             var admin = StorageGet(GASAdminKey);
@@ -73,6 +76,7 @@ namespace FlamingoSwapOrderBook
 
         #region FundFee
 
+        [Safe]
         public static UInt160 GetFundAddress()
         {
             var address = StorageGet(FundAddresskey);
