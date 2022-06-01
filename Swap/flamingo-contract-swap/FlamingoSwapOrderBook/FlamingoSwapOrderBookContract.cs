@@ -74,30 +74,36 @@ namespace FlamingoSwapOrderBook
             if (GetQuoteToken(pairKey) != quoteToken) return false;
 
             // Cancel orders
-            ByteString firstBuyID = null;
-            while ((firstBuyID = GetFirstOrderID(pairKey, true)) is not null)
+            var firstBuyID = GetFirstOrderID(pairKey, true);
+            while (firstBuyID != null)
             {
                 // Remove from book
-                LimitOrder order = GetOrder(firstBuyID);
+                var order = GetOrder(firstBuyID);
                 Assert(RemoveOrder(pairKey, firstBuyID, true), "Remove Order Fail");
                 onCancelOrder(firstBuyID, order.price, order.amount);
 
                 // Sendback token
-                UInt160 me = Runtime.ExecutingScriptHash;
+                var me = Runtime.ExecutingScriptHash;
                 SafeTransfer(quoteToken, me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+
+                // Try again
+                firstBuyID = GetFirstOrderID(pairKey, true);
             }
 
-            ByteString firstSellID = null;
-            while ((firstSellID = GetFirstOrderID(pairKey, false)) is not null)
+            var firstSellID = GetFirstOrderID(pairKey, false);
+            while (firstSellID != null)
             {
                 // Remove from book
-                LimitOrder order = GetOrder(firstSellID);
+                var order = GetOrder(firstSellID);
                 Assert(RemoveOrder(pairKey, firstSellID, false), "Remove Order Fail");
                 onCancelOrder(firstSellID, order.price, order.amount);
 
                 // Sendback token
-                UInt160 me = Runtime.ExecutingScriptHash;
+                var me = Runtime.ExecutingScriptHash;
                 SafeTransfer(baseToken, me, order.sender, order.amount);
+
+                // Try again
+                firstSellID = GetFirstOrderID(pairKey, false);
             }
 
             // Remove book
@@ -118,25 +124,23 @@ namespace FlamingoSwapOrderBook
         public static ByteString DealLimitOrder(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger price, BigInteger amount)
         {
             // Deal as market order
-            BigInteger leftAmount = DealMarketOrder(tokenFrom, tokenTo, sender, price, amount);
+            var leftAmount = DealMarketOrder(tokenFrom, tokenTo, sender, price, amount);
             if (leftAmount == 0) return null;
 
             // Deposit token
             var pairKey = GetPairKey(tokenFrom, tokenTo);
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
-            UInt160 me = Runtime.ExecutingScriptHash;
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var me = Runtime.ExecutingScriptHash;
             if (isBuy) SafeTransfer(GetQuoteToken(pairKey), sender, me, leftAmount * price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
             else SafeTransfer(GetBaseToken(pairKey), sender, me, leftAmount);
 
             // Do add
-            ByteString id = GetUnusedID();
-            LimitOrder order = new LimitOrder()
-            {
+            var id = GetUnusedID();
+            Assert(InsertOrder(pairKey, id, new LimitOrder(){
                 sender = sender,
                 price = price,
                 amount = leftAmount
-            };
-            Assert(InsertOrder(pairKey, id, order, isBuy), "Add Order Fail");
+            }, isBuy), "Add Order Fail");
             onAddOrder(tokenFrom, tokenTo, sender, price, leftAmount);
             return id;
         }
@@ -154,16 +158,16 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
             if (!OrderExists(id)) return false;
-            LimitOrder order = GetOrder(id);
+            var order = GetOrder(id);
             Assert(Runtime.CheckWitness(order.sender), "No Authorization");
 
             // Do remove
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             Assert(RemoveOrder(pairKey, id, isBuy), "Remove Order Fail");
             onCancelOrder(id, order.price, order.amount);
 
             // Withdraw token
-            UInt160 me = Runtime.ExecutingScriptHash;
+            var me = Runtime.ExecutingScriptHash;
             if (isBuy) SafeTransfer(GetQuoteToken(pairKey), me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
             else SafeTransfer(GetBaseToken(pairKey), me, order.sender, order.amount);
             return true;
@@ -183,10 +187,10 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
 
-            LimitOrder[] results = new LimitOrder[n];
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var results = new LimitOrder[n];
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (GetFirstOrderID(pairKey, isBuy) is null) return results;
-            LimitOrder currentOrder = GetFirstOrder(pairKey, isBuy);
+            var currentOrder = GetFirstOrder(pairKey, isBuy);
             for (int i = 0; i < n; i++)
             {
                 results[i] = currentOrder;
@@ -211,7 +215,7 @@ namespace FlamingoSwapOrderBook
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(expectedPrice > 0, "Invalid Price");
 
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             return isBuy ? GetTotalBuyable(pairKey, expectedPrice) : GetTotalSellable(pairKey, expectedPrice);
         }
 
@@ -227,12 +231,12 @@ namespace FlamingoSwapOrderBook
             BigInteger totalPayment = 0;
             if (GetFirstOrderID(pairKey, false) is null) return new BigInteger[] { totalBuyable, totalPayment };
 
-            int quoteDecimals = GetQuoteDecimals(pairKey);
-            ByteString currentID = GetFirstOrderID(pairKey, false);
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var currentID = GetFirstOrderID(pairKey, false);
 
             while (currentID is not null)
             {
-                LimitOrder currentOrder = GetOrder(currentID);
+                var currentOrder = GetOrder(currentID);
                 // Check sell price
                 if (currentOrder.price > expectedPrice) break;
 
@@ -256,12 +260,12 @@ namespace FlamingoSwapOrderBook
             BigInteger totalPayment = 0;
             if (GetFirstOrderID(pairKey, true) is null) return new BigInteger[] { totalSellable, totalPayment };
 
-            int quoteDecimals = GetQuoteDecimals(pairKey);
-            ByteString currentID = GetFirstOrderID(pairKey, true);
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var currentID = GetFirstOrderID(pairKey, true);
 
             while (currentID is not null)
             {
-                LimitOrder currentOrder = GetOrder(currentID);
+                var currentOrder = GetOrder(currentID);
                 // Check sell price
                 if (currentOrder.price < expectedPrice) break;
 
@@ -289,7 +293,7 @@ namespace FlamingoSwapOrderBook
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
 
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             return isBuy ? MatchBuy(pairKey, price, amount) : MatchSell(pairKey, price, amount);
         }
 
@@ -305,8 +309,8 @@ namespace FlamingoSwapOrderBook
             BigInteger totalPayment = 0;
             if (GetFirstOrderID(pairKey, false) is null) return new BigInteger[] { amount, totalPayment };
 
-            int quoteDecimals = GetQuoteDecimals(pairKey);
-            LimitOrder currentOrder = GetFirstOrder(pairKey, false);
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var currentOrder = GetFirstOrder(pairKey, false);
 
             while (amount > 0)
             {
@@ -342,8 +346,8 @@ namespace FlamingoSwapOrderBook
             BigInteger totalPayment = 0;
             if (GetFirstOrderID(pairKey, true) is null) return new BigInteger[] { amount, totalPayment };
 
-            int quoteDecimals = GetQuoteDecimals(pairKey);
-            LimitOrder currentOrder = GetFirstOrder(pairKey, true);
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var currentOrder = GetFirstOrder(pairKey, true);
 
             while (amount > 0)
             {
@@ -384,24 +388,24 @@ namespace FlamingoSwapOrderBook
             Assert(price > 0 && amount > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(sender), "No Authorization");
 
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (GetFirstOrderID(pairKey, !isBuy) is null) return amount;
 
-            LimitOrder firstOrder = GetFirstOrder(pairKey, !isBuy);
-            bool canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
+            var firstOrder = GetFirstOrder(pairKey, !isBuy);
+            var canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
             if (!canDeal) return amount;
 
             // Charge before settlement
-            UInt160 me = Runtime.ExecutingScriptHash;
+            var me = Runtime.ExecutingScriptHash;
             if (isBuy)
             {
-                BigInteger quoteAmount = MatchBuy(pairKey, price, amount)[1];
+                var quoteAmount = MatchBuy(pairKey, price, amount)[1];
                 SafeTransfer(GetQuoteToken(pairKey), sender, me, quoteAmount);
                 return DealBuy(pairKey, sender, price, amount);
             }
             else
             {
-                BigInteger baseAmount = amount - MatchSell(pairKey, price, amount)[0];
+                var baseAmount = amount - MatchSell(pairKey, price, amount)[0];
                 SafeTransfer(GetBaseToken(pairKey), sender, me, baseAmount);
                 return DealSell(pairKey, sender, price, amount);
             }
@@ -417,8 +421,8 @@ namespace FlamingoSwapOrderBook
         /// <returns>Left amount</returns>
         private static BigInteger DealBuy(byte[] pairKey, UInt160 buyer, BigInteger price, BigInteger leftAmount)
         {
-            UInt160 me = Runtime.ExecutingScriptHash;
-            OrderBook book = GetOrderBook(pairKey);
+            var me = Runtime.ExecutingScriptHash;
+            var book = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
 
             while (leftAmount > 0 && GetFirstOrderID(pairKey, false) is not null)
@@ -426,7 +430,7 @@ namespace FlamingoSwapOrderBook
                 // Check the lowest sell price
                 if (GetBuyPrice(pairKey) > price) break;
 
-                LimitOrder firstOrder = GetFirstOrder(pairKey, false);
+                var firstOrder = GetFirstOrder(pairKey, false);
                 BigInteger quoteAmount = 0;
                 BigInteger baseAmount = 0;
                 BigInteger makerFee = 0;
@@ -487,8 +491,8 @@ namespace FlamingoSwapOrderBook
         /// <returns>Left amount</returns>
         private static BigInteger DealSell(byte[] pairKey, UInt160 seller, BigInteger price, BigInteger leftAmount)
         {
-            UInt160 me = Runtime.ExecutingScriptHash;
-            OrderBook book = GetOrderBook(pairKey);
+            var me = Runtime.ExecutingScriptHash;
+            var book = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
 
             while (leftAmount > 0 && GetFirstOrderID(pairKey, true) is not null)
@@ -496,7 +500,7 @@ namespace FlamingoSwapOrderBook
                 // Check the highest buy price
                 if (GetSellPrice(pairKey) < price) break;
 
-                LimitOrder firstOrder = GetFirstOrder(pairKey, true);
+                var firstOrder = GetFirstOrder(pairKey, true);
                 BigInteger quoteAmount = 0;
                 BigInteger baseAmount = 0;
                 BigInteger makerFee = 0;
@@ -560,7 +564,7 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
 
-            bool isBuy = tokenFrom == GetQuoteToken(pairKey);
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             return isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
         }
 
@@ -609,7 +613,7 @@ namespace FlamingoSwapOrderBook
         {
             if (GetFirstOrderID(pairKey, false) is null) return 0;
 
-            LimitOrder firstSellOrder = GetFirstOrder(pairKey, false);
+            var firstSellOrder = GetFirstOrder(pairKey, false);
             return firstSellOrder.price;
         }
 
@@ -622,7 +626,7 @@ namespace FlamingoSwapOrderBook
         {
             if (GetFirstOrderID(pairKey, true) is null) return 0;
 
-            LimitOrder firstBuyOrder = GetFirstOrder(pairKey, true);
+            var firstBuyOrder = GetFirstOrder(pairKey, true);
             return firstBuyOrder.price;
         }
 

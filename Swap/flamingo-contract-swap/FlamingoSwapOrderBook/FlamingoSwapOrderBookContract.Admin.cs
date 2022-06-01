@@ -4,7 +4,6 @@ using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
-using System.Numerics;
 
 namespace FlamingoSwapOrderBook
 {
@@ -51,9 +50,9 @@ namespace FlamingoSwapOrderBook
         {
             Assert(Runtime.CheckWitness(GetGASAdmin()), "Forbidden");
             var me = Runtime.ExecutingScriptHash;
-            BigInteger beforeBalance = GAS.BalanceOf(me);
+            var beforeBalance = GAS.BalanceOf(me);
             Assert((bool)Contract.Call(bNEO, "transfer", CallFlags.All, Runtime.ExecutingScriptHash, bNEO, 0, null), "claim fail");
-            BigInteger afterBalance = GAS.BalanceOf(me);
+            var afterBalance = GAS.BalanceOf(me);
 
             GAS.Transfer(me, receiveAddress, afterBalance - beforeBalance);
         }

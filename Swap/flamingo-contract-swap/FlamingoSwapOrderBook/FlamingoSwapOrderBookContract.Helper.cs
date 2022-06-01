@@ -19,14 +19,14 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static bool InsertOrder(byte[] pairKey, ByteString id, LimitOrder order, bool isBuy)
         {
-            ByteString firstID = GetFirstOrderID(pairKey, isBuy);
+            var firstID = GetFirstOrderID(pairKey, isBuy);
 
             // Check if there is no order
-            bool canBeFirst = firstID is null;
+            var canBeFirst = firstID is null;
             if (!canBeFirst)
             {
                 // Check if this order is the worthiest
-                LimitOrder firstOrder = GetOrder(firstID);
+                var firstOrder = GetOrder(firstID);
                 canBeFirst = (isBuy && (firstOrder.price < order.price)) || (!isBuy && (firstOrder.price > order.price));
             }
             if (canBeFirst)
@@ -46,21 +46,19 @@ namespace FlamingoSwapOrderBook
 
         private static bool InsertNotFirst(ByteString firstID, ByteString id, LimitOrder order, bool isBuy)
         {
-            ByteString currentID = firstID; 
-            LimitOrder currentOrder;
-            LimitOrder nextOrder;
+            var currentID = firstID; 
             while (currentID is not null)
             {
                 // Check before
-                currentOrder = GetOrder(currentID);
-                bool canFollow = (isBuy && (order.price <= currentOrder.price)) || (!isBuy && (order.price >= currentOrder.price));
+                var currentOrder = GetOrder(currentID);
+                var canFollow = (isBuy && (order.price <= currentOrder.price)) || (!isBuy && (order.price >= currentOrder.price));
                 if (!canFollow) break;
 
                 if (currentOrder.nextID is not null)
                 {
                     // Check after
-                    nextOrder = GetOrder(currentOrder.nextID);
-                    bool canPrecede = (isBuy && (nextOrder.price < order.price)) || (!isBuy && (nextOrder.price > order.price));
+                    var nextOrder = GetOrder(currentOrder.nextID);
+                    var canPrecede = (isBuy && (nextOrder.price < order.price)) || (!isBuy && (nextOrder.price > order.price));
                     canFollow = canFollow && canPrecede;
                 }
                 if (canFollow)
@@ -85,7 +83,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static ByteString GetFirstOrderID(byte[] pairKey, bool isBuy)
         {
-            OrderBook book = GetOrderBook(pairKey);
+            var book = GetOrderBook(pairKey);
             return isBuy ? book.firstBuyID : book.firstSellID;
         }
 
@@ -97,7 +95,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="isBuy"></param>
         private static void SetFirstOrderID(byte[] pairKey, ByteString id, bool isBuy)
         {
-            OrderBook book = GetOrderBook(pairKey);
+            var book = GetOrderBook(pairKey);
             if (isBuy) book.firstBuyID = id;
             else book.firstSellID = id;
             SetOrderBook(pairKey, book);
@@ -111,7 +109,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static LimitOrder GetFirstOrder(byte[] pairKey, bool isBuy)
         {
-            ByteString id = GetFirstOrderID(pairKey, isBuy);
+            var id = GetFirstOrderID(pairKey, isBuy);
             return GetOrder(id);
         }
 
@@ -125,8 +123,8 @@ namespace FlamingoSwapOrderBook
         private static bool RemoveOrder(byte[] pairKey, ByteString id, bool isBuy)
         {
             // Remove from BookMap
-            OrderBook book = GetOrderBook(pairKey);
-            ByteString firstID = isBuy ? book.firstBuyID : book.firstSellID;
+            var book = GetOrderBook(pairKey);
+            var firstID = isBuy ? book.firstBuyID : book.firstSellID;
             if (firstID is null) return false;
             if (firstID == id)
             {
@@ -144,15 +142,15 @@ namespace FlamingoSwapOrderBook
 
         private static bool RemoveNotFirst(ByteString firstID, ByteString id)
         {
-            ByteString currentID = firstID; 
-            LimitOrder currentOrder = GetOrder(currentID);
+            var currentID = firstID; 
+            var currentOrder = GetOrder(currentID);
             while (currentOrder.nextID is not null)
             {
                 // Check next
                 if (currentOrder.nextID == id)
                 {
                     // Do remove
-                    ByteString newNextID = GetOrder(currentOrder.nextID).nextID;
+                    var newNextID = GetOrder(currentOrder.nextID).nextID;
                     DeleteOrder(currentOrder.nextID);
                     currentOrder.nextID = newNextID;
                     SetOrder(currentID, currentOrder);
@@ -172,8 +170,8 @@ namespace FlamingoSwapOrderBook
         private static void RemoveFirstOrder(byte[] pairKey, bool isBuy)
         {
             // Remove from BookMap
-            OrderBook book = GetOrderBook(pairKey);
-            ByteString firstID = isBuy ? book.firstBuyID : book.firstSellID;
+            var book = GetOrderBook(pairKey);
+            var firstID = isBuy ? book.firstBuyID : book.firstSellID;
             // Delete the first
             SetFirstOrderID(pairKey, GetOrder(firstID).nextID, isBuy);
             DeleteOrder(firstID);
