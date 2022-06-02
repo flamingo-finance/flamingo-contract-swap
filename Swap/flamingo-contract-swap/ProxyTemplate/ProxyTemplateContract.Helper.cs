@@ -19,7 +19,7 @@ namespace ProxyTemplate
         public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data = null)
         {
             // Check token
-            Assert(token.IsValid && to.IsValid && amount >= 0, "Invalid Parameters");
+            Assert(token.IsValid && to.IsValid && !to.IsZero && amount >= 0, "Invalid Parameters");
             Assert(token == Token0 || token == Token1 || token == Pair01, "Unsupported Token");
 
             // Find allowed
