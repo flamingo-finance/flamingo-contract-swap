@@ -24,7 +24,7 @@ namespace ProxyTemplate
         {
             // Global
             // Check sender and parameters
-            Assert(owner.IsValid && token.IsValid && amount >= 0, "Invalid Parameters");
+            Assert(owner.IsValid && token.IsValid && amount > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
             Assert(token == Token0 || token == Token1, "Unsupported Token");
 
@@ -46,7 +46,7 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check owner and parameters
-            Assert(owner.IsValid && token.IsValid && amount >= 0, "Invalid Parameters");
+            Assert(owner.IsValid && token.IsValid && amount > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
             Assert(token == Token0 || token == Token1, "Unsupported Token");
 
@@ -123,7 +123,7 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check sender and parameters
-            Assert(owner.IsValid && liquidity >= 0 && amount0Min >= 0 && amount1Min >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(owner.IsValid && liquidity > 0 && amount0Min >= 0 && amount1Min >= 0 && deadLine > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(owner), "Forbidden");
 
             // Record balance
@@ -167,7 +167,7 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check sender and parameters
-            Assert(sender.IsValid && amountIn >= 0 && amountOutMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(sender.IsValid && amountIn > 0 && amountOutMin >= 0 && deadLine > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(sender), "Forbidden");
 
             // Record balance
@@ -209,7 +209,7 @@ namespace ProxyTemplate
         {
             // CalledByEntry
             // Check sender and parameters
-            Assert(sender.IsValid && amountOut >= 0 && amountInMax >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(sender.IsValid && amountOut > 0 && amountInMax >= 0 && deadLine > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(sender), "Forbidden");
 
             // Record balance

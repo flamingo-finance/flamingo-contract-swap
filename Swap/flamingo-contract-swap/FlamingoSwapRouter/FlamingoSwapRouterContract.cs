@@ -169,7 +169,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] RemoveLiquidity(UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证参数
-            Assert(tokenA.IsValid && tokenB.IsValid && liquidity >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(tokenA.IsValid && tokenB.IsValid && liquidity > 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
@@ -342,7 +342,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenInForTokenOut(BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(amountIn >= 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(amountIn > 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
@@ -372,7 +372,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(sender.IsValid && amountOut >= 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(sender.IsValid && amountOut > 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -391,7 +391,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenOutForTokenIn(BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(amountOut >= 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(amountOut > 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
