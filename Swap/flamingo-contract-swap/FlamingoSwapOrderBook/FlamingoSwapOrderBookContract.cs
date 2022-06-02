@@ -16,7 +16,7 @@ namespace FlamingoSwapOrderBook
     {
         public struct LimitOrder
         {
-            public UInt160 sender;
+            public UInt160 maker;
             public BigInteger price;
             public BigInteger amount;
             public ByteString nextID;
@@ -32,8 +32,7 @@ namespace FlamingoSwapOrderBook
             public ByteString firstSellID;
         }
 
-        const uint MAX_ID = 1 << 24;
-
+        #region DEX like API
         /// <summary>
         /// Register a new book
         /// </summary>
@@ -75,7 +74,7 @@ namespace FlamingoSwapOrderBook
 
             // Cancel orders
             var firstBuyID = GetFirstOrderID(pairKey, true);
-            while (firstBuyID != null)
+            while (firstBuyID is not null)
             {
                 // Remove from book
                 var order = GetOrder(firstBuyID);
@@ -83,15 +82,14 @@ namespace FlamingoSwapOrderBook
                 onCancelOrder(firstBuyID, order.price, order.amount);
 
                 // Sendback token
-                var me = Runtime.ExecutingScriptHash;
-                SafeTransfer(quoteToken, me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+                SafeTransfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
 
                 // Try again
                 firstBuyID = GetFirstOrderID(pairKey, true);
             }
 
             var firstSellID = GetFirstOrderID(pairKey, false);
-            while (firstSellID != null)
+            while (firstSellID is not null)
             {
                 // Remove from book
                 var order = GetOrder(firstSellID);
@@ -99,8 +97,7 @@ namespace FlamingoSwapOrderBook
                 onCancelOrder(firstSellID, order.price, order.amount);
 
                 // Sendback token
-                var me = Runtime.ExecutingScriptHash;
-                SafeTransfer(baseToken, me, order.sender, order.amount);
+                SafeTransfer(baseToken, Runtime.ExecutingScriptHash, order.maker, order.amount);
 
                 // Try again
                 firstSellID = GetFirstOrderID(pairKey, false);
@@ -115,80 +112,85 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Add a new order into orderbook but try deal it first
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
-        /// <param name="sender"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="maker"></param>
+        /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns>Null or a new order id</returns>
-        public static ByteString DealLimitOrder(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger price, BigInteger amount)
+        public static ByteString AddLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount)
         {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
+            Assert(Runtime.CheckWitness(maker), "No Authorization");
+
             // Deal as market order
-            var leftAmount = DealMarketOrder(tokenFrom, tokenTo, sender, price, amount);
+            var leftAmount = DealMarketOrderInternal(pairKey, maker, isBuy, price, amount);
             if (leftAmount == 0) return null;
 
             // Deposit token
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), sender, me, leftAmount * price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
-            else SafeTransfer(GetBaseToken(pairKey), sender, me, leftAmount);
+            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), maker, me, leftAmount * price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+            else SafeTransfer(GetBaseToken(pairKey), maker, me, leftAmount);
 
             // Do add
             var id = GetUnusedID();
             Assert(InsertOrder(pairKey, id, new LimitOrder(){
-                sender = sender,
+                maker = maker,
                 price = price,
                 amount = leftAmount
             }, isBuy), "Add Order Fail");
-            onAddOrder(tokenFrom, tokenTo, sender, price, leftAmount);
+            onAddOrder(GetBaseToken(pairKey), GetQuoteToken(pairKey), id, isBuy, price, leftAmount);
             return id;
         }
 
         /// <summary>
         /// Cancel a limit order with its id
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static bool CancelOrder(UInt160 tokenFrom, UInt160 tokenTo, ByteString id)
+        public static bool CancelOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, ByteString id)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             if (!OrderExists(id)) return false;
             var order = GetOrder(id);
-            Assert(Runtime.CheckWitness(order.sender), "No Authorization");
+            Assert(Runtime.CheckWitness(order.maker), "No Authorization");
 
             // Do remove
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             Assert(RemoveOrder(pairKey, id, isBuy), "Remove Order Fail");
             onCancelOrder(id, order.price, order.amount);
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), me, order.sender, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
-            else SafeTransfer(GetBaseToken(pairKey), me, order.sender, order.amount);
+            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), me, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+            else SafeTransfer(GetBaseToken(pairKey), me, order.maker, order.amount);
             return true;
         }
 
         /// <summary>
         /// Get first N limit orders and their details
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
         /// <param name="id"></param>
         /// <returns></returns>
         [Safe]
-        public static LimitOrder[] GetFirstNOrders(UInt160 tokenFrom, UInt160 tokenTo, uint n)
+        public static LimitOrder[] GetFirstNOrders(UInt160 tokenA, UInt160 tokenB, bool isBuy, uint n)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
             var results = new LimitOrder[n];
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (GetFirstOrderID(pairKey, isBuy) is null) return results;
             var currentOrder = GetFirstOrder(pairKey, isBuy);
             for (int i = 0; i < n; i++)
@@ -203,158 +205,77 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Get the total reverse of tradable orders with an expected price
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
-        /// <param name="expectedPrice"></param>
-        /// <returns>Tradable reverse and expected payment</returns>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <returns>Tradable base amount</returns>
         [Safe]
-        public static BigInteger[] GetTotalTradable(UInt160 tokenFrom, UInt160 tokenTo, BigInteger expectedPrice)
+        public static BigInteger GetTotalTradable(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
-            Assert(expectedPrice > 0, "Invalid Price");
+            Assert(price > 0, "Invalid Price");
 
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
-            return isBuy ? GetTotalBuyable(pairKey, expectedPrice) : GetTotalSellable(pairKey, expectedPrice);
+            return GetTotalTradableInternal(pairKey, isBuy, price);
         }
 
-        /// <summary>
-        /// Get the total buyable reverse below expected price
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="expectedPrice"></param>
-        /// <returns>Tradable reverse and expected payment</returns>
-        private static BigInteger[] GetTotalBuyable(byte[] pairKey, BigInteger expectedPrice)
+        private static BigInteger GetTotalTradableInternal(byte[] pairKey, bool isBuy, BigInteger price)
         {
-            BigInteger totalBuyable = 0;
-            BigInteger totalPayment = 0;
-            if (GetFirstOrderID(pairKey, false) is null) return new BigInteger[] { totalBuyable, totalPayment };
+            BigInteger totalTradable = 0;
+            if (GetFirstOrderID(pairKey, !isBuy) is null) return totalTradable;
 
             var quoteDecimals = GetQuoteDecimals(pairKey);
-            var currentID = GetFirstOrderID(pairKey, false);
+            var currentID = GetFirstOrderID(pairKey, !isBuy);
 
             while (currentID is not null)
             {
                 var currentOrder = GetOrder(currentID);
-                // Check sell price
-                if (currentOrder.price > expectedPrice) break;
+                // Check price
+                if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
 
-                totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                totalBuyable += currentOrder.amount;
-
-                currentID = currentOrder.nextID;
-            }
-            return new BigInteger[] { totalBuyable, totalPayment };
-        }
-
-        /// <summary>
-        /// Get the total sellable amount above expected price
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="expectedPrice"></param>
-        /// <returns>Tradable amount and expected payment</returns>
-        private static BigInteger[] GetTotalSellable(byte[] pairKey, BigInteger expectedPrice)
-        {
-            BigInteger totalSellable = 0;
-            BigInteger totalPayment = 0;
-            if (GetFirstOrderID(pairKey, true) is null) return new BigInteger[] { totalSellable, totalPayment };
-
-            var quoteDecimals = GetQuoteDecimals(pairKey);
-            var currentID = GetFirstOrderID(pairKey, true);
-
-            while (currentID is not null)
-            {
-                var currentOrder = GetOrder(currentID);
-                // Check sell price
-                if (currentOrder.price < expectedPrice) break;
-
-                totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                totalSellable += currentOrder.amount;
+                totalTradable += currentOrder.amount;
 
                 currentID = currentOrder.nextID;
             }
-            return new BigInteger[] { totalSellable, totalPayment };
+            return totalTradable;
         }
 
         /// <summary>
         /// Try to match without real payment
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns>Left amount and total payment</returns>
         [Safe]
-        public static BigInteger[] MatchOrder(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amount)
+        public static BigInteger[] MatchOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
 
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
-            return isBuy ? MatchBuy(pairKey, price, amount) : MatchSell(pairKey, price, amount);
+            return MatchOrderInternal(pairKey, isBuy, price, amount);
         }
 
-        /// <summary>
-        /// Try to buy without real payment
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns>Left amount and total payment</returns>
-        private static BigInteger[] MatchBuy(byte[] pairKey, BigInteger price, BigInteger amount)
+        private static BigInteger[] MatchOrderInternal(byte[] pairKey, bool isBuy, BigInteger price, BigInteger amount)
         {
             BigInteger totalPayment = 0;
-            if (GetFirstOrderID(pairKey, false) is null) return new BigInteger[] { amount, totalPayment };
+            if (GetFirstOrderID(pairKey, !isBuy) is null) return new BigInteger[] { amount, totalPayment };
 
             var quoteDecimals = GetQuoteDecimals(pairKey);
-            var currentOrder = GetFirstOrder(pairKey, false);
+            var currentOrder = GetFirstOrder(pairKey, !isBuy);
 
             while (amount > 0)
             {
-                // Check sell price
-                if (currentOrder.price > price) break;
+                // Check price
+                if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
 
                 if (currentOrder.amount <= amount) 
-                {
-                    totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                    amount -= currentOrder.amount;
-                }
-                else
-                {
-                    totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                    amount = 0;
-                }
-
-                if (currentOrder.nextID is null) break;
-                currentOrder = GetOrder(currentOrder.nextID);
-            }
-            return new BigInteger[] { amount, totalPayment };
-        }
-
-        /// <summary>
-        /// Try to sell without real payment
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        /// <returns>Left amount and total payment</returns>
-        private static BigInteger[] MatchSell(byte[] pairKey, BigInteger price, BigInteger amount)
-        {
-            BigInteger totalPayment = 0;
-            if (GetFirstOrderID(pairKey, true) is null) return new BigInteger[] { amount, totalPayment };
-
-            var quoteDecimals = GetQuoteDecimals(pairKey);
-            var currentOrder = GetFirstOrder(pairKey, true);
-
-            while (amount > 0)
-            {
-                // Check buy price
-                if (currentOrder.price < price) break;
-
-                if (currentOrder.amount <= amount)
                 {
                     totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
                     amount -= currentOrder.amount;
@@ -374,21 +295,26 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Try to make a market deal with orderbook
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
-        /// <param name="sender"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="taker"></param>
+        /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns>Left amount</returns>
-        public static BigInteger DealMarketOrder(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger price, BigInteger amount)
+        public static BigInteger DealMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
         {
-            // Check if can deal
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
-            Assert(Runtime.CheckWitness(sender), "No Authorization");
+            Assert(Runtime.CheckWitness(taker), "No Authorization");
 
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
+            return DealMarketOrderInternal(pairKey, taker, isBuy, price, amount);
+        }
+
+        private static BigInteger DealMarketOrderInternal(byte[] pairKey, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
+        {
             if (GetFirstOrderID(pairKey, !isBuy) is null) return amount;
 
             var firstOrder = GetFirstOrder(pairKey, !isBuy);
@@ -397,40 +323,38 @@ namespace FlamingoSwapOrderBook
 
             // Charge before settlement
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy)
-            {
-                var quoteAmount = MatchBuy(pairKey, price, amount)[1];
-                SafeTransfer(GetQuoteToken(pairKey), sender, me, quoteAmount);
-                return DealBuy(pairKey, sender, price, amount);
-            }
-            else
-            {
-                var baseAmount = amount - MatchSell(pairKey, price, amount)[0];
-                SafeTransfer(GetBaseToken(pairKey), sender, me, baseAmount);
-                return DealSell(pairKey, sender, price, amount);
-            }
+            var matchResult = MatchOrderInternal(pairKey, isBuy, price, amount);
+            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), taker, me, matchResult[1]);
+            else SafeTransfer(GetBaseToken(pairKey), taker, me, amount - matchResult[0]);
+
+            return ExecuteDeal(pairKey, taker, isBuy, price, amount);
         }
 
         /// <summary>
-        /// Buy below the expected price
+        /// Settle order based on expected price
         /// </summary>
         /// <param name="pairKey"></param>
-        /// <param name="buyer"></param>
+        /// <param name="taker"></param>
+        /// <param name="isBuy"></param>
         /// <param name="price"></param>
-        /// <param name="leftAmount"></param>
+        /// <param name="amount"></param>
         /// <returns>Left amount</returns>
-        private static BigInteger DealBuy(byte[] pairKey, UInt160 buyer, BigInteger price, BigInteger leftAmount)
+        private static BigInteger ExecuteDeal(byte[] pairKey, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
         {
+            var leftAmount = amount;
             var me = Runtime.ExecutingScriptHash;
-            var book = GetOrderBook(pairKey);
+            var bookInfo = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
 
-            while (leftAmount > 0 && GetFirstOrderID(pairKey, false) is not null)
+            while (leftAmount > 0)
             {
+                // Check if tradable
+                if ((GetFirstOrderID(pairKey, !isBuy) is null)) break;
                 // Check the lowest sell price
-                if (GetBuyPrice(pairKey) > price) break;
+                if ((isBuy && GetBuyPrice(pairKey) > price) || (!isBuy && GetSellPrice(pairKey) < price)) break;
 
-                var firstOrder = GetFirstOrder(pairKey, false);
+                var firstID = GetFirstOrderID(pairKey, !isBuy);
+                var firstOrder = GetOrder(firstID);
                 BigInteger quoteAmount = 0;
                 BigInteger baseAmount = 0;
                 BigInteger makerFee = 0;
@@ -439,113 +363,53 @@ namespace FlamingoSwapOrderBook
                 if (firstOrder.amount <= leftAmount)
                 {
                     // Full-fill
-                    quoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
+                    quoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals);
                     baseAmount = firstOrder.amount;
-                    makerFee = quoteAmount * 15 / 10000;
-                    takerFee = baseAmount * 15 / 10000;
 
                     // Remove full-fill order
-                    RemoveFirstOrder(pairKey, false);
+                    RemoveFirstOrder(pairKey, !isBuy);
 
-                    // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
-                    SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, firstOrder.amount, 0);
+                    onDealOrder(firstID, firstOrder.price, firstOrder.amount);
                     leftAmount -= firstOrder.amount;
                 }
                 else
                 {
                     // Part-fill
-                    quoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
+                    quoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals);
                     baseAmount = leftAmount;
-                    makerFee = quoteAmount * 15 / 10000;
-                    takerFee = baseAmount * 15 / 10000;
 
                     // Update order
                     firstOrder.amount -= leftAmount;
-                    SetOrder(GetFirstOrderID(pairKey, false), firstOrder);
+                    SetOrder(firstID, firstOrder);
 
-                    // Do transfer
-                    SafeTransfer(book.quoteToken, me, firstOrder.sender, quoteAmount - makerFee);
-                    SafeTransfer(book.baseToken, me, buyer, baseAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, false), firstOrder.price, leftAmount, firstOrder.amount);
+                    onDealOrder(firstID, firstOrder.price, leftAmount);
                     leftAmount = 0;
                 }
 
-                if (fundAddress != null)
+                // Do transfer
+                if (isBuy)
                 {
-                    SafeTransfer(book.quoteToken, me, fundAddress, makerFee);
-                    SafeTransfer(book.baseToken, me, fundAddress, takerFee);
-                }
-            }
-            return leftAmount;
-        }
-
-        /// <summary>
-        /// Sell above the expected price
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="seller"></param>
-        /// <param name="price"></param>
-        /// <param name="leftAmount"></param>
-        /// <returns>Left amount</returns>
-        private static BigInteger DealSell(byte[] pairKey, UInt160 seller, BigInteger price, BigInteger leftAmount)
-        {
-            var me = Runtime.ExecutingScriptHash;
-            var book = GetOrderBook(pairKey);
-            var fundAddress = GetFundAddress();
-
-            while (leftAmount > 0 && GetFirstOrderID(pairKey, true) is not null)
-            {
-                // Check the highest buy price
-                if (GetSellPrice(pairKey) < price) break;
-
-                var firstOrder = GetFirstOrder(pairKey, true);
-                BigInteger quoteAmount = 0;
-                BigInteger baseAmount = 0;
-                BigInteger makerFee = 0;
-                BigInteger takerFee = 0;
-
-                if (firstOrder.amount <= leftAmount)
-                {
-                    // Full-fill
-                    baseAmount = firstOrder.amount;
-                    quoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
-                    makerFee = baseAmount * 15 / 10000;
-                    takerFee = quoteAmount * 15 / 10000;
-
-                    // Remove full-fill order
-                    RemoveFirstOrder(pairKey, true);
-
-                    // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
-                    SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, firstOrder.amount, 0);
-                    leftAmount -= firstOrder.amount;
+                    makerFee = quoteAmount * 15 / 10000;
+                    takerFee = baseAmount * 15 / 10000;
+                    SafeTransfer(bookInfo.quoteToken, me, firstOrder.maker, quoteAmount - makerFee);
+                    SafeTransfer(bookInfo.baseToken, me, taker, baseAmount - takerFee);
+                    if (fundAddress is not null)
+                    {
+                        SafeTransfer(bookInfo.quoteToken, me, fundAddress, makerFee);
+                        SafeTransfer(bookInfo.baseToken, me, fundAddress, takerFee);
+                    }
                 }
                 else
                 {
-                    // Part-fill
-                    baseAmount = leftAmount;
-                    quoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)book.quoteDecimals);
                     makerFee = baseAmount * 15 / 10000;
                     takerFee = quoteAmount * 15 / 10000;
-
-                    // Update order
-                    firstOrder.amount -= leftAmount;
-                    SetOrder(GetFirstOrderID(pairKey, true), firstOrder);
-
-                    // Do transfer
-                    SafeTransfer(book.baseToken, me, firstOrder.sender, baseAmount - makerFee);
-                    SafeTransfer(book.quoteToken, me, seller, quoteAmount - takerFee);
-                    onDealOrder(GetFirstOrderID(pairKey, true), firstOrder.price, leftAmount, firstOrder.amount);
-                    leftAmount = 0;
-                }
-
-                if (fundAddress != null)
-                {
-                    SafeTransfer(book.quoteToken, me, fundAddress, takerFee);
-                    SafeTransfer(book.baseToken, me, fundAddress, makerFee);
+                    SafeTransfer(bookInfo.baseToken, me, firstOrder.maker, baseAmount - makerFee);
+                    SafeTransfer(bookInfo.quoteToken, me, taker, quoteAmount - takerFee);
+                    if (fundAddress is not null)
+                    {
+                        SafeTransfer(bookInfo.quoteToken, me, fundAddress, takerFee);
+                        SafeTransfer(bookInfo.baseToken, me, fundAddress, makerFee);
+                    }
                 }
             }
             return leftAmount;
@@ -554,51 +418,51 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Internal price reporter
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
         /// <returns></returns>
         [Safe]
-        public static BigInteger GetMarketPrice(UInt160 tokenFrom, UInt160 tokenTo)
+        public static BigInteger GetMarketPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
-            var isBuy = tokenFrom == GetQuoteToken(pairKey);
             return isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
         }
 
         /// <summary>
         /// Get book detail
         /// </summary>
-        /// <param name="tokenFrom"></param>
-        /// <param name="tokenTo"></param>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
         /// <returns></returns>
         [Safe]
-        public static UInt160 GetBaseToken(UInt160 tokenFrom, UInt160 tokenTo)
+        public static UInt160 GetBaseToken(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
             return GetBaseToken(pairKey);
         }
 
         [Safe]
-        public static UInt160 GetQuoteToken(UInt160 tokenFrom, UInt160 tokenTo)
+        public static UInt160 GetQuoteToken(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
             return GetQuoteToken(pairKey);
         }
 
         [Safe]
-        public static int GetQuoteDecimals(UInt160 tokenFrom, UInt160 tokenTo)
+        public static int GetQuoteDecimals(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
-            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
             return GetQuoteDecimals(pairKey);
@@ -629,6 +493,118 @@ namespace FlamingoSwapOrderBook
             var firstBuyOrder = GetFirstOrder(pairKey, true);
             return firstBuyOrder.price;
         }
+        #endregion
+
+        #region AMM like API
+        /// <summary>
+        /// Calculate amountOut with amountIn
+        /// </summary>
+        /// <param name="tokenFrom"></param>
+        /// <param name="tokenTo"></param>
+        /// <param name="price"></param>
+        /// <param name="amountIn"></param>
+        /// <returns>Unsatisfied amountIn and amountOut</returns>
+        [Safe]
+        public static BigInteger[] GetAmountOut(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amountIn)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amountIn > 0, "Invalid Parameters");
+
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
+            if (isBuy)
+            {
+                var result = MatchQuoteInternal(pairKey, isBuy, price, amountIn);
+                return new BigInteger[]{ result[0], result[1] - result[1] * 15 / 10000 };   // 0.15% fee
+            }
+            else
+            {
+                var result = MatchOrderInternal(pairKey, isBuy, price, amountIn);
+                return new BigInteger[]{ result[0], result[1] - result[1] * 15 / 10000 };   // 0.15% fee
+            }
+        }
+
+        /// <summary>
+        /// Calculate amountOut with amountIn
+        /// </summary>
+        /// <param name="tokenFrom"></param>
+        /// <param name="tokenTo"></param>
+        /// <param name="price"></param>
+        /// <param name="amountOut"></param>
+        /// <returns>Unsatisfied amountOut and amountIn</returns>
+        [Safe]
+        public static BigInteger[] GetAmountIn(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amountOut)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenFrom, tokenTo);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amountOut > 0, "Invalid Parameters");
+
+            var isBuy = tokenFrom == GetQuoteToken(pairKey);
+            if (isBuy)
+            {
+                var result = MatchOrderInternal(pairKey, isBuy, price, amountOut * 10000 / 9985);   // 0.15% fee
+                return new BigInteger[]{ result[0], result[1] };
+            }
+            else
+            {
+                var result = MatchQuoteInternal(pairKey, isBuy, price, amountOut * 10000 / 9985);   // 0.15% fee
+                return new BigInteger[]{ result[0], result[1] };
+            }
+        }
+
+        /// <summary>
+        /// Try to match without real payment
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="quoteAmount"></param>
+        /// <returns>Left amount and tradable base</returns>
+        [Safe]
+        public static BigInteger[] MatchQuote(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger quoteAmount)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && quoteAmount > 0, "Invalid Parameters");
+
+            return MatchQuoteInternal(pairKey, isBuy, price, quoteAmount);
+        }
+
+        private static BigInteger[] MatchQuoteInternal(byte[] pairKey, bool isBuy, BigInteger price, BigInteger quoteAmount)
+        {
+            BigInteger totalTradable = 0;
+            if (GetFirstOrderID(pairKey, !isBuy) is null) return new BigInteger[] { quoteAmount, totalTradable };
+
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var currentOrder = GetFirstOrder(pairKey, !isBuy);
+
+            while (quoteAmount > 0)
+            {
+                // Check price
+                if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
+
+                var payment = currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                if (payment <= quoteAmount) 
+                {
+                    totalTradable += currentOrder.amount;
+                    quoteAmount -= payment;
+                }
+                else
+                {
+                    totalTradable += quoteAmount * BigInteger.Pow(10, quoteDecimals) / currentOrder.price;
+                    quoteAmount = 0;
+                }
+
+                if (currentOrder.nextID is null) break;
+                currentOrder = GetOrder(currentOrder.nextID);
+            }
+            return new BigInteger[] { quoteAmount, totalTradable };
+        }
+        #endregion
 
         public static void OnNEP17Payment(UInt160 sender, BigInteger amountIn, object data)
         {
