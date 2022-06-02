@@ -20,8 +20,7 @@ namespace ProxyTemplate
         /// <param name="owner"></param>
         /// <param name="token"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
-        public static bool Deposit(UInt160 owner, UInt160 token, BigInteger amount)
+        public static void Deposit(UInt160 owner, UInt160 token, BigInteger amount)
         {
             // Global
             // Check sender and parameters
@@ -30,13 +29,11 @@ namespace ProxyTemplate
             Assert(token == Token0 || token == Token1, "Unsupported Token");
 
             // Transfer
-            UInt160 me = Runtime.ExecutingScriptHash;
-            SafeTransfer(token, owner, me, amount);
+            SafeTransfer(token, owner, Runtime.ExecutingScriptHash, amount);
 
             // Mint yToken
             YMint(token, owner, amount);
             onDeposit(token, owner, amount);
-            return true;
         }
 
         /// <summary>
@@ -45,8 +42,7 @@ namespace ProxyTemplate
         /// <param name="owner"></param>
         /// <param name="token"></param>
         /// <param name="amount"></param>
-        /// <returns></returns>
-        public static bool Withdraw(UInt160 owner, UInt160 token, BigInteger amount)
+        public static void Withdraw(UInt160 owner, UInt160 token, BigInteger amount)
         {
             // CalledByEntry
             // Check owner and parameters
@@ -61,10 +57,8 @@ namespace ProxyTemplate
             YBurn(token, owner, amount);
 
             // Transfer
-            UInt160 me = Runtime.ExecutingScriptHash;
-            SafeTransfer(token, me, owner, amount);
+            SafeTransfer(token, Runtime.ExecutingScriptHash, owner, amount);
             onWithdraw(token, owner, amount);
-            return true;
         }
 
         /// <summary>

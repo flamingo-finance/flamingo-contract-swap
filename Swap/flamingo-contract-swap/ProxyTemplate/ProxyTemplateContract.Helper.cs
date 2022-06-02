@@ -19,7 +19,7 @@ namespace ProxyTemplate
         public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data = null)
         {
             // Check token
-            Assert(token.IsValid && to.IsValid && !to.IsZero && amount >= 0, "Invalid Parameters");
+            Assert(token.IsValid && to.IsValid && amount >= 0, "Invalid Parameters");
             Assert(token == Token0 || token == Token1 || token == Pair01, "Unsupported Token");
 
             // Find allowed
@@ -108,12 +108,14 @@ namespace ProxyTemplate
         /// <param name="amount"></param>
         private static void YMint(UInt160 token, UInt160 owner, BigInteger amount)
         {
+            Assert(amount >= 0, "Invalid Mint Amount");
             byte prefix = token == Token0 ? Prefix_Deposit_Balance0 : (token == Token1 ? Prefix_Deposit_Balance1 : Prefix_Balance_LPToken);
             Assert(UpdateBalance(prefix, owner, +amount), "Update Fail", prefix);
         }
 
         private static void YBurn(UInt160 token, UInt160 owner, BigInteger amount)
         {
+            Assert(amount >= 0, "Invalid Burn Amount");
             byte prefix = token == Token0 ? Prefix_Deposit_Balance0 : (token == Token1 ? Prefix_Deposit_Balance1 : Prefix_Balance_LPToken);
             Assert(UpdateBalance(prefix, owner, -amount), "Update Fail", prefix);
         }
