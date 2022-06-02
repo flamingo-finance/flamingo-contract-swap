@@ -11,23 +11,18 @@ namespace ProxyTemplate
     {
         #region Admin
 
-#warning Update the router address if necessary
         [InitialValue("0xa006ba8e018d4529d0bd6f2d784c5ab67a15559f", ContractParameterType.Hash160)]
         static readonly UInt160 Router = default;
 
-#warning Update the pair address if necessary
         [InitialValue("0xef9003443351ee3179a3f3ad9f1bef8273c83ecc", ContractParameterType.Hash160)]
         static readonly UInt160 Pair01 = default;
 
-#warning Update the token address if necessary
         [InitialValue("0xd02b79be5918eeeb065c427ade7fa629d6a50f93", ContractParameterType.Hash160)]
         static readonly UInt160 Token0 = default;
 
-#warning Update the token address if necessary
         [InitialValue("0x0db9f60de6684be8a6a5528692a1bd6b1ddbe944", ContractParameterType.Hash160)]
         static readonly UInt160 Token1 = default;
 
-#warning Update the admin address if necessary
         [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
