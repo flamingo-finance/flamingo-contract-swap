@@ -19,7 +19,7 @@ namespace ProxyTemplate
         public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data = null)
         {
             // Check token
-            Assert(token.IsValid && to.IsValid && amount >= 0, "Invalid Parameters");
+            Assert(token.IsValid && to.IsValid && !to.IsZero && amount >= 0, "Invalid Parameters");
             Assert(token == Token0 || token == Token1 || token == Pair01, "Unsupported Token");
 
             // Find allowed
@@ -96,7 +96,7 @@ namespace ProxyTemplate
 
         private static BigInteger AllowedOf(UInt160 token, UInt160 to)
         {
-            StorageMap allowedMap = new(Storage.CurrentContext, token == Token0 ? Prefix_Allowed_Token0 : (token == Token1 ? Prefix_Allowed_Token1 : Prefix_Allowed_LPToken));
+            StorageMap allowedMap = new(Storage.CurrentReadOnlyContext, token == Token0 ? Prefix_Allowed_Token0 : (token == Token1 ? Prefix_Allowed_Token1 : Prefix_Allowed_LPToken));
             return (BigInteger)allowedMap.Get(to);
         }
 
@@ -122,7 +122,7 @@ namespace ProxyTemplate
         {
             Assert(token.IsValid && owner.IsValid, "Invalid Parameters");
             Assert(token == Token0 || token == Token1 || token == Pair01, "Unsupported Token");
-            StorageMap depositMap = new(Storage.CurrentContext, token == Token0 ? Prefix_Deposit_Balance0 : (token == Token1 ? Prefix_Deposit_Balance1 : Prefix_Balance_LPToken));
+            StorageMap depositMap = new(Storage.CurrentReadOnlyContext, token == Token0 ? Prefix_Deposit_Balance0 : (token == Token1 ? Prefix_Deposit_Balance1 : Prefix_Balance_LPToken));
             return (BigInteger)depositMap.Get(owner);
         }
 

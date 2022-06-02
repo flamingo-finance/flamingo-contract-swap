@@ -47,7 +47,7 @@ namespace ProxyTemplate
         [Safe]
         public static UInt160 GetAdmin()
         {
-            var admin = Storage.Get(Storage.CurrentContext, AdminKey);
+            var admin = Storage.Get(Storage.CurrentReadOnlyContext, AdminKey);
             return admin?.Length == 20 ? (UInt160)admin : superAdmin;
         }
 
