@@ -323,7 +323,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(sender.IsValid && amountIn >= 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(sender.IsValid && amountIn > 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
