@@ -357,8 +357,8 @@ namespace FlamingoSwapOrderBook
                 var firstOrder = GetOrder(firstID);
                 BigInteger quoteAmount = 0;
                 BigInteger baseAmount = 0;
-                BigInteger makerFee = 0;
-                BigInteger takerFee = 0;
+                BigInteger quotePayment = 0;
+                BigInteger basePayment = 0;
 
                 if (firstOrder.amount <= leftAmount)
                 {
@@ -387,29 +387,22 @@ namespace FlamingoSwapOrderBook
                 }
 
                 // Do transfer
+                quotePayment = quoteAmount * 9985 / 10000;
+                basePayment = baseAmount * 9985 / 10000;
                 if (isBuy)
                 {
-                    makerFee = quoteAmount * 15 / 10000;
-                    takerFee = baseAmount * 15 / 10000;
-                    SafeTransfer(bookInfo.quoteToken, me, firstOrder.maker, quoteAmount - makerFee);
-                    SafeTransfer(bookInfo.baseToken, me, taker, baseAmount - takerFee);
-                    if (fundAddress is not null)
-                    {
-                        SafeTransfer(bookInfo.quoteToken, me, fundAddress, makerFee);
-                        SafeTransfer(bookInfo.baseToken, me, fundAddress, takerFee);
-                    }
+                    SafeTransfer(bookInfo.quoteToken, me, firstOrder.maker, quotePayment);
+                    SafeTransfer(bookInfo.baseToken, me, taker, basePayment);
                 }
                 else
                 {
-                    makerFee = baseAmount * 15 / 10000;
-                    takerFee = quoteAmount * 15 / 10000;
-                    SafeTransfer(bookInfo.baseToken, me, firstOrder.maker, baseAmount - makerFee);
-                    SafeTransfer(bookInfo.quoteToken, me, taker, quoteAmount - takerFee);
-                    if (fundAddress is not null)
-                    {
-                        SafeTransfer(bookInfo.quoteToken, me, fundAddress, takerFee);
-                        SafeTransfer(bookInfo.baseToken, me, fundAddress, makerFee);
-                    }
+                    SafeTransfer(bookInfo.baseToken, me, firstOrder.maker, basePayment);
+                    SafeTransfer(bookInfo.quoteToken, me, taker, quotePayment);
+                }
+                if (fundAddress is not null)
+                {
+                    SafeTransfer(bookInfo.quoteToken, me, fundAddress, quoteAmount - quotePayment);
+                    SafeTransfer(bookInfo.baseToken, me, fundAddress, baseAmount - basePayment);
                 }
             }
             return leftAmount;
@@ -516,12 +509,12 @@ namespace FlamingoSwapOrderBook
             if (isBuy)
             {
                 var result = MatchQuoteInternal(pairKey, isBuy, price, amountIn);
-                return new BigInteger[]{ result[0], result[1] - result[1] * 15 / 10000 };   // 0.15% fee
+                return new BigInteger[]{ result[0], result[1] * 9985 / 10000 };   // 0.15% fee
             }
             else
             {
                 var result = MatchOrderInternal(pairKey, isBuy, price, amountIn);
-                return new BigInteger[]{ result[0], result[1] - result[1] * 15 / 10000 };   // 0.15% fee
+                return new BigInteger[]{ result[0], result[1] * 9985 / 10000 };   // 0.15% fee
             }
         }
 
@@ -544,12 +537,12 @@ namespace FlamingoSwapOrderBook
             var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (isBuy)
             {
-                var result = MatchOrderInternal(pairKey, isBuy, price, amountOut * 10000 / 9985);   // 0.15% fee
+                var result = MatchOrderInternal(pairKey, isBuy, price, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
                 return new BigInteger[]{ result[0], result[1] };
             }
             else
             {
-                var result = MatchQuoteInternal(pairKey, isBuy, price, amountOut * 10000 / 9985);   // 0.15% fee
+                var result = MatchQuoteInternal(pairKey, isBuy, price, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
                 return new BigInteger[]{ result[0], result[1] };
             }
         }
@@ -595,7 +588,10 @@ namespace FlamingoSwapOrderBook
                 }
                 else
                 {
-                    totalTradable += quoteAmount * BigInteger.Pow(10, quoteDecimals) / currentOrder.price;
+                    // For buyer, real payment <= expected
+                    if (isBuy) totalTradable += quoteAmount * BigInteger.Pow(10, quoteDecimals) / currentOrder.price;
+                    // For seller, real payment >= expected
+                    else totalTradable += (quoteAmount * BigInteger.Pow(10, quoteDecimals) + currentOrder.price - 1) / currentOrder.price;
                     quoteAmount = 0;
                 }
 
