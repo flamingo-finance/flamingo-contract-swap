@@ -258,11 +258,23 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
+            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
 
-            return MatchOrderInternal(pairKey, isBuy, price, amount);
+            return MatchOrderInternal(pairKey, isBuy, marketPrice, price, amount);
         }
 
-        private static BigInteger[] MatchOrderInternal(byte[] pairKey, bool isBuy, BigInteger price, BigInteger amount)
+        [Safe]
+        public static BigInteger[] MatchOrderAtPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
+
+            return MatchOrderInternal(pairKey, isBuy, price, price, amount);
+        }
+
+        private static BigInteger[] MatchOrderInternal(byte[] pairKey, bool isBuy, BigInteger startPrice, BigInteger endPrice, BigInteger amount)
         {
             BigInteger totalPayment = 0;
             if (GetFirstOrderID(pairKey, !isBuy) is null) return new BigInteger[] { amount, totalPayment };
@@ -270,10 +282,16 @@ namespace FlamingoSwapOrderBook
             var quoteDecimals = GetQuoteDecimals(pairKey);
             var currentOrder = GetFirstOrder(pairKey, !isBuy);
 
+            while((isBuy && currentOrder.price < startPrice) || (!isBuy && currentOrder.price > startPrice))
+            {
+                if (currentOrder.nextID is null) return new BigInteger[] { amount, totalPayment };
+                currentOrder = GetOrder(currentOrder.nextID);
+            }
+
             while (amount > 0)
             {
                 // Check price
-                if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
+                if ((isBuy && currentOrder.price > endPrice) || (!isBuy && currentOrder.price < endPrice)) break;
 
                 if (currentOrder.amount <= amount) 
                 {
@@ -290,6 +308,78 @@ namespace FlamingoSwapOrderBook
                 currentOrder = GetOrder(currentOrder.nextID);
             }
             return new BigInteger[] { amount, totalPayment };
+        }
+
+        /// <summary>
+        /// Try to match without real payment
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="quoteAmount"></param>
+        /// <returns>Left amount and tradable base</returns>
+        [Safe]
+        public static BigInteger[] MatchQuote(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger quoteAmount)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && quoteAmount > 0, "Invalid Parameters");
+            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
+
+            return MatchQuoteInternal(pairKey, isBuy, marketPrice, price, quoteAmount);
+        }
+
+        [Safe]
+        public static BigInteger[] MatchQuoteAtPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger quoteAmount)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && quoteAmount > 0, "Invalid Parameters");
+
+            return MatchQuoteInternal(pairKey, isBuy, price, price, quoteAmount);
+        }
+
+        private static BigInteger[] MatchQuoteInternal(byte[] pairKey, bool isBuy, BigInteger startPrice, BigInteger endPrice, BigInteger quoteAmount)
+        {
+            BigInteger totalTradable = 0;
+            if (GetFirstOrderID(pairKey, !isBuy) is null) return new BigInteger[] { quoteAmount, totalTradable };
+
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var currentOrder = GetFirstOrder(pairKey, !isBuy);
+
+            while((isBuy && currentOrder.price < startPrice) || (!isBuy && currentOrder.price > startPrice))
+            {
+                if (currentOrder.nextID is null) return new BigInteger[] { quoteAmount, totalTradable };
+                currentOrder = GetOrder(currentOrder.nextID);
+            }
+
+            while (quoteAmount > 0)
+            {
+                // Check price
+                if ((isBuy && currentOrder.price > endPrice) || (!isBuy && currentOrder.price < endPrice)) break;
+
+                var payment = currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                if (payment <= quoteAmount) 
+                {
+                    totalTradable += currentOrder.amount;
+                    quoteAmount -= payment;
+                }
+                else
+                {
+                    // For buyer, real payment <= expected
+                    if (isBuy) totalTradable += quoteAmount * BigInteger.Pow(10, quoteDecimals) / currentOrder.price;
+                    // For seller, real payment >= expected
+                    else totalTradable += (quoteAmount * BigInteger.Pow(10, quoteDecimals) + currentOrder.price - 1) / currentOrder.price;
+                    quoteAmount = 0;
+                }
+
+                if (currentOrder.nextID is null) break;
+                currentOrder = GetOrder(currentOrder.nextID);
+            }
+            return new BigInteger[] { quoteAmount, totalTradable };
         }
 
         /// <summary>
@@ -323,7 +413,8 @@ namespace FlamingoSwapOrderBook
 
             // Charge before settlement
             var me = Runtime.ExecutingScriptHash;
-            var matchResult = MatchOrderInternal(pairKey, isBuy, price, amount);
+            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
+            var matchResult = MatchOrderInternal(pairKey, isBuy, marketPrice, price, amount);
             if (isBuy) SafeTransfer(GetQuoteToken(pairKey), taker, me, matchResult[1]);
             else SafeTransfer(GetBaseToken(pairKey), taker, me, amount - matchResult[0]);
 
@@ -425,6 +516,17 @@ namespace FlamingoSwapOrderBook
             return isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
         }
 
+        [Safe]
+        public static BigInteger GetNextPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0, "Invalid Parameters");
+
+            return isBuy ? GetNextBuyPrice(pairKey, price) : GetNextSellPrice(pairKey, price);
+        }
+
         /// <summary>
         /// Get book detail
         /// </summary>
@@ -474,6 +576,19 @@ namespace FlamingoSwapOrderBook
             return firstSellOrder.price;
         }
 
+        private static BigInteger GetNextBuyPrice(byte[] pairKey, BigInteger price)
+        {
+            if (GetFirstOrderID(pairKey, false) is null) return 0;
+            var currentSellOrder = GetFirstOrder(pairKey, false);
+
+            while (currentSellOrder.price <= price)
+            {
+                if (currentSellOrder.nextID is null) return 0;
+                currentSellOrder = GetOrder(currentSellOrder.nextID);
+            }
+            return currentSellOrder.price;
+        }
+
         /// <summary>
         /// Get the highest price to sell in orderbook
         /// </summary>
@@ -485,6 +600,19 @@ namespace FlamingoSwapOrderBook
 
             var firstBuyOrder = GetFirstOrder(pairKey, true);
             return firstBuyOrder.price;
+        }
+
+        private static BigInteger GetNextSellPrice(byte[] pairKey, BigInteger price)
+        {
+            if (GetFirstOrderID(pairKey, true) is null) return 0;
+            var currentBuyOrder = GetFirstOrder(pairKey, true);
+
+            while (currentBuyOrder.price >= price)
+            {
+                if (currentBuyOrder.nextID is null) return 0;
+                currentBuyOrder = GetOrder(currentBuyOrder.nextID);
+            }
+            return currentBuyOrder.price;
         }
         #endregion
 
@@ -498,22 +626,22 @@ namespace FlamingoSwapOrderBook
         /// <param name="amountIn"></param>
         /// <returns>Unsatisfied amountIn and amountOut</returns>
         [Safe]
-        public static BigInteger[] GetAmountOut(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amountIn)
+        public static BigInteger[] GetAmountOut(UInt160 tokenFrom, UInt160 tokenTo, BigInteger startPrice, BigInteger endPrice, BigInteger amountIn)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
-            Assert(price > 0 && amountIn > 0, "Invalid Parameters");
+            Assert(startPrice > 0 && endPrice > 0 && amountIn > 0, "Invalid Parameters");
 
             var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (isBuy)
             {
-                var result = MatchQuoteInternal(pairKey, isBuy, price, amountIn);
+                var result = MatchQuoteInternal(pairKey, isBuy, startPrice, endPrice, amountIn);
                 return new BigInteger[]{ result[0], result[1] * 9985 / 10000 };   // 0.15% fee
             }
             else
             {
-                var result = MatchOrderInternal(pairKey, isBuy, price, amountIn);
+                var result = MatchOrderInternal(pairKey, isBuy, startPrice, endPrice, amountIn);
                 return new BigInteger[]{ result[0], result[1] * 9985 / 10000 };   // 0.15% fee
             }
         }
@@ -527,78 +655,24 @@ namespace FlamingoSwapOrderBook
         /// <param name="amountOut"></param>
         /// <returns>Unsatisfied amountOut and amountIn</returns>
         [Safe]
-        public static BigInteger[] GetAmountIn(UInt160 tokenFrom, UInt160 tokenTo, BigInteger price, BigInteger amountOut)
+        public static BigInteger[] GetAmountIn(UInt160 tokenFrom, UInt160 tokenTo, BigInteger startPrice, BigInteger endPrice, BigInteger amountOut)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenFrom, tokenTo);
             Assert(BookExists(pairKey), "Book Not Exists");
-            Assert(price > 0 && amountOut > 0, "Invalid Parameters");
+            Assert(startPrice > 0 && endPrice > 0 && amountOut > 0, "Invalid Parameters");
 
             var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (isBuy)
             {
-                var result = MatchOrderInternal(pairKey, isBuy, price, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
+                var result = MatchOrderInternal(pairKey, isBuy, startPrice, endPrice, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
                 return new BigInteger[]{ result[0], result[1] };
             }
             else
             {
-                var result = MatchQuoteInternal(pairKey, isBuy, price, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
+                var result = MatchQuoteInternal(pairKey, isBuy, startPrice, endPrice, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
                 return new BigInteger[]{ result[0], result[1] };
             }
-        }
-
-        /// <summary>
-        /// Try to match without real payment
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="isBuy"></param>
-        /// <param name="price"></param>
-        /// <param name="quoteAmount"></param>
-        /// <returns>Left amount and tradable base</returns>
-        [Safe]
-        public static BigInteger[] MatchQuote(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger quoteAmount)
-        {
-            // Check if exist
-            var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(BookExists(pairKey), "Book Not Exists");
-            Assert(price > 0 && quoteAmount > 0, "Invalid Parameters");
-
-            return MatchQuoteInternal(pairKey, isBuy, price, quoteAmount);
-        }
-
-        private static BigInteger[] MatchQuoteInternal(byte[] pairKey, bool isBuy, BigInteger price, BigInteger quoteAmount)
-        {
-            BigInteger totalTradable = 0;
-            if (GetFirstOrderID(pairKey, !isBuy) is null) return new BigInteger[] { quoteAmount, totalTradable };
-
-            var quoteDecimals = GetQuoteDecimals(pairKey);
-            var currentOrder = GetFirstOrder(pairKey, !isBuy);
-
-            while (quoteAmount > 0)
-            {
-                // Check price
-                if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
-
-                var payment = currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
-                if (payment <= quoteAmount) 
-                {
-                    totalTradable += currentOrder.amount;
-                    quoteAmount -= payment;
-                }
-                else
-                {
-                    // For buyer, real payment <= expected
-                    if (isBuy) totalTradable += quoteAmount * BigInteger.Pow(10, quoteDecimals) / currentOrder.price;
-                    // For seller, real payment >= expected
-                    else totalTradable += (quoteAmount * BigInteger.Pow(10, quoteDecimals) + currentOrder.price - 1) / currentOrder.price;
-                    quoteAmount = 0;
-                }
-
-                if (currentOrder.nextID is null) break;
-                currentOrder = GetOrder(currentOrder.nextID);
-            }
-            return new BigInteger[] { quoteAmount, totalTradable };
         }
         #endregion
 
