@@ -22,6 +22,19 @@ namespace FlamingoSwapOrderBook
             public ByteString nextID;
         }
 
+        public struct OrderReceipt
+        {
+            public UInt160 baseToken;
+            public UInt160 quoteToken;
+            public ByteString id;
+            public ulong time;
+            public bool isBuy;
+            public UInt160 maker;
+            public BigInteger price;
+            public BigInteger totalAmount;
+            public BigInteger leftAmount;
+        }
+
         public struct OrderBook
         {
             public UInt160 baseToken;
@@ -79,7 +92,9 @@ namespace FlamingoSwapOrderBook
                 // Remove from book
                 var order = GetOrder(firstBuyID);
                 Assert(RemoveOrder(pairKey, firstBuyID, true), "Remove Order Fail");
-                onCancelOrder(firstBuyID, order.price, order.amount);
+                // Remove receipt
+                DeleteReceipt(order.maker, firstBuyID);
+                onOrderStatusChanged(baseToken, quoteToken, firstBuyID, true, order.maker, order.price, 0);
 
                 // Sendback token
                 SafeTransfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
@@ -94,7 +109,9 @@ namespace FlamingoSwapOrderBook
                 // Remove from book
                 var order = GetOrder(firstSellID);
                 Assert(RemoveOrder(pairKey, firstSellID, false), "Remove Order Fail");
-                onCancelOrder(firstSellID, order.price, order.amount);
+                // Remove receipt
+                DeleteReceipt(order.maker, firstSellID);
+                onOrderStatusChanged(baseToken, quoteToken, firstSellID, false, order.maker, order.price, 0);
 
                 // Sendback token
                 SafeTransfer(baseToken, Runtime.ExecutingScriptHash, order.maker, order.amount);
@@ -143,7 +160,19 @@ namespace FlamingoSwapOrderBook
                 price = price,
                 amount = leftAmount
             }, isBuy), "Add Order Fail");
-            onAddOrder(GetBaseToken(pairKey), GetQuoteToken(pairKey), id, isBuy, price, leftAmount);
+            var baseToken = GetBaseToken(pairKey);
+            var quoteToken = GetQuoteToken(pairKey);
+
+            // Add receipt
+            SetReceipt(maker, id, new OrderReceipt(){
+                baseToken = baseToken,
+                quoteToken = quoteToken,
+                id = id,
+                time = Runtime.Time,
+                isBuy = isBuy,
+                totalAmount = leftAmount
+            });
+            onOrderStatusChanged(baseToken, quoteToken, id, isBuy, maker, price, leftAmount);
             return id;
         }
 
@@ -165,8 +194,12 @@ namespace FlamingoSwapOrderBook
             Assert(Runtime.CheckWitness(order.maker), "No Authorization");
 
             // Do remove
+            var baseToken = GetBaseToken(pairKey);
+            var quoteToken = GetQuoteToken(pairKey);
             Assert(RemoveOrder(pairKey, id, isBuy), "Remove Order Fail");
-            onCancelOrder(id, order.price, order.amount);
+            // Remove receipt
+            DeleteReceipt(order.maker, id);
+            onOrderStatusChanged(baseToken, quoteToken, id, isBuy, order.maker, order.price, 0);
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
@@ -181,25 +214,54 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <param name="isBuy"></param>
-        /// <param name="id"></param>
+        /// <param name="n"></param>
         /// <returns></returns>
         [Safe]
-        public static LimitOrder[] GetFirstNOrders(UInt160 tokenA, UInt160 tokenB, bool isBuy, uint n)
+        public static OrderReceipt[] GetFirstNOrders(UInt160 tokenA, UInt160 tokenB, bool isBuy, uint n)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
-            var results = new LimitOrder[n];
+            var results = new OrderReceipt[n];
             if (GetFirstOrderID(pairKey, isBuy) is null) return results;
-            var currentOrder = GetFirstOrder(pairKey, isBuy);
+            var currentOrderID = GetFirstOrderID(pairKey, isBuy);
+            var currentOrder = GetOrder(currentOrderID);
             for (int i = 0; i < n; i++)
             {
-                results[i] = currentOrder;
+                var receipt = GetReceipt(currentOrder.maker, currentOrderID);
+                receipt.maker = currentOrder.maker;
+                receipt.price = currentOrder.price;
+                receipt.leftAmount = currentOrder.amount;
+                results[i] = receipt;
+
                 if (currentOrder.nextID is null) break;
+                currentOrderID = currentOrder.nextID;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
+
             return results;
+        }
+
+        /// <summary>
+        /// Get all orders and their details of maker
+        /// </summary>
+        /// <param name="maker"></param>
+        /// <returns></returns>
+        //[Safe]
+        public static OrderReceipt[] GetOrdersOf(UInt160 maker)
+        {
+            // Get receipts
+            var receipts = GetReceiptsOf(maker);
+            // Makeup details
+            for (int i = 0; i < receipts.Length; i++)
+            {
+                var order = GetOrder(receipts[i].id);
+                receipts[i].maker = order.maker;
+                receipts[i].price = order.price;
+                receipts[i].leftAmount = order.amount;
+            }
+            return receipts;
         }
 
         /// <summary>
@@ -459,8 +521,9 @@ namespace FlamingoSwapOrderBook
 
                     // Remove full-fill order
                     RemoveFirstOrder(pairKey, !isBuy);
+                    DeleteReceipt(firstOrder.maker, firstID);
 
-                    onDealOrder(firstID, firstOrder.price, firstOrder.amount);
+                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, firstID, isBuy, firstOrder.maker, firstOrder.price, 0);
                     leftAmount -= firstOrder.amount;
                 }
                 else
@@ -473,7 +536,7 @@ namespace FlamingoSwapOrderBook
                     firstOrder.amount -= leftAmount;
                     SetOrder(firstID, firstOrder);
 
-                    onDealOrder(firstID, firstOrder.price, leftAmount);
+                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, firstID, isBuy, firstOrder.maker, firstOrder.price, firstOrder.amount);
                     leftAmount = 0;
                 }
 

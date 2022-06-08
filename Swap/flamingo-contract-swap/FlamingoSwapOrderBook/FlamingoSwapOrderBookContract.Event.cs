@@ -22,25 +22,11 @@ namespace FlamingoSwapOrderBook
         public delegate void RemoveBookEvent(UInt160 baseToken, UInt160 quoteToken);
 
         /// <summary>
-        /// When deal order
-        /// </summary>
-        [DisplayName("DealOrder")]
-        public static event DealOrderEvent onDealOrder;
-        public delegate void DealOrderEvent(ByteString id, BigInteger price, BigInteger amount);
-
-        /// <summary>
         /// When add order
         /// </summary>
-        [DisplayName("AddOrder")]
-        public static event AddOrderEvent onAddOrder;
-        public delegate void AddOrderEvent(UInt160 baseToken, UInt160 quoteToken, ByteString id, bool isBuy, BigInteger price, BigInteger amount);
-
-        /// <summary>
-        /// When cancel order
-        /// </summary>
-        [DisplayName("CancelOrder")]
-        public static event CancelOrderEvent onCancelOrder;
-        public delegate void CancelOrderEvent(ByteString id, BigInteger price, BigInteger leftAmount);
+        [DisplayName("OrderStatusChanged")]
+        public static event OrderStatusChangedEvent onOrderStatusChanged;
+        public delegate void OrderStatusChangedEvent(UInt160 baseToken, UInt160 quoteToken, ByteString id, bool isBuy, UInt160 maker, BigInteger price, BigInteger leftAmount);
 
         [DisplayName("Fault")]
         public static event FaultEvent onFault;

@@ -1,5 +1,6 @@
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 using System;
@@ -229,6 +230,58 @@ namespace FlamingoSwapOrderBook
         {
             StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
             orderMap.Delete(id);
+        }
+
+        /// <summary>
+        /// Get the detail of an order receipt
+        /// </summary>
+        /// <param name="maker"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        private static OrderReceipt GetReceipt(UInt160 maker, ByteString id)
+        {
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapKey);
+            return (OrderReceipt)StdLib.Deserialize(receiptMap.Get(maker + id));
+        }
+
+        /// <summary>
+        /// Get all receipts of the maker
+        /// </summary>
+        /// <param name="maker"></param>
+        /// <returns></returns>
+        private static OrderReceipt[] GetReceiptsOf(UInt160 maker)
+        {
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapKey);
+            var results = new OrderReceipt[0];
+            var iterator = receiptMap.Find(maker, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
+            while (iterator.Next()) Append(results, (OrderReceipt)iterator.Value);
+            return results;
+        }
+
+        [OpCode(OpCode.APPEND)]
+        private static extern void Append<T>(T[] array, T newItem);
+
+        /// <summary>
+        /// Update an order receipt
+        /// </summary>
+        /// <param name="maker"></param>
+        /// <param name="id"></param>
+        /// <param name="receipt"></param>
+        private static void SetReceipt(UInt160 maker, ByteString id, OrderReceipt receipt)
+        {
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapKey);
+            receiptMap.Put(maker + id, StdLib.Serialize(receipt));
+        }
+
+        /// <summary>
+        /// Delete an order receipt
+        /// </summary>
+        /// <param name="maker"></param>
+        /// <param name="id"></param>
+        private static void DeleteReceipt(UInt160 maker, ByteString id)
+        {
+            StorageMap orderMap = new(Storage.CurrentContext, ReceiptMapKey);
+            orderMap.Delete(maker + id);
         }
 
         /// <summary>

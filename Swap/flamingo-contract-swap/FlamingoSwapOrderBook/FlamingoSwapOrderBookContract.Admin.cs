@@ -21,9 +21,10 @@ namespace FlamingoSwapOrderBook
         const string GASAdminKey = nameof(GASAdminKey);
         const string FundAddresskey = nameof(FundAddresskey);
 
-        private static readonly byte[] BookMapKey = new byte[] { 0x00 };
-        private static readonly byte[] OrderMapKey = new byte[] { 0x01 };
-        private static readonly byte[] OrderIDKey = new byte[] { 0x02 };
+        private static readonly byte[] OrderIDKey = new byte[] { 0x00 };
+        private static readonly byte[] BookMapKey = new byte[] { 0x01 };
+        private static readonly byte[] OrderMapKey = new byte[] { 0x02 };
+        private static readonly byte[] ReceiptMapKey = new byte[] { 0x03 };
 
         // When this contract address is included in the transaction signature,
         // this method will be triggered as a VerificationTrigger to verify that the signature is correct.
