@@ -248,7 +248,7 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="maker"></param>
         /// <returns></returns>
-        //[Safe]
+        [Safe]
         public static OrderReceipt[] GetOrdersOf(UInt160 maker)
         {
             // Get receipts
@@ -728,13 +728,15 @@ namespace FlamingoSwapOrderBook
             var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (isBuy)
             {
-                var result = MatchOrderInternal(pairKey, isBuy, startPrice, endPrice, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
-                return new BigInteger[]{ result[0], result[1] };
+                var amountIn = MatchOrderInternal(pairKey, isBuy, startPrice, endPrice, (amountOut * 10000 + 9984) / 9985)[1];   // 0.15% fee
+                var leftOut = amountOut - MatchQuoteInternal(pairKey, isBuy, startPrice, endPrice, amountIn)[1] * 9985 / 10000;
+                return new BigInteger[]{ leftOut, amountIn };
             }
             else
             {
-                var result = MatchQuoteInternal(pairKey, isBuy, startPrice, endPrice, (amountOut * 10000 + 9984) / 9985);   // 0.15% fee
-                return new BigInteger[]{ result[0], result[1] };
+                var amountIn = MatchQuoteInternal(pairKey, isBuy, startPrice, endPrice, (amountOut * 10000 + 9984) / 9985)[1];   // 0.15% fee
+                var leftOut = amountOut - MatchOrderInternal(pairKey, isBuy, startPrice, endPrice, amountIn)[1] * 9985 / 10000;
+                return new BigInteger[]{ leftOut, amountIn };
             }
         }
         #endregion
