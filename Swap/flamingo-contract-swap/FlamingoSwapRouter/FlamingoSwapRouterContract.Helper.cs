@@ -76,7 +76,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountOutMin"></param>
         public static BigInteger[] GetOrderBookAmountOut(UInt160 tokenA, UInt160 tokenB, BigInteger startPrice, BigInteger endPrice, BigInteger amountOutMin)
         {
-            return (BigInteger[])Contract.Call(OrderBook, "getAmountOut", CallFlags.All, new object[] { tokenA, tokenB, startPrice, endPrice, amountOutMin });
+            return (BigInteger[])Contract.Call(OrderBook, "getAmountOut", CallFlags.ReadOnly, new object[] { tokenA, tokenB, startPrice, endPrice, amountOutMin });
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountInMax"></param>
         public static BigInteger[] GetOrderBookAmountIn(UInt160 tokenA, UInt160 tokenB, BigInteger startPrice, BigInteger endPrice, BigInteger amountInMax)
         {
-            return (BigInteger[])Contract.Call(OrderBook, "getAmountIn", CallFlags.All, new object[] { tokenA, tokenB, startPrice, endPrice, amountInMax });
+            return (BigInteger[])Contract.Call(OrderBook, "getAmountIn", CallFlags.ReadOnly, new object[] { tokenA, tokenB, startPrice, endPrice, amountInMax });
         }
 
         /// <summary>

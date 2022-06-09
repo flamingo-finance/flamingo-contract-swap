@@ -429,7 +429,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountIn"></param>
         /// <param name="amountOut"></param>
         /// <returns></returns>
-        public static void SwapWithOrderBook(UInt160 sender, UInt160 tokenIn, UInt160 tokenOut, BigInteger amountIn, BigInteger amountOut)
+        private static void SwapWithOrderBook(UInt160 sender, UInt160 tokenIn, UInt160 tokenOut, BigInteger amountIn, BigInteger amountOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
             var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
@@ -483,7 +483,7 @@ namespace FlamingoSwapRouter
                 SwapAMM(sender, tokenIn, tokenOut, leftIn, amountOutPool);
                 totalOut += amountOutPool;
             }
-            Assert(totalOut == amountOut, "AmountOut Not Expected");
+            Assert(totalOut >= amountOut, "AmountOut Not Expected");
         }
 
 
