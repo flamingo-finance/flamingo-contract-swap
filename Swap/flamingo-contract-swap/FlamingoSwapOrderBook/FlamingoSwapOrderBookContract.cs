@@ -97,7 +97,9 @@ namespace FlamingoSwapOrderBook
                 onOrderStatusChanged(baseToken, quoteToken, firstBuyID, true, order.maker, order.price, 0);
 
                 // Sendback token
-                SafeTransfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+                
+                
+                Transfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
 
                 // Try again
                 firstBuyID = GetFirstOrderID(pairKey, true);
@@ -216,7 +218,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="isBuy"></param>
         /// <param name="n"></param>
         /// <returns></returns>
-        [Safe]
         public static OrderReceipt[] GetFirstNOrders(UInt160 tokenA, UInt160 tokenB, bool isBuy, uint n)
         {
             // Check if exist
@@ -272,7 +273,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <returns>Tradable base amount</returns>
-        [Safe]
         public static BigInteger GetTotalTradable(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price)
         {
             // Check if exist
@@ -313,7 +313,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns>Left amount and total payment</returns>
-        [Safe]
         public static BigInteger[] MatchOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
             // Check if exist
@@ -325,7 +324,6 @@ namespace FlamingoSwapOrderBook
             return MatchOrderInternal(pairKey, isBuy, marketPrice, price, amount);
         }
 
-        [Safe]
         public static BigInteger[] MatchOrderAtPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
             // Check if exist
@@ -381,7 +379,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="price"></param>
         /// <param name="quoteAmount"></param>
         /// <returns>Left amount and tradable base</returns>
-        [Safe]
         public static BigInteger[] MatchQuote(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger quoteAmount)
         {
             // Check if exist
@@ -393,7 +390,6 @@ namespace FlamingoSwapOrderBook
             return MatchQuoteInternal(pairKey, isBuy, marketPrice, price, quoteAmount);
         }
 
-        [Safe]
         public static BigInteger[] MatchQuoteAtPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger quoteAmount)
         {
             // Check if exist
@@ -569,7 +565,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenB"></param>
         /// <param name="isBuy"></param>
         /// <returns></returns>
-        [Safe]
         public static BigInteger GetMarketPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy)
         {
             // Check if exist
@@ -579,7 +574,6 @@ namespace FlamingoSwapOrderBook
             return isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
         }
 
-        [Safe]
         public static BigInteger GetNextPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price)
         {
             // Check if exist
@@ -596,7 +590,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
-        [Safe]
         public static UInt160 GetBaseToken(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
@@ -606,7 +599,6 @@ namespace FlamingoSwapOrderBook
             return GetBaseToken(pairKey);
         }
 
-        [Safe]
         public static UInt160 GetQuoteToken(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
@@ -616,7 +608,6 @@ namespace FlamingoSwapOrderBook
             return GetQuoteToken(pairKey);
         }
 
-        [Safe]
         public static int GetQuoteDecimals(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
@@ -688,7 +679,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="price"></param>
         /// <param name="amountIn"></param>
         /// <returns>Unsatisfied amountIn and amountOut</returns>
-        [Safe]
         public static BigInteger[] GetAmountOut(UInt160 tokenFrom, UInt160 tokenTo, BigInteger startPrice, BigInteger endPrice, BigInteger amountIn)
         {
             // Check if exist
@@ -717,7 +707,6 @@ namespace FlamingoSwapOrderBook
         /// <param name="price"></param>
         /// <param name="amountOut"></param>
         /// <returns>Unsatisfied amountOut and amountIn</returns>
-        [Safe]
         public static BigInteger[] GetAmountIn(UInt160 tokenFrom, UInt160 tokenTo, BigInteger startPrice, BigInteger endPrice, BigInteger amountOut)
         {
             // Check if exist
