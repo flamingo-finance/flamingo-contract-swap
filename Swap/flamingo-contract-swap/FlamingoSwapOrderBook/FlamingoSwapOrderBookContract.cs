@@ -97,9 +97,7 @@ namespace FlamingoSwapOrderBook
                 onOrderStatusChanged(baseToken, quoteToken, firstBuyID, true, order.maker, order.price, 0);
 
                 // Sendback token
-                
-                
-                Transfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+                SafeTransfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
 
                 // Try again
                 firstBuyID = GetFirstOrderID(pairKey, true);
