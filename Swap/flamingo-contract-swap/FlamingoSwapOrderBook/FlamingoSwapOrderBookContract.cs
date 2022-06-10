@@ -40,6 +40,8 @@ namespace FlamingoSwapOrderBook
             public UInt160 baseToken;
             public UInt160 quoteToken;
             public uint quoteDecimals;
+            public BigInteger minOrderAmount;
+            public BigInteger maxOrderAmount;
 
             public ByteString firstBuyID;
             public ByteString firstSellID;
@@ -52,8 +54,10 @@ namespace FlamingoSwapOrderBook
         /// <param name="baseToken"></param>
         /// <param name="quoteToken"></param>
         /// <param name="quoteDecimals"></param>
+        /// <param name="minOrderAmount"></param>
+        /// <param name="maxOrderAmount"></param>
         /// <returns></returns>
-        public static bool RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals)
+        public static bool RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
@@ -63,9 +67,57 @@ namespace FlamingoSwapOrderBook
             SetOrderBook(pairKey, new OrderBook(){
                 baseToken = baseToken,
                 quoteToken = quoteToken,
-                quoteDecimals = quoteDecimals
+                quoteDecimals = quoteDecimals,
+                minOrderAmount = minOrderAmount,
+                maxOrderAmount = maxOrderAmount
             });
-            onRegisterBook(baseToken, quoteToken, quoteDecimals);
+            onRegisterBook(baseToken, quoteToken, quoteDecimals, minOrderAmount, maxOrderAmount);
+            return true;
+        }
+
+        /// <summary>
+        /// Set the minimum order amount for addLimitOrder
+        /// </summary>
+        /// <param name="baseToken"></param>
+        /// <param name="quoteToken"></param>
+        /// <param name="minOrderAmount"></param>
+        /// <returns></returns>
+        public static bool SetMinOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger minOrderAmount)
+        {
+            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+
+            var pairKey = GetPairKey(baseToken, quoteToken);
+            if (!BookExists(pairKey)) return false;
+            if (GetBaseToken(pairKey) != baseToken) return false;
+            if (GetQuoteToken(pairKey) != quoteToken) return false;
+
+            var book = GetOrderBook(pairKey);
+            book.minOrderAmount = minOrderAmount;
+            SetOrderBook(pairKey, book);
+            return true;
+        }
+
+        /// <summary>
+        /// Set the maximum trade amount for addLimitOrder
+        /// </summary>
+        /// <param name="baseToken"></param>
+        /// <param name="quoteToken"></param>
+        /// <param name="maxOrderAmount"></param>
+        /// <returns></returns>
+        public static bool SetMaxOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger maxOrderAmount)
+        {
+            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+
+            var pairKey = GetPairKey(baseToken, quoteToken);
+            if (!BookExists(pairKey)) return false;
+            if (GetBaseToken(pairKey) != baseToken) return false;
+            if (GetQuoteToken(pairKey) != quoteToken) return false;
+
+            var book = GetOrderBook(pairKey);
+            book.maxOrderAmount = maxOrderAmount;
+            SetOrderBook(pairKey, book);
             return true;
         }
 
@@ -147,6 +199,9 @@ namespace FlamingoSwapOrderBook
             // Deal as market order
             var leftAmount = DealMarketOrderInternal(pairKey, maker, isBuy, price, amount);
             if (leftAmount == 0) return null;
+
+            Assert(leftAmount >= GetMinOrderAmount(pairKey), "Fail MinOrderAmount Limit");
+            Assert(leftAmount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");            
 
             // Deposit token
             var me = Runtime.ExecutingScriptHash;
@@ -493,6 +548,12 @@ namespace FlamingoSwapOrderBook
             var bookInfo = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
 
+            BigInteger quoteFee = 0;
+            BigInteger baseFee = 0;
+
+            var totalQuotePayment = new Map<UInt160, BigInteger>();
+            var totalBasePayment = new Map<UInt160, BigInteger>();
+
             while (leftAmount > 0)
             {
                 // Check if tradable
@@ -502,8 +563,8 @@ namespace FlamingoSwapOrderBook
 
                 var firstID = GetFirstOrderID(pairKey, !isBuy);
                 var firstOrder = GetOrder(firstID);
-                BigInteger quoteAmount = 0;
-                BigInteger baseAmount = 0;
+                BigInteger quoteAmount;
+                BigInteger baseAmount;
                 BigInteger quotePayment = 0;
                 BigInteger basePayment = 0;
 
@@ -534,24 +595,42 @@ namespace FlamingoSwapOrderBook
                     leftAmount = 0;
                 }
 
-                // Do transfer
+                // Record payment
                 quotePayment = quoteAmount * 9985 / 10000;
                 basePayment = baseAmount * 9985 / 10000;
+
                 if (isBuy)
                 {
-                    SafeTransfer(bookInfo.quoteToken, me, firstOrder.maker, quotePayment);
-                    SafeTransfer(bookInfo.baseToken, me, taker, basePayment);
+                    if (totalQuotePayment.HasKey(firstOrder.maker)) totalQuotePayment[firstOrder.maker] += quotePayment;
+                    else totalQuotePayment[firstOrder.maker] = quotePayment;
+                    if (totalBasePayment.HasKey(taker)) totalBasePayment[taker] += basePayment;
+                    else totalBasePayment[taker] = basePayment;
                 }
                 else
                 {
-                    SafeTransfer(bookInfo.baseToken, me, firstOrder.maker, basePayment);
-                    SafeTransfer(bookInfo.quoteToken, me, taker, quotePayment);
+                    if (totalQuotePayment.HasKey(taker)) totalQuotePayment[taker] += quotePayment;
+                    else totalQuotePayment[taker] = quotePayment;
+                    if (totalBasePayment.HasKey(firstOrder.maker)) totalBasePayment[firstOrder.maker] += basePayment;
+                    else totalBasePayment[firstOrder.maker] = basePayment;
                 }
-                if (fundAddress is not null)
-                {
-                    SafeTransfer(bookInfo.quoteToken, me, fundAddress, quoteAmount - quotePayment);
-                    SafeTransfer(bookInfo.baseToken, me, fundAddress, baseAmount - basePayment);
-                }
+                quoteFee += quoteAmount - quotePayment;
+                baseFee += baseAmount - basePayment;
+            }
+
+            // Do transfer
+            foreach (var toAddress in totalQuotePayment.Keys)
+            {
+                SafeTransfer(bookInfo.quoteToken, me, toAddress, totalQuotePayment[toAddress]);
+            }
+            foreach (var toAddress in totalBasePayment.Keys)
+            {
+                SafeTransfer(bookInfo.baseToken, me, toAddress, totalBasePayment[toAddress]);
+            }
+
+            if (fundAddress is not null)
+            {
+                SafeTransfer(bookInfo.quoteToken, me, fundAddress, quoteFee);
+                SafeTransfer(bookInfo.baseToken, me, fundAddress, baseFee);
             }
             return leftAmount;
         }
