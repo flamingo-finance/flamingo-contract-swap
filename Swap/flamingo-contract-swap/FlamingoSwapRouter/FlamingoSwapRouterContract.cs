@@ -148,9 +148,9 @@ namespace FlamingoSwapRouter
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
 
                 // First AMM
-                if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
+                if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteDecimals, ammReverse[0], ammReverse[1]);
+                    var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
                     if (leftIn <= amountToPool)
                     {
                         var amountOut = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
@@ -207,9 +207,9 @@ namespace FlamingoSwapRouter
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
 
                 // First AMM
-                if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
+                if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteDecimals, ammReverse[0], ammReverse[1]);
+                    var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                     if (amountOutPool >= leftOut)
                     {
@@ -445,9 +445,9 @@ namespace FlamingoSwapRouter
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
 
                 // First AMM
-                if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
+                if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteDecimals, ammReverse[0], ammReverse[1]);
+                    var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
                     if (leftIn <= amountToPool)
                     {
                         var amountOutPool = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
