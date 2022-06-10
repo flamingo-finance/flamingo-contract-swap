@@ -137,6 +137,9 @@ namespace FlamingoSwapOrderBook
             if (GetBaseToken(pairKey) != baseToken) return false;
             if (GetQuoteToken(pairKey) != quoteToken) return false;
 
+            var totalQuotePayment = new Map<UInt160, BigInteger>();
+            var totalBasePayment = new Map<UInt160, BigInteger>();
+
             // Cancel orders
             var firstBuyID = GetFirstOrderID(pairKey, true);
             while (firstBuyID is not null)
@@ -148,8 +151,10 @@ namespace FlamingoSwapOrderBook
                 DeleteReceipt(order.maker, firstBuyID);
                 onOrderStatusChanged(baseToken, quoteToken, firstBuyID, true, order.maker, order.price, 0);
 
-                // Sendback token
-                SafeTransfer(quoteToken, Runtime.ExecutingScriptHash, order.maker, order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey)));
+                // Record payment
+                var quoteAmount = order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
+                if (totalQuotePayment.HasKey(order.maker)) totalQuotePayment[order.maker] += quoteAmount;
+                else totalQuotePayment[order.maker] = quoteAmount;
 
                 // Try again
                 firstBuyID = GetFirstOrderID(pairKey, true);
@@ -165,8 +170,9 @@ namespace FlamingoSwapOrderBook
                 DeleteReceipt(order.maker, firstSellID);
                 onOrderStatusChanged(baseToken, quoteToken, firstSellID, false, order.maker, order.price, 0);
 
-                // Sendback token
-                SafeTransfer(baseToken, Runtime.ExecutingScriptHash, order.maker, order.amount);
+                // Record payment
+                if (totalBasePayment.HasKey(order.maker)) totalBasePayment[order.maker] += order.amount;
+                else totalBasePayment[order.maker] = order.amount;
 
                 // Try again
                 firstSellID = GetFirstOrderID(pairKey, false);
@@ -175,6 +181,18 @@ namespace FlamingoSwapOrderBook
             // Remove book
             DeleteOrderBook(pairKey);
             onRemoveBook(baseToken, quoteToken);
+
+            // Do transfer
+            var me = Runtime.ExecutingScriptHash;
+            foreach (var maker in totalQuotePayment.Keys)
+            {
+                SafeTransfer(quoteToken, me, maker, totalQuotePayment[maker]);
+            }
+            foreach (var maker in totalBasePayment.Keys)
+            {
+                SafeTransfer(baseToken, me, maker, totalBasePayment[maker]);
+            }
+
             return true;
         }
 
