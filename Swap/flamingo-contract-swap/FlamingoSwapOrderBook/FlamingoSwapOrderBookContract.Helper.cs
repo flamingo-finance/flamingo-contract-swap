@@ -378,6 +378,22 @@ namespace FlamingoSwapOrderBook
             }
         }
 
+        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        {
+            try
+            {
+                var balanceBefore = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
+                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, null });
+                var balanceAfter = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
+                Assert(result, "Transfer Not Approved in Router", token);
+                Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in Router", token);
+            }
+            catch (Exception)
+            {
+                Assert(false, "Transfer Error in OrderBook", token);
+            }
+        }
+
         /// <summary>
         /// Get unique pair key
         /// </summary>

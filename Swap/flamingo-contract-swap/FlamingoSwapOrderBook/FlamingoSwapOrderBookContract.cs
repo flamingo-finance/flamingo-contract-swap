@@ -1,6 +1,7 @@
 ﻿using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Attributes;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 using System.Numerics;
 using System.ComponentModel;
@@ -532,6 +533,20 @@ namespace FlamingoSwapOrderBook
             return DealMarketOrderInternal(pairKey, taker, isBuy, price, amount);
         }
 
+        public static BigInteger DealMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
+
+            var caller = Runtime.CallingScriptHash;
+            Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
+
+            return DealMarketOrderInternal(pairKey, caller, isBuy, price, amount);
+        }
+
+
         private static BigInteger DealMarketOrderInternal(byte[] pairKey, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
         {
             if (GetFirstOrderID(pairKey, !isBuy) is null) return amount;
@@ -544,8 +559,17 @@ namespace FlamingoSwapOrderBook
             var me = Runtime.ExecutingScriptHash;
             var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
             var matchResult = MatchOrderInternal(pairKey, isBuy, marketPrice, price, amount);
-            if (isBuy) SafeTransfer(GetQuoteToken(pairKey), taker, me, matchResult[1]);
-            else SafeTransfer(GetBaseToken(pairKey), taker, me, amount - matchResult[0]);
+
+            if (ContractManagement.GetContract(taker) != null)
+            {
+                if (isBuy) RequestTransfer(GetQuoteToken(pairKey), taker, me, matchResult[1]);
+                else RequestTransfer(GetBaseToken(pairKey), taker, me, amount - matchResult[0]);
+            }
+            else
+            {
+                if (isBuy) SafeTransfer(GetQuoteToken(pairKey), taker, me, matchResult[1]);
+                else SafeTransfer(GetBaseToken(pairKey), taker, me, amount - matchResult[0]);
+            }
 
             return ExecuteDeal(pairKey, taker, isBuy, price, amount);
         }
