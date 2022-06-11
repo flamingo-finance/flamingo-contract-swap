@@ -12,7 +12,7 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         [DisplayName("RegisterBook")]
         public static event RegisterBookEvent onRegisterBook;
-        public delegate void RegisterBookEvent(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals);
+        public delegate void RegisterBookEvent(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount);
 
         /// <summary>
         /// When remove orderbook

@@ -313,6 +313,18 @@ namespace FlamingoSwapOrderBook
             return (int)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteDecimals;
         }
 
+        private static BigInteger GetMaxOrderAmount(byte[] pairKey)
+        {
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            return (BigInteger)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).maxOrderAmount;
+        }
+
+        private static BigInteger GetMinOrderAmount(byte[] pairKey)
+        {
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            return (BigInteger)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).minOrderAmount;
+        }
+
         /// <summary>
         /// Update a book 
         /// </summary>
@@ -358,11 +370,27 @@ namespace FlamingoSwapOrderBook
             try
             {
                 var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
-                Assert(result, "Transfer Fail in Pair", token);
+                Assert(result, "Transfer Fail in OrderBook", token);
             }
             catch (Exception)
             {
-                Assert(false, "Catch Transfer Error in Pair", token);
+                Assert(false, "Catch Transfer Error in OrderBook", token);
+            }
+        }
+
+        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        {
+            try
+            {
+                var balanceBefore = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
+                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, null });
+                var balanceAfter = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
+                Assert(result, "Transfer Not Approved in Router", token);
+                Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in Router", token);
+            }
+            catch (Exception)
+            {
+                Assert(false, "Transfer Error in OrderBook", token);
             }
         }
 
