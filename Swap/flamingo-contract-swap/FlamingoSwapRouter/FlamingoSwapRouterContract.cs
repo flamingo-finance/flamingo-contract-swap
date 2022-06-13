@@ -371,25 +371,28 @@ namespace FlamingoSwapRouter
         /// 根据输入计算输出，并完成兑换
         /// </summary>
         /// <param name="sender"></param>
-        /// <param name="amountInMax">用户输入的TokenIn的量</param>
+        /// <param name="amountIn">用户输入的TokenIn的量</param>
         /// <param name="amountOutMin">用户想要兑换的TokenOut的最小量，实际估算结果低于此值时，交易中断</param>
         /// <param name="paths"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountInMax, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
+        public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
-            var amounts = GetAmountsOut(amountInMax, paths);
+            var amounts = GetAmountsOut(amountIn, paths);
             Assert(amounts[amounts.Length - 1] >= amountOutMin, "Insufficient AmountOut");
 
+            var me = Runtime.ExecutingScriptHash;
+            SafeTransfer(paths[0], sender, me, amounts[0]);
             for (int i = 0; i < paths.Length - 1; i++)
             {
-                SwapWithOrderBook(sender, paths[i], paths[i + 1], amounts[i], amounts[i + 1]);
+                SwapWithOrderBook(paths[i], paths[i + 1], amounts[i], amounts[i + 1]);
             }
+            SafeTransfer(paths[paths.Length - 1], me, sender, amounts[amounts.Length - 1]);
             return true;
         }
 
@@ -398,41 +401,44 @@ namespace FlamingoSwapRouter
         /// 根据输出计算输入量，并完成兑换
         /// </summary>
         /// <param name="sender"></param>
-        /// <param name="amountOutMin">用户输入的TokenOut的量</param>
+        /// <param name="amountOut">用户输入的TokenOut的量</param>
         /// <param name="amountInMax">用户愿意支付的TokenIn的最大量，预估值高于此值时交易中断</param>
         /// <param name="paths"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOutMin, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
+        public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
-            var amounts = GetAmountsIn(amountOutMin, paths);
+            var amounts = GetAmountsIn(amountOut, paths);
             Assert(amounts[0] <= amountInMax, "Excessive AmountIn");
 
+            var me = Runtime.ExecutingScriptHash;
+            SafeTransfer(paths[0], sender, me, amounts[0]);
             for (int i = 0; i < paths.Length - 1; i++)
             {
-                SwapWithOrderBook(sender, paths[i], paths[i + 1], amounts[i], amounts[i + 1]);
+                SwapWithOrderBook(paths[i], paths[i + 1], amounts[i], amounts[i + 1]);
             }
+            SafeTransfer(paths[paths.Length - 1], me, sender, amounts[amounts.Length - 1]);
             return true;
         }
 
         /// <summary>
-        /// 根据计算好的输入和输出，同时使用资金池和限价簿完成兑换
+        /// 根据计算好的输入和输出，router同时使用资金池和限价簿完成兑换
         /// </summary>
-        /// <param name="sender"></param>
         /// <param name="tokenIn"></param>
         /// <param name="tokenOut"></param>
         /// <param name="amountIn"></param>
         /// <param name="amountOut"></param>
         /// <returns></returns>
-        private static void SwapWithOrderBook(UInt160 sender, UInt160 tokenIn, UInt160 tokenOut, BigInteger amountIn, BigInteger amountOut)
+        private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountIn, BigInteger amountOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
             var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
+            var me = Runtime.ExecutingScriptHash;
 
             var leftIn = amountIn;
             BigInteger totalOut = 0;
@@ -451,7 +457,7 @@ namespace FlamingoSwapRouter
                     if (leftIn <= amountToPool)
                     {
                         var amountOutPool = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
-                        SwapAMM(sender, tokenIn, tokenOut, leftIn, amountOutPool);
+                        SwapAMM(me, tokenIn, tokenOut, leftIn, amountOutPool);
                         leftIn = 0;
                         totalOut += amountOutPool;
                         break;
@@ -459,7 +465,7 @@ namespace FlamingoSwapRouter
                     else
                     {
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
-                        SwapAMM(sender, tokenIn, tokenOut, amountToPool, amountOutPool);
+                        SwapAMM(me, tokenIn, tokenOut, amountToPool, amountOutPool);
                         leftIn -= amountToPool;
                         totalOut += amountOutPool;
                     }
@@ -469,8 +475,11 @@ namespace FlamingoSwapRouter
                 var result = GetOrderBookAmountOut(tokenIn, tokenOut, bookPrice, bookPrice, leftIn);
                 var amountToBook = leftIn - result[0];
                 var amountOutBook = result[1];
-                if (isBuy) Assert(SendMarketOrder(tokenIn, tokenOut, sender, isBuy, bookPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
-                else Assert(SendMarketOrder(tokenIn, tokenOut, sender, isBuy, bookPrice, amountToBook) == 0, "Not Full-filled");
+
+                Approve(tokenIn, OrderBook, amountToBook);
+                if (isBuy) Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
+                else Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookPrice, amountToBook) == 0, "Not Full-filled");
+                Retrieve(tokenIn, OrderBook);
                 leftIn = result[0];
                 totalOut += amountOutBook;
             }
@@ -480,7 +489,7 @@ namespace FlamingoSwapRouter
             {
                 var ammReverse = GetReserves(tokenIn, tokenOut);
                 var amountOutPool = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
-                SwapAMM(sender, tokenIn, tokenOut, leftIn, amountOutPool);
+                SwapAMM(me, tokenIn, tokenOut, leftIn, amountOutPool);
                 totalOut += amountOutPool;
             }
             Assert(totalOut >= amountOut, "AmountOut Not Expected");

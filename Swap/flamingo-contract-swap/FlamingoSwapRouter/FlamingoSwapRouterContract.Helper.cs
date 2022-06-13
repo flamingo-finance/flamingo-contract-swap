@@ -167,11 +167,11 @@ namespace FlamingoSwapRouter
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="amount"></param>
-        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
             try
             {
-                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
                 Assert(result, "Transfer Fail in Router", token);
             }
             catch (Exception)
@@ -180,6 +180,95 @@ namespace FlamingoSwapRouter
             }
         }
 
+        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        {
+            try
+            {
+                var balanceBefore = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
+                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, data });
+                var balanceAfter = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
+                Assert(result, "Transfer Not Approved in Router", token);
+                Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in Router", token);
+            }
+            catch (Exception)
+            {
+                Assert(false, "Transfer Error in Router", token);
+            }
+        }
+
+        /// <summary>
+        /// Check approval and tranfer as the caller
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="to"></param>
+        /// <param name="amount"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data = null)
+        {
+            // Check token
+            Assert(token.IsValid && to.IsValid && !to.IsZero && amount >= 0, "Invalid Parameters");
+
+            // Find allowed
+            Assert(AllowedOf(token, to) >= amount, "Insufficient Allowed");
+            Consume(token, to, amount);
+
+            // Transfer
+            var me = Runtime.ExecutingScriptHash;
+            SafeTransfer(token, me, to, amount, data);
+            return true;
+        }
+
+        /// <summary>
+        /// Approve some tranfer with a maximal amount
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="to"></param>
+        /// <param name="amount"></param>
+        private static void Approve(UInt160 token, UInt160 to, BigInteger amount)
+        {
+            Assert(UpdateAllowed(AllowedMapKey + token, to, +amount), "Update Allowed Fail");
+        }
+
+        /// <summary>
+        /// Decrease the approved amount when transfer happens
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="to"></param>
+        /// <param name="amount"></param>
+        private static void Consume(UInt160 token, UInt160 to, BigInteger amount)
+        {
+            Assert(UpdateAllowed(AllowedMapKey + token, to, -amount), "Update Allowed Fail");
+        }
+
+        /// <summary>
+        /// Retrieve the approval when tranfer is completed
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="to"></param>
+        private static void Retrieve(UInt160 token, UInt160 to)
+        {
+            Assert(UpdateAllowed(AllowedMapKey + token, to, -AllowedOf(token, to)), "Update Allowed Fail");
+        }
+
+        private static BigInteger AllowedOf(UInt160 token, UInt160 to)
+        {
+            StorageMap allowedMap = new(Storage.CurrentReadOnlyContext, AllowedMapKey + token);
+            return (BigInteger)allowedMap.Get(to);
+        }
+
+        private static bool UpdateAllowed(string allowedKey, UInt160 owner, BigInteger increment)
+        {
+            StorageMap allowedMap = new(Storage.CurrentContext, allowedKey);
+            BigInteger allowed = (BigInteger)allowedMap[owner];
+            allowed += increment;
+            if (allowed < 0) return false;
+            if (allowed.IsZero)
+                allowedMap.Delete(owner);
+            else
+                allowedMap.Put(owner, allowed);
+            return true;
+        }
 
         private static ByteString StorageGet(string key)
         {

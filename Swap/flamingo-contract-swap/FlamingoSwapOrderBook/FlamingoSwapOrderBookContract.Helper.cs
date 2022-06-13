@@ -365,28 +365,28 @@ namespace FlamingoSwapOrderBook
         /// <param name="amount"></param>
         /// <param name="data"></param>
         /// <returns></returns>
-        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
             try
             {
-                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
                 Assert(result, "Transfer Fail in OrderBook", token);
             }
             catch (Exception)
             {
-                Assert(false, "Catch Transfer Error in OrderBook", token);
+                Assert(false, "Transfer Error in OrderBook", token);
             }
         }
 
-        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
             try
             {
                 var balanceBefore = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
                 var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, null });
                 var balanceAfter = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
-                Assert(result, "Transfer Not Approved in Router", token);
-                Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in Router", token);
+                Assert(result, "Transfer Not Approved in OrderBook", token);
+                Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in OrderBook", token);
             }
             catch (Exception)
             {
