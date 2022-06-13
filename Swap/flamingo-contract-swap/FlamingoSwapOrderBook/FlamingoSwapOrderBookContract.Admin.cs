@@ -12,9 +12,9 @@ namespace FlamingoSwapOrderBook
         #region Admin
 
 #warning Update the admin address if necessary
-        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
+        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
-        [InitialValue("0xd6abe115ecb75e1fa0b42f5e85934ce8c1ae2893", ContractParameterType.Hash160)]
+        [InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", ContractParameterType.Hash160)]
         static readonly UInt160 bNEO = default;
 
         const string AdminKey = nameof(superAdmin);
