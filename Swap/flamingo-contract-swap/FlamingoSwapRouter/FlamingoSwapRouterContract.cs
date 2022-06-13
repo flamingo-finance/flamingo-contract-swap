@@ -127,13 +127,13 @@ namespace FlamingoSwapRouter
 
 
         /// <summary>
-        /// 同时使用资金池和限价簿，计算可兑换的输出
+        /// 同时使用资金池和限价簿，计算可兑换的输出，以及输入的分配策略
         /// </summary>
-        /// <param name="amountInMax"></param>
+        /// <param name="amountIn"></param>
         /// <param name="tokenIn"></param>
         /// <param name="tokenOut"></param>
         /// <returns></returns>
-        public static BigInteger GetAmountOut(BigInteger amountInMax, UInt160 tokenIn, UInt160 tokenOut)
+        public static BigInteger[] GetAmountOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
 
@@ -141,9 +141,13 @@ namespace FlamingoSwapRouter
             var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
             var ammReverse = GetReserves(tokenIn, tokenOut);
 
-            var leftIn = amountInMax;
-            BigInteger totalOut = 0;
-            while (bookPrice > 0 && leftIn > 0)
+            var leftIn = amountIn;
+            BigInteger totalToBook = 0;
+            BigInteger totalToPool = 0;
+            BigInteger totalOutBook = 0;
+            BigInteger totalOutPool = 0;
+            var lastDealPrice = bookPrice;
+            while (bookPrice > 0)
             {
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
 
@@ -151,48 +155,47 @@ namespace FlamingoSwapRouter
                 if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                 {
                     var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
-                    if (leftIn <= amountToPool)
-                    {
-                        var amountOut = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
-                        leftIn = 0;
-                        totalOut += amountOut;
-                        break;
-                    }
-                    else
-                    {
-                        var amountOut = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
-                        leftIn -= amountToPool;
-                        totalOut += amountOut;
-                        ammReverse[0] += amountToPool;
-                        ammReverse[1] -= amountOut;
-                    }
+                    if (leftIn <= amountToPool) amountToPool = leftIn;
+                    var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
+                    totalToPool += amountToPool;
+                    totalOutPool += amountOutPool;
+                    ammReverse[0] += amountToPool;
+                    ammReverse[1] -= amountOutPool;
+                    leftIn -= amountToPool;
                 }
+
+                if (leftIn == 0) break;
 
                 // Then book
                 var result = GetOrderBookAmountOut(tokenIn, tokenOut, bookPrice, bookPrice, leftIn);
+                totalToBook += leftIn - result[0];
+                totalOutBook += result[1];
+                lastDealPrice = bookPrice;
                 leftIn = result[0];
-                totalOut += result[1];
+
+                if (leftIn == 0) break;
                 bookPrice = GetOrderBookNextPrice(tokenIn, tokenOut, isBuy, bookPrice);
             }
 
             // Finally AMM
             if (leftIn > 0)
             {
-                totalOut += GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
+                totalToPool += leftIn;
+                totalOutPool += GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
             }
 
-            return totalOut;
+            return new BigInteger[] { totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice };
         }
 
 
         /// <summary>
-        /// 同时使用资金池和限价簿，计算需要提供的输入
+        /// 同时使用资金池和限价簿，计算需要提供的输入，以及输入的分配策略
         /// </summary>
-        /// <param name="amountOutMin"></param>
+        /// <param name="amountOut"></param>
         /// <param name="tokenIn"></param>
         /// <param name="tokenOut"></param>
         /// <returns></returns>
-        public static BigInteger GetAmountIn(BigInteger amountOutMin, UInt160 tokenIn, UInt160 tokenOut)
+        public static BigInteger[] GetAmountIn(BigInteger amountOut, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
 
@@ -200,9 +203,14 @@ namespace FlamingoSwapRouter
             var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
             var ammReverse = GetReserves(tokenIn, tokenOut);
 
-            var leftOut = amountOutMin;
-            BigInteger totalIn = 0;
-            while (bookPrice > 0 && leftOut > 0)
+            var leftOut = amountOut;
+            BigInteger totalToBook = 0;
+            BigInteger totalToPool = 0;
+            BigInteger totalOutBook = 0;
+            BigInteger totalOutPool = 0;
+            var lastDealPrice = bookPrice;
+
+            while (bookPrice > 0)
             {
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
 
@@ -213,33 +221,37 @@ namespace FlamingoSwapRouter
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                     if (amountOutPool >= leftOut)
                     {
-                        var amountIn = GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
-                        leftOut = 0;
-                        totalIn += amountIn;
-                        break;
+                        amountToPool = GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
+                        amountOutPool = leftOut;
                     }
-                    else
-                    {
-                        leftOut -= amountOutPool;
-                        totalIn += amountToPool;
-                        ammReverse[0] += amountToPool;
-                        ammReverse[1] -= amountOutPool;
-                    }
+                    totalToPool += amountToPool;
+                    totalOutPool += amountOutPool;
+                    ammReverse[0] += amountToPool;
+                    ammReverse[1] -= amountOutPool;
+                    leftOut -= amountOutPool;
                 }
+
+                if (leftOut == 0) break;
 
                 // Then book
                 var result = GetOrderBookAmountIn(tokenIn, tokenOut, bookPrice, bookPrice, leftOut);
+                totalToBook += result[1];
+                totalOutBook += leftOut - result[0];
+                lastDealPrice = bookPrice;
                 leftOut = result[0];
-                totalIn += result[1];
+
+                if (leftOut == 0) break;
                 bookPrice = GetOrderBookNextPrice(tokenIn, tokenOut, isBuy, bookPrice);
             }
 
             // Finally AMM
             if (leftOut > 0)
             {
-                totalIn += GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
+                totalToPool += GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
+                totalOutPool += leftOut;
             }
-            return totalIn;
+
+            return new BigInteger[] { totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice };
         }
 
 
@@ -313,42 +325,40 @@ namespace FlamingoSwapRouter
 
 
         /// <summary>
-        /// 获取链式交易报价
+        /// 获取链式交易报价和交易策略
         /// </summary>
         /// <param name="amountIn">第一种token输入量</param>
         /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut）</param>
         /// <returns></returns>
-        public static BigInteger[] GetAmountsOut(BigInteger amountIn, UInt160[] paths)
+        public static List<BigInteger[]> GetAmountsOut(BigInteger amountIn, UInt160[] paths)
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
-            var amounts = new BigInteger[paths.Length];
-            amounts[0] = amountIn;
-            var max = paths.Length - 1;
-            for (var i = 0; i < max; i++)
+            var amounts = new List<BigInteger[]>();
+
+            for (var i = 0; i < paths.Length - 1; i++)
             {
-                var nextIndex = i + 1;
-                amounts[nextIndex] = GetAmountOut(amounts[i], paths[i], paths[nextIndex]);
+                amounts.Add(GetAmountOut(amountIn, paths[i], paths[i + 1]));
+                amountIn = amounts[i][2] + amounts[i][3];
             }
             return amounts;
         }
 
 
         /// <summary>
-        /// 获取链式交易逆向报价
+        /// 获取链式交易逆向报价和交易策略
         /// </summary>
         /// <param name="amountOut">最后一种token输出量</param>
         /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut）</param>
         /// <returns></returns>
-        public static BigInteger[] GetAmountsIn(BigInteger amountOut, UInt160[] paths)
+        public static List<BigInteger[]> GetAmountsIn(BigInteger amountOut, UInt160[] paths)
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
-            var amounts = new BigInteger[paths.Length];
-            var max = paths.Length - 1;
-            amounts[max] = amountOut;
-            for (var i = max; i > 0; i--)
+            var amounts = new List<BigInteger[]>();
+
+            for (var i = 0; i < paths.Length - 1; i++)
             {
-                var preIndex = i - 1;
-                amounts[preIndex] = GetAmountIn(amounts[i], paths[preIndex], paths[i]);
+                amounts.Add(GetAmountIn(amountOut, paths[paths.Length - i - 2], paths[paths.Length - i - 1]));
+                amountOut = amounts[i][0] + amounts[i][1];
             }
             return amounts;
         }
@@ -384,15 +394,16 @@ namespace FlamingoSwapRouter
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsOut(amountIn, paths);
-            Assert(amounts[amounts.Length - 1] >= amountOutMin, "Insufficient AmountOut");
+            var amountOut = amounts[amounts.Count - 1][2] + amounts[amounts.Count - 1][3];
+            Assert(amountOut >= amountOutMin, "Insufficient AmountOut");
 
             var me = Runtime.ExecutingScriptHash;
-            SafeTransfer(paths[0], sender, me, amounts[0]);
+            SafeTransfer(paths[0], sender, me, amountIn);
             for (int i = 0; i < paths.Length - 1; i++)
             {
-                SwapWithOrderBook(paths[i], paths[i + 1], amounts[i], amounts[i + 1]);
+                SwapWithOrderBook(paths[i], paths[i + 1], amounts[i][0], amounts[i][1], amounts[i][2], amounts[i][3], amounts[i][4]);
             }
-            SafeTransfer(paths[paths.Length - 1], me, sender, amounts[amounts.Length - 1]);
+            SafeTransfer(paths[paths.Length - 1], me, sender, amountOut);
             return true;
         }
 
@@ -414,15 +425,17 @@ namespace FlamingoSwapRouter
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsIn(amountOut, paths);
-            Assert(amounts[0] <= amountInMax, "Excessive AmountIn");
+            var amountIn = amounts[amounts.Count - 1][0] + amounts[amounts.Count - 1][1];
+            Assert(amountIn <= amountInMax, "Excessive AmountIn");
 
             var me = Runtime.ExecutingScriptHash;
-            SafeTransfer(paths[0], sender, me, amounts[0]);
+            SafeTransfer(paths[0], sender, me, amountIn);
             for (int i = 0; i < paths.Length - 1; i++)
             {
-                SwapWithOrderBook(paths[i], paths[i + 1], amounts[i], amounts[i + 1]);
+                var index = paths.Length - 2 - i;
+                SwapWithOrderBook(paths[i], paths[i + 1], amounts[index][0], amounts[index][1], amounts[index][2], amounts[index][3], amounts[index][4]);
             }
-            SafeTransfer(paths[paths.Length - 1], me, sender, amounts[amounts.Length - 1]);
+            SafeTransfer(paths[paths.Length - 1], me, sender, amountOut);
             return true;
         }
 
@@ -434,65 +447,29 @@ namespace FlamingoSwapRouter
         /// <param name="amountIn"></param>
         /// <param name="amountOut"></param>
         /// <returns></returns>
-        private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountIn, BigInteger amountOut)
+        private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountToBook, BigInteger amountToPool, BigInteger amountOutBook, BigInteger amountOutPool, BigInteger bookDealPrice)
         {
-            var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
-            var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
             var me = Runtime.ExecutingScriptHash;
+            var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
 
-            var leftIn = amountIn;
-            BigInteger totalOut = 0;
-            while (leftIn > 0)
+            if (amountToBook > 0)
             {
-                var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
-                if (bookPrice == 0) break;
-
-                var ammReverse = GetReserves(tokenIn, tokenOut);
-                var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
-
-                // First AMM
-                if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
-                {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
-                    if (leftIn <= amountToPool)
-                    {
-                        var amountOutPool = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
-                        SwapAMM(me, tokenIn, tokenOut, leftIn, amountOutPool);
-                        leftIn = 0;
-                        totalOut += amountOutPool;
-                        break;
-                    }
-                    else
-                    {
-                        var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
-                        SwapAMM(me, tokenIn, tokenOut, amountToPool, amountOutPool);
-                        leftIn -= amountToPool;
-                        totalOut += amountOutPool;
-                    }
-                }
-
-                // Then book
-                var result = GetOrderBookAmountOut(tokenIn, tokenOut, bookPrice, bookPrice, leftIn);
-                var amountToBook = leftIn - result[0];
-                var amountOutBook = result[1];
-
                 Approve(tokenIn, OrderBook, amountToBook);
-                if (isBuy) Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
-                else Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookPrice, amountToBook) == 0, "Not Full-filled");
+                if (isBuy)
+                {
+                    Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookDealPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
+                }
+                else
+                {
+                    Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookDealPrice, amountToBook) == 0, "Not Full-filled");
+                }
                 Retrieve(tokenIn, OrderBook);
-                leftIn = result[0];
-                totalOut += amountOutBook;
             }
 
-            // Finally AMM
-            if (leftIn > 0)
+            if (amountToPool > 0)
             {
-                var ammReverse = GetReserves(tokenIn, tokenOut);
-                var amountOutPool = GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
-                SwapAMM(me, tokenIn, tokenOut, leftIn, amountOutPool);
-                totalOut += amountOutPool;
+                SwapAMM(me, tokenIn, tokenOut, amountToPool, amountOutPool);
             }
-            Assert(totalOut >= amountOut, "AmountOut Not Expected");
         }
 
 
