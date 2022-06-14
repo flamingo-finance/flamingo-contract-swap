@@ -365,11 +365,11 @@ namespace FlamingoSwapOrderBook
         /// <param name="amount"></param>
         /// <param name="data"></param>
         /// <returns></returns>
-        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
             try
             {
-                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
                 Assert(result, "Transfer Fail in OrderBook", token);
             }
             catch (Exception)
@@ -378,12 +378,12 @@ namespace FlamingoSwapOrderBook
             }
         }
 
-        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
+        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
             try
             {
                 var balanceBefore = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
-                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, null });
+                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, data });
                 var balanceAfter = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
                 Assert(result, "Transfer Not Approved in OrderBook", token);
                 Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in OrderBook", token);
