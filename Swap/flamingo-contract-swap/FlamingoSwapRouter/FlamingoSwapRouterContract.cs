@@ -100,7 +100,7 @@ namespace FlamingoSwapRouter
             else
             {
                 //根据 tokenA 期望最大值预估需要的 tokenB 的注入量
-                var estimatedB = Quote(amountADesired, reserveA, reserveB);
+                var estimatedB = GetAMMQuote(amountADesired, reserveA, reserveB);
                 if (estimatedB <= amountBDesired)
                 {
                     //B在期望范围内，直接按计算值转
@@ -111,7 +111,7 @@ namespace FlamingoSwapRouter
                 else
                 {
                     //B超出期望最大值，按照 TokenB 期望最大值计算 TokenA 的注入量
-                    var estimatedA = Quote(amountBDesired, reserveB, reserveA);
+                    var estimatedA = GetAMMQuote(amountBDesired, reserveB, reserveA);
                     Assert(estimatedA <= amountADesired, "Excess A Amount");
                     Assert(estimatedA >= amountAMin, "Insufficient A Amount");
                     amountA = estimatedA;
@@ -498,12 +498,16 @@ namespace FlamingoSwapRouter
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsOut(amountIn, paths);
-            Assert(amounts[amounts.Length - 1] >= amountOutMin, "Insufficient AmountOut");
+            var amountOut = amounts[amounts.Count - 1][2] + amounts[amounts.Count - 1][3];
+            Assert(amountOut >= amountOutMin, "Insufficient AmountOut");
 
-            var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
-            //先将用户的token转入第一个交易对合约
-            RequestTransfer(paths[0], caller, pairContract, amounts[0]);
-            Swap(amounts, paths, caller);
+            var me = Runtime.ExecutingScriptHash;
+            RequestTransfer(paths[0], caller, me, amountIn);
+            for (int i = 0; i < paths.Length - 1; i++)
+            {
+                SwapWithOrderBook(paths[i], paths[i + 1], amounts[i][0], amounts[i][1], amounts[i][2], amounts[i][3], amounts[i][4]);
+            }
+            SafeTransfer(paths[paths.Length - 1], me, caller, amountOut);
             return true;
         }
 
@@ -552,12 +556,17 @@ namespace FlamingoSwapRouter
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var amounts = GetAmountsIn(amountOut, paths);
-            Assert(amounts[0] <= amountInMax, "Excessive AmountIn");
+            var amountIn = amounts[amounts.Count - 1][0] + amounts[amounts.Count - 1][1];
+            Assert(amountIn <= amountInMax, "Excessive AmountIn");
 
-            var pairContract = GetExchangePairWithAssert(paths[0], paths[1]);
-            //先将用户的token转入第一个交易对合约
-            RequestTransfer(paths[0], caller, pairContract, amounts[0]);
-            Swap(amounts, paths, caller);
+            var me = Runtime.ExecutingScriptHash;
+            RequestTransfer(paths[0], caller, me, amountIn);
+            for (int i = 0; i < paths.Length - 1; i++)
+            {
+                var index = paths.Length - 2 - i;
+                SwapWithOrderBook(paths[i], paths[i + 1], amounts[index][0], amounts[index][1], amounts[index][2], amounts[index][3], amounts[index][4]);
+            }
+            SafeTransfer(paths[paths.Length - 1], me, caller, amountOut);
             return true;
         }
 
