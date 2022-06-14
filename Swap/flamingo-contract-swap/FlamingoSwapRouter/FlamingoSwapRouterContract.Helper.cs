@@ -2,6 +2,7 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapRouter
@@ -180,6 +181,14 @@ namespace FlamingoSwapRouter
             }
         }
 
+
+        /// <summary>
+        /// 请求转账，未授权则中断退出
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <param name="amount"></param>
         private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
         {
             try
@@ -195,6 +204,7 @@ namespace FlamingoSwapRouter
                 Assert(false, "Transfer Error in Router", token);
             }
         }
+
 
         /// <summary>
         /// Check approval and tranfer as the caller
@@ -269,6 +279,7 @@ namespace FlamingoSwapRouter
                 allowedMap.Put(owner, allowed);
             return true;
         }
+
 
         private static ByteString StorageGet(string key)
         {
