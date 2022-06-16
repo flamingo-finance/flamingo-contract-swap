@@ -212,16 +212,19 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
+
+            // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
+            Assert(amount >= GetMinOrderAmount(pairKey), "Fail MinOrderAmount Limit");
+            Assert(amount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");
+
+            // Check maker
             Assert(Runtime.CheckWitness(maker), "No Authorization");
-            Assert(ContractManagement.GetContract(maker) == null, "Forbidden");
+            Assert(ContractManagement.GetContract(maker) == null, "Forbidden"); 
 
             // Deal as market order
             var leftAmount = DealMarketOrderInternal(pairKey, maker, isBuy, price, amount);
-            if (leftAmount == 0) return null;
-
-            Assert(leftAmount >= GetMinOrderAmount(pairKey), "Fail MinOrderAmount Limit");
-            Assert(leftAmount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");            
+            if (leftAmount == 0) return null;        
 
             // Deposit token
             var me = Runtime.ExecutingScriptHash;
@@ -528,7 +531,12 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
+
+            // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
+            //Assert(amount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");
+
+            // Check taker
             Assert(Runtime.CheckWitness(taker), "No Authorization");
             Assert(ContractManagement.GetContract(taker) == null, "Forbidden");
 
@@ -540,10 +548,14 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
-            Assert(price > 0 && amount > 0, "Invalid Parameters");
 
+            // Check parameters
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
+            //Assert(amount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");   
+
+            // Check taker
             var caller = Runtime.CallingScriptHash;
-            Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
+            Assert(ContractManagement.GetContract(caller) != null, "Forbidden"); 
 
             return DealMarketOrderInternal(pairKey, caller, isBuy, price, amount);
         }
