@@ -16,9 +16,6 @@ namespace FlamingoSwapRouter
     [ContractPermission("*")]//avoid native contract hash change
     public partial class FlamingoSwapRouterContract : SmartContract
     {
-
-        [InitialValue("0x0ba7c1ff1d91811da9571f426bea1713e2ffb808", ContractParameterType.Hash160)]
-        static readonly UInt160 SuperOwner = default;
         /// <summary>
         /// 
         /// </summary>
@@ -411,10 +408,7 @@ namespace FlamingoSwapRouter
         private static void Swap(BigInteger[] amounts, UInt160[] paths, UInt160 toAddress)
         {
             var max = paths.Length - 1;
-            if (paths[0] == paths[max])
-            {
-                Assert(toAddress == SuperOwner, "Invalid Path");
-            }
+            Assert(paths[0] != paths[max], "Invalid Path");
             for (int i = 0; i < max; i++)
             {
                 var input = paths[i];
