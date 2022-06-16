@@ -145,6 +145,7 @@ namespace FlamingoSwapPair
 
             Assert(toAddress.IsAddress(), "Invalid To-Address");
             var caller = Runtime.CallingScriptHash;
+            Assert(CheckIsRouter(caller), "Only Router Can Swap");
 
             var me = Runtime.ExecutingScriptHash;
 
