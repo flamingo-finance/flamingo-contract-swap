@@ -402,7 +402,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static byte[] GetPairKey(UInt160 tokenA, UInt160 tokenB)
         {
-            return tokenA.ToUInteger() < tokenB.ToUInteger()
+            return (BigInteger)tokenA < (BigInteger)tokenB
                 ? BookMapKey.Concat(tokenA).Concat(tokenB)
                 : BookMapKey.Concat(tokenB).Concat(tokenA);
         }

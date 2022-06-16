@@ -61,7 +61,7 @@ namespace FlamingoSwapOrderBook
         public static bool RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
             if (BookExists(pairKey)) return false;
@@ -86,7 +86,7 @@ namespace FlamingoSwapOrderBook
         public static bool SetMinOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger minOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
             if (!BookExists(pairKey)) return false;
@@ -109,7 +109,7 @@ namespace FlamingoSwapOrderBook
         public static bool SetMaxOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger maxOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
             if (!BookExists(pairKey)) return false;
@@ -131,7 +131,7 @@ namespace FlamingoSwapOrderBook
         public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
             if (!BookExists(pairKey)) return false;
@@ -214,6 +214,7 @@ namespace FlamingoSwapOrderBook
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(maker), "No Authorization");
+            Assert(ContractManagement.GetContract(maker) == null, "Forbidden");
 
             // Deal as market order
             var leftAmount = DealMarketOrderInternal(pairKey, maker, isBuy, price, amount);
@@ -529,6 +530,7 @@ namespace FlamingoSwapOrderBook
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(taker), "No Authorization");
+            Assert(ContractManagement.GetContract(taker) == null, "Forbidden");
 
             return DealMarketOrderInternal(pairKey, taker, isBuy, price, amount);
         }

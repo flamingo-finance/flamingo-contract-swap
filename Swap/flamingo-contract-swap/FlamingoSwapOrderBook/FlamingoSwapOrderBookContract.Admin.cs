@@ -42,7 +42,7 @@ namespace FlamingoSwapOrderBook
         public static bool SetAdmin(UInt160 admin)
         {
             Assert(Verify(), "No Authorization");
-            Assert(admin.IsValid && !admin.IsZero, "Invalid Address");
+            Assert(admin.IsAddress(), "Invalid Address");
             StoragePut(AdminKey, admin);
             return true;
         }
@@ -61,14 +61,14 @@ namespace FlamingoSwapOrderBook
         [Safe]
         public static UInt160 GetGASAdmin()
         {
-            var admin = StorageGet(GASAdminKey);
-            return (UInt160)admin;
+            var address = StorageGet(GASAdminKey);
+            return address?.Length == 20 ? (UInt160)address : null;
         }
 
         public static bool SetGASAdmin(UInt160 GASAdmin)
         {
             Assert(GASAdmin.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(Verify(), "No Authorization");
             StoragePut(GASAdminKey, GASAdmin);
             return true;
         }
@@ -86,7 +86,7 @@ namespace FlamingoSwapOrderBook
         public static bool SetFundAddress(UInt160 address)
         {
             Assert(address.IsAddress(), "Invalid Address");
-            Assert(Runtime.CheckWitness(GetAdmin()), "Forbidden");
+            Assert(Verify(), "No Authorization");
             StoragePut(FundAddresskey, address);
             return true;
         }
