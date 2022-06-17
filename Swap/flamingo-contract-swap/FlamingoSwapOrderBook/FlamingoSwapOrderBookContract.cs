@@ -543,9 +543,9 @@ namespace FlamingoSwapOrderBook
 
         private static BigInteger DealMarketOrderInternal(byte[] pairKey, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
         {
-            if (GetFirstOrderID(pairKey, !isBuy) is null) return amount;
-
-            var firstOrder = GetFirstOrder(pairKey, !isBuy);
+            var firstID = GetFirstOrderID(pairKey, !isBuy);
+            if (firstID is null) return amount;
+            var firstOrder = GetOrder(firstID);
             var canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
             if (!canDeal) return amount;
 
@@ -583,6 +583,8 @@ namespace FlamingoSwapOrderBook
             var me = Runtime.ExecutingScriptHash;
             var bookInfo = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
+            var firstID = isBuy ? bookInfo.firstSellID : bookInfo.firstBuyID;
+            var firstOrder = GetOrder(firstID);
 
             BigInteger quoteFee = 0;
             BigInteger baseFee = 0;
@@ -592,17 +594,10 @@ namespace FlamingoSwapOrderBook
 
             while (leftAmount > 0)
             {
-                // Check if tradable
-                if ((GetFirstOrderID(pairKey, !isBuy) is null)) break;
-                // Check the lowest sell price
-                if ((isBuy && GetBuyPrice(pairKey) > price) || (!isBuy && GetSellPrice(pairKey) < price)) break;
-
-                var firstID = GetFirstOrderID(pairKey, !isBuy);
-                var firstOrder = GetOrder(firstID);
                 BigInteger quoteAmount;
                 BigInteger baseAmount;
-                BigInteger quotePayment = 0;
-                BigInteger basePayment = 0;
+                BigInteger quotePayment;
+                BigInteger basePayment;
 
                 if (firstOrder.amount <= leftAmount)
                 {
@@ -634,6 +629,8 @@ namespace FlamingoSwapOrderBook
                 // Record payment
                 quotePayment = quoteAmount * 9985 / 10000;
                 basePayment = baseAmount * 9985 / 10000;
+                quoteFee += quoteAmount - quotePayment;
+                baseFee += baseAmount - basePayment;
 
                 if (isBuy)
                 {
@@ -649,8 +646,13 @@ namespace FlamingoSwapOrderBook
                     if (totalBasePayment.HasKey(firstOrder.maker)) totalBasePayment[firstOrder.maker] += basePayment;
                     else totalBasePayment[firstOrder.maker] = basePayment;
                 }
-                quoteFee += quoteAmount - quotePayment;
-                baseFee += baseAmount - basePayment;
+
+                // Check if still tradable
+                firstID = firstOrder.nextID;
+                if (firstID is null) break;
+                firstOrder = GetOrder(firstID);
+                // Check the price
+                if ((isBuy && firstOrder.price > price) || (!isBuy && firstOrder.price < price)) break;
             }
 
             // Do transfer
