@@ -215,16 +215,16 @@ namespace FlamingoSwapOrderBook
 
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
-            Assert(amount >= GetMinOrderAmount(pairKey), "Fail MinOrderAmount Limit");
-            Assert(amount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");
 
             // Check maker
             Assert(Runtime.CheckWitness(maker), "No Authorization");
-            Assert(ContractManagement.GetContract(maker) == null, "Forbidden"); 
+            Assert(ContractManagement.GetContract(maker) == null, "Forbidden");
 
             // Deal as market order
             var leftAmount = DealMarketOrderInternal(pairKey, maker, isBuy, price, amount);
-            if (leftAmount == 0) return null;        
+            if (leftAmount == 0) return null;
+            if (leftAmount < GetMinOrderAmount(pairKey)) return null;
+            if (leftAmount > GetMaxOrderAmount(pairKey)) return null;
 
             // Deposit token
             var me = Runtime.ExecutingScriptHash;
@@ -534,7 +534,6 @@ namespace FlamingoSwapOrderBook
 
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
-            //Assert(amount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");
 
             // Check taker
             Assert(Runtime.CheckWitness(taker), "No Authorization");
@@ -551,7 +550,6 @@ namespace FlamingoSwapOrderBook
 
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
-            //Assert(amount <= GetMaxOrderAmount(pairKey), "Exceed MaxOrderAmount Limit");   
 
             // Check taker
             var caller = Runtime.CallingScriptHash;
