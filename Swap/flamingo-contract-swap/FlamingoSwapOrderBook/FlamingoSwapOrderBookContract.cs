@@ -62,6 +62,7 @@ namespace FlamingoSwapOrderBook
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(baseToken != quoteToken, "Invalid Trade Pair");
+            Assert(minOrderAmount > 0 && maxOrderAmount > 0 && minOrderAmount <= maxOrderAmount, "Invalid Amount Limit");
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
@@ -87,6 +88,7 @@ namespace FlamingoSwapOrderBook
         public static bool SetMinOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger minOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(minOrderAmount > 0, "Invalid Amount Limit");
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
@@ -95,6 +97,7 @@ namespace FlamingoSwapOrderBook
             if (GetQuoteToken(pairKey) != quoteToken) return false;
 
             var book = GetOrderBook(pairKey);
+            Assert(minOrderAmount <= book.maxOrderAmount, "Invalid Amount Limit");
             book.minOrderAmount = minOrderAmount;
             SetOrderBook(pairKey, book);
             return true;
@@ -110,6 +113,7 @@ namespace FlamingoSwapOrderBook
         public static bool SetMaxOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger maxOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(maxOrderAmount > 0, "Invalid Amount Limit");
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
@@ -118,6 +122,7 @@ namespace FlamingoSwapOrderBook
             if (GetQuoteToken(pairKey) != quoteToken) return false;
 
             var book = GetOrderBook(pairKey);
+            Assert(maxOrderAmount >= book.minOrderAmount, "Invalid Amount Limit");
             book.maxOrderAmount = maxOrderAmount;
             SetOrderBook(pairKey, book);
             return true;
