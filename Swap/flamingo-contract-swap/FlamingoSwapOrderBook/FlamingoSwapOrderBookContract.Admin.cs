@@ -17,14 +17,15 @@ namespace FlamingoSwapOrderBook
         [InitialValue("0xd6abe115ecb75e1fa0b42f5e85934ce8c1ae2893", ContractParameterType.Hash160)]
         static readonly UInt160 bNEO = default;
 
-        const string AdminKey = nameof(superAdmin);
-        const string GASAdminKey = nameof(GASAdminKey);
-        const string FundAddresskey = nameof(FundAddresskey);
+        private const string AdminKey = nameof(superAdmin);
+        private const string GASAdminKey = nameof(GASAdminKey);
+        private const string FundAddresskey = nameof(FundAddresskey);
 
         private static readonly byte[] OrderIDKey = new byte[] { 0x00 };
-        private static readonly byte[] BookMapKey = new byte[] { 0x01 };
-        private static readonly byte[] OrderMapKey = new byte[] { 0x02 };
-        private static readonly byte[] ReceiptMapKey = new byte[] { 0x03 };
+        private static readonly byte[] BookMapPrefix = new byte[] { 0x01 };
+        private static readonly byte[] OrderMapPrefix = new byte[] { 0x02 };
+        private static readonly byte[] ReceiptMapPrefix = new byte[] { 0x03 };
+        private static readonly byte[] PauseMapPrefix = new byte[] { 0x04 };
 
         // When this contract address is included in the transaction signature,
         // this method will be triggered as a VerificationTrigger to verify that the signature is correct.

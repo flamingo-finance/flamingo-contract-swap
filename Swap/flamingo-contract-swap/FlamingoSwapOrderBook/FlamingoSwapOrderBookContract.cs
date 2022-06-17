@@ -74,7 +74,7 @@ namespace FlamingoSwapOrderBook
                 minOrderAmount = minOrderAmount,
                 maxOrderAmount = maxOrderAmount
             });
-            onRegisterBook(baseToken, quoteToken, quoteDecimals, minOrderAmount, maxOrderAmount);
+            onBookStatusChanged(baseToken, quoteToken, quoteDecimals, minOrderAmount, maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -100,6 +100,7 @@ namespace FlamingoSwapOrderBook
             Assert(minOrderAmount <= book.maxOrderAmount, "Invalid Amount Limit");
             book.minOrderAmount = minOrderAmount;
             SetOrderBook(pairKey, book);
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -125,16 +126,17 @@ namespace FlamingoSwapOrderBook
             Assert(maxOrderAmount >= book.minOrderAmount, "Invalid Amount Limit");
             book.maxOrderAmount = maxOrderAmount;
             SetOrderBook(pairKey, book);
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
         /// <summary>
-        /// Remove a new book and cancel all existing orders
+        /// Pause an existing order book
         /// </summary>
         /// <param name="baseToken"></param>
         /// <param name="quoteToken"></param>
         /// <returns></returns>
-        public static bool RemoveOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        public static bool PauseOrderBook(UInt160 baseToken, UInt160 quoteToken)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(Verify(), "No Authorization");
@@ -143,63 +145,34 @@ namespace FlamingoSwapOrderBook
             if (!BookExists(pairKey)) return false;
             if (GetBaseToken(pairKey) != baseToken) return false;
             if (GetQuoteToken(pairKey) != quoteToken) return false;
+            if (BookPaused(pairKey)) return false;
 
-            var totalQuotePayment = new Map<UInt160, BigInteger>();
-            var totalBasePayment = new Map<UInt160, BigInteger>();
+            SetPaused(pairKey);
+            var book = GetOrderBook(pairKey);
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            return true;
+        }
 
-            // Cancel orders
-            var firstBuyID = GetFirstOrderID(pairKey, true);
-            while (firstBuyID is not null)
-            {
-                // Remove from book
-                var order = GetOrder(firstBuyID);
-                Assert(RemoveOrder(pairKey, firstBuyID, true), "Remove Order Fail");
-                // Remove receipt
-                DeleteReceipt(order.maker, firstBuyID);
-                onOrderStatusChanged(baseToken, quoteToken, firstBuyID, true, order.maker, order.price, 0);
+        /// <summary>
+        /// Resume a paused order book
+        /// </summary>
+        /// <param name="baseToken"></param>
+        /// <param name="quoteToken"></param>
+        /// <returns></returns>
+        public static bool ResumeOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        {
+            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(Verify(), "No Authorization");
 
-                // Record payment
-                var quoteAmount = order.amount * order.price / BigInteger.Pow(10, GetQuoteDecimals(pairKey));
-                if (totalQuotePayment.HasKey(order.maker)) totalQuotePayment[order.maker] += quoteAmount;
-                else totalQuotePayment[order.maker] = quoteAmount;
+            var pairKey = GetPairKey(baseToken, quoteToken);
+            if (!BookExists(pairKey)) return false;
+            if (GetBaseToken(pairKey) != baseToken) return false;
+            if (GetQuoteToken(pairKey) != quoteToken) return false;
+            if (!BookPaused(pairKey)) return false;
 
-                // Try again
-                firstBuyID = GetFirstOrderID(pairKey, true);
-            }
-
-            var firstSellID = GetFirstOrderID(pairKey, false);
-            while (firstSellID is not null)
-            {
-                // Remove from book
-                var order = GetOrder(firstSellID);
-                Assert(RemoveOrder(pairKey, firstSellID, false), "Remove Order Fail");
-                // Remove receipt
-                DeleteReceipt(order.maker, firstSellID);
-                onOrderStatusChanged(baseToken, quoteToken, firstSellID, false, order.maker, order.price, 0);
-
-                // Record payment
-                if (totalBasePayment.HasKey(order.maker)) totalBasePayment[order.maker] += order.amount;
-                else totalBasePayment[order.maker] = order.amount;
-
-                // Try again
-                firstSellID = GetFirstOrderID(pairKey, false);
-            }
-
-            // Remove book
-            DeleteOrderBook(pairKey);
-            onRemoveBook(baseToken, quoteToken);
-
-            // Do transfer
-            var me = Runtime.ExecutingScriptHash;
-            foreach (var maker in totalQuotePayment.Keys)
-            {
-                SafeTransfer(quoteToken, me, maker, totalQuotePayment[maker]);
-            }
-            foreach (var maker in totalBasePayment.Keys)
-            {
-                SafeTransfer(baseToken, me, maker, totalBasePayment[maker]);
-            }
-
+            RemovePaused(pairKey);
+            var book = GetOrderBook(pairKey);
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -218,6 +191,7 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(!BookPaused(pairKey), "Book is Paused");
 
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
@@ -537,6 +511,7 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(!BookPaused(pairKey), "Book is Paused");
 
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
@@ -553,6 +528,7 @@ namespace FlamingoSwapOrderBook
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(!BookPaused(pairKey), "Book is Paused");
 
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
@@ -727,6 +703,14 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <returns></returns>
+        public static bool BookTradable(UInt160 tokenA, UInt160 tokenB)
+        {
+            var pairKey = GetPairKey(tokenA, tokenB);
+            if (!BookExists(pairKey)) return false;
+            if (BookPaused(pairKey)) return false;
+            return true;
+        }
+
         public static UInt160 GetBaseToken(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist

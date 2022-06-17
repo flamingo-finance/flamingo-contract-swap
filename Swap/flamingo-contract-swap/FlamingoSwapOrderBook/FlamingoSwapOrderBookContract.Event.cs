@@ -8,21 +8,14 @@ namespace FlamingoSwapOrderBook
     public partial class FlamingoSwapOrderBookContract
     {
         /// <summary>
-        /// When register orderbook
+        /// When orderbook status changed
         /// </summary>
-        [DisplayName("RegisterBook")]
-        public static event RegisterBookEvent onRegisterBook;
-        public delegate void RegisterBookEvent(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount);
+        [DisplayName("BookStatusChanged")]
+        public static event BookStatusChangedEvent onBookStatusChanged;
+        public delegate void BookStatusChangedEvent(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount, bool isPaused);
 
         /// <summary>
-        /// When remove orderbook
-        /// </summary>
-        [DisplayName("RemoveBook")]
-        public static event RemoveBookEvent onRemoveBook;
-        public delegate void RemoveBookEvent(UInt160 baseToken, UInt160 quoteToken);
-
-        /// <summary>
-        /// When add order
+        /// When order status changed
         /// </summary>
         [DisplayName("OrderStatusChanged")]
         public static event OrderStatusChangedEvent onOrderStatusChanged;

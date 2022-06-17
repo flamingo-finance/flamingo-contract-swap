@@ -185,19 +185,52 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static bool OrderExists(ByteString id)
         {
-            StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
+            StorageMap orderMap = new(Storage.CurrentContext, OrderMapPrefix);
             return orderMap.Get(id) is not null;
         }
 
         /// <summary>
-        /// Check if a order book exists
+        /// Check if an order book exists
         /// </summary>
         /// <param name="pairKey"></param>
         /// <returns></returns>
         private static bool BookExists(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return bookMap.Get(pairKey) is not null;
+        }
+
+        /// <summary>
+        /// Set an order book as paused
+        /// </summary>
+        /// <param name="pairKey"></param>
+        /// <returns></returns>
+        private static void SetPaused(byte[] pairKey)
+        {
+            StorageMap pauseMap = new(Storage.CurrentContext, PauseMapPrefix);
+            pauseMap.Put(pairKey, "1");
+        }
+
+        /// <summary>
+        /// Remove an order book from paused
+        /// </summary>
+        /// <param name="pairKey"></param>
+        /// <returns></returns>
+        private static void RemovePaused(byte[] pairKey)
+        {
+            StorageMap pauseMap = new(Storage.CurrentContext, PauseMapPrefix);
+            pauseMap.Delete(pairKey);
+        }
+
+        /// <summary>
+        /// Check if an order book is paused
+        /// </summary>
+        /// <param name="pairKey"></param>
+        /// <returns></returns>
+        private static bool BookPaused(byte[] pairKey)
+        {
+            StorageMap pauseMap = new(Storage.CurrentContext, PauseMapPrefix);
+            return pauseMap.Get(pairKey) is not null;
         }
 
         /// <summary>
@@ -207,7 +240,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static LimitOrder GetOrder(ByteString id)
         {
-            StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
+            StorageMap orderMap = new(Storage.CurrentContext, OrderMapPrefix);
             return (LimitOrder)StdLib.Deserialize(orderMap.Get(id));
         }
 
@@ -218,7 +251,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="order"></param>
         private static void SetOrder(ByteString id, LimitOrder order)
         {
-            StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
+            StorageMap orderMap = new(Storage.CurrentContext, OrderMapPrefix);
             orderMap.Put(id, StdLib.Serialize(order));
         }
 
@@ -228,7 +261,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="id"></param>
         private static void DeleteOrder(ByteString id)
         {
-            StorageMap orderMap = new(Storage.CurrentContext, OrderMapKey);
+            StorageMap orderMap = new(Storage.CurrentContext, OrderMapPrefix);
             orderMap.Delete(id);
         }
 
@@ -240,7 +273,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static OrderReceipt GetReceipt(UInt160 maker, ByteString id)
         {
-            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapKey);
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapPrefix);
             return (OrderReceipt)StdLib.Deserialize(receiptMap.Get(maker + id));
         }
 
@@ -251,7 +284,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static OrderReceipt[] GetReceiptsOf(UInt160 maker)
         {
-            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapKey);
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapPrefix);
             var results = new OrderReceipt[0];
             var iterator = receiptMap.Find(maker, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
             while (iterator.Next()) Append(results, (OrderReceipt)iterator.Value);
@@ -269,7 +302,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="receipt"></param>
         private static void SetReceipt(UInt160 maker, ByteString id, OrderReceipt receipt)
         {
-            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapKey);
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapPrefix);
             receiptMap.Put(maker + id, StdLib.Serialize(receipt));
         }
 
@@ -280,7 +313,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="id"></param>
         private static void DeleteReceipt(UInt160 maker, ByteString id)
         {
-            StorageMap orderMap = new(Storage.CurrentContext, ReceiptMapKey);
+            StorageMap orderMap = new(Storage.CurrentContext, ReceiptMapPrefix);
             orderMap.Delete(maker + id);
         }
 
@@ -291,37 +324,37 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         private static OrderBook GetOrderBook(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return (OrderBook)StdLib.Deserialize(bookMap.Get(pairKey));
         }
 
         private static UInt160 GetBaseToken(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return ((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).baseToken;
         }
 
         private static UInt160 GetQuoteToken(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return ((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteToken;
         }
 
         private static int GetQuoteDecimals(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return (int)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteDecimals;
         }
 
         private static BigInteger GetMaxOrderAmount(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return (BigInteger)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).maxOrderAmount;
         }
 
         private static BigInteger GetMinOrderAmount(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             return (BigInteger)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).minOrderAmount;
         }
 
@@ -332,13 +365,13 @@ namespace FlamingoSwapOrderBook
         /// <param name="book"></param>
         private static void SetOrderBook(byte[] pairKey, OrderBook book)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             bookMap.Put(pairKey, StdLib.Serialize(book));
         }
 
         private static void DeleteOrderBook(byte[] pairKey)
         {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapKey);
+            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             bookMap.Delete(pairKey);
         }
 
@@ -403,8 +436,8 @@ namespace FlamingoSwapOrderBook
         private static byte[] GetPairKey(UInt160 tokenA, UInt160 tokenB)
         {
             return (BigInteger)tokenA < (BigInteger)tokenB
-                ? BookMapKey.Concat(tokenA).Concat(tokenB)
-                : BookMapKey.Concat(tokenB).Concat(tokenA);
+                ? BookMapPrefix.Concat(tokenA).Concat(tokenB)
+                : BookMapPrefix.Concat(tokenB).Concat(tokenA);
         }
 
         /// <summary>
