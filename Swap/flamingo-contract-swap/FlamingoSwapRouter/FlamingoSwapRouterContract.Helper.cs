@@ -2,7 +2,6 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapRouter
@@ -114,6 +113,16 @@ namespace FlamingoSwapRouter
         public static BigInteger GetOrderBookNextPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price)
         {
             return (BigInteger)Contract.Call(OrderBook, "getNextPrice", CallFlags.ReadOnly, new object[] { tokenA, tokenB, isBuy, price });
+        }
+
+        /// <summary>
+        /// 查询限价簿交易对是否可用
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        public static bool BookTradable(UInt160 tokenA, UInt160 tokenB)
+        {
+            return (bool)Contract.Call(OrderBook, "bookTradable", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
         }
 
         /// <summary>

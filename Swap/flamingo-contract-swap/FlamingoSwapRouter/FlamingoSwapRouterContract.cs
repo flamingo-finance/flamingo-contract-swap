@@ -214,45 +214,49 @@ namespace FlamingoSwapRouter
         public static BigInteger[] GetAmountOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
-
-            var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
-            var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
             var ammReverse = GetReserves(tokenIn, tokenOut);
-
             var leftIn = amountIn;
+
             BigInteger totalToBook = 0;
             BigInteger totalToPool = 0;
             BigInteger totalOutBook = 0;
             BigInteger totalOutPool = 0;
-            var lastDealPrice = bookPrice;
-            while (bookPrice > 0)
+            BigInteger lastDealPrice = 0;
+
+            if (BookTradable(tokenIn, tokenOut))
             {
-                var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
+                var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
+                var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
 
-                // First AMM
-                if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
+                while (bookPrice > 0)
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
-                    if (leftIn <= amountToPool) amountToPool = leftIn;
-                    var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
-                    totalToPool += amountToPool;
-                    totalOutPool += amountOutPool;
-                    ammReverse[0] += amountToPool;
-                    ammReverse[1] -= amountOutPool;
-                    leftIn -= amountToPool;
+                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
+
+                    // First AMM
+                    if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
+                    {
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
+                        if (leftIn <= amountToPool) amountToPool = leftIn;
+                        var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
+                        totalToPool += amountToPool;
+                        totalOutPool += amountOutPool;
+                        ammReverse[0] += amountToPool;
+                        ammReverse[1] -= amountOutPool;
+                        leftIn -= amountToPool;
+                    }
+
+                    if (leftIn == 0) break;
+
+                    // Then book
+                    var result = GetOrderBookAmountOut(tokenIn, tokenOut, bookPrice, bookPrice, leftIn);
+                    totalToBook += leftIn - result[0];
+                    totalOutBook += result[1];
+                    lastDealPrice = bookPrice;
+                    leftIn = result[0];
+
+                    if (leftIn == 0) break;
+                    bookPrice = GetOrderBookNextPrice(tokenIn, tokenOut, isBuy, bookPrice);
                 }
-
-                if (leftIn == 0) break;
-
-                // Then book
-                var result = GetOrderBookAmountOut(tokenIn, tokenOut, bookPrice, bookPrice, leftIn);
-                totalToBook += leftIn - result[0];
-                totalOutBook += result[1];
-                lastDealPrice = bookPrice;
-                leftIn = result[0];
-
-                if (leftIn == 0) break;
-                bookPrice = GetOrderBookNextPrice(tokenIn, tokenOut, isBuy, bookPrice);
             }
 
             // Finally AMM
@@ -276,50 +280,53 @@ namespace FlamingoSwapRouter
         public static BigInteger[] GetAmountIn(BigInteger amountOut, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
-
-            var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
-            var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
+            var leftOut = amountOut;
             var ammReverse = GetReserves(tokenIn, tokenOut);
 
-            var leftOut = amountOut;
             BigInteger totalToBook = 0;
             BigInteger totalToPool = 0;
             BigInteger totalOutBook = 0;
             BigInteger totalOutPool = 0;
-            var lastDealPrice = bookPrice;
+            BigInteger lastDealPrice = 0;
 
-            while (bookPrice > 0)
+            if (BookTradable(tokenIn, tokenOut))
             {
-                var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
+                var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
+                var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
 
-                // First AMM
-                if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
+                while (bookPrice > 0)
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
-                    var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
-                    if (amountOutPool >= leftOut)
+                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
+
+                    // First AMM
+                    if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                     {
-                        amountToPool = GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
-                        amountOutPool = leftOut;
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
+                        var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
+                        if (amountOutPool >= leftOut)
+                        {
+                            amountToPool = GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
+                            amountOutPool = leftOut;
+                        }
+                        totalToPool += amountToPool;
+                        totalOutPool += amountOutPool;
+                        ammReverse[0] += amountToPool;
+                        ammReverse[1] -= amountOutPool;
+                        leftOut -= amountOutPool;
                     }
-                    totalToPool += amountToPool;
-                    totalOutPool += amountOutPool;
-                    ammReverse[0] += amountToPool;
-                    ammReverse[1] -= amountOutPool;
-                    leftOut -= amountOutPool;
+
+                    if (leftOut == 0) break;
+
+                    // Then book
+                    var result = GetOrderBookAmountIn(tokenIn, tokenOut, bookPrice, bookPrice, leftOut);
+                    totalToBook += result[1];
+                    totalOutBook += leftOut - result[0];
+                    lastDealPrice = bookPrice;
+                    leftOut = result[0];
+
+                    if (leftOut == 0) break;
+                    bookPrice = GetOrderBookNextPrice(tokenIn, tokenOut, isBuy, bookPrice);
                 }
-
-                if (leftOut == 0) break;
-
-                // Then book
-                var result = GetOrderBookAmountIn(tokenIn, tokenOut, bookPrice, bookPrice, leftOut);
-                totalToBook += result[1];
-                totalOutBook += leftOut - result[0];
-                lastDealPrice = bookPrice;
-                leftOut = result[0];
-
-                if (leftOut == 0) break;
-                bookPrice = GetOrderBookNextPrice(tokenIn, tokenOut, isBuy, bookPrice);
             }
 
             // Finally AMM
