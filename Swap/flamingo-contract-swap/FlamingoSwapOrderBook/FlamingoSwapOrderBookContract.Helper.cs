@@ -418,7 +418,7 @@ namespace FlamingoSwapOrderBook
             if (!condition)
             {
                 onFault(message, data);
-                ExecutionEngine.Assert(false);
+                ExecutionEngine.Abort();
             }
         }
 

@@ -61,6 +61,7 @@ namespace FlamingoSwapOrderBook
         public static bool RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
+            Assert(baseToken != quoteToken, "Invalid Trade Pair");
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
