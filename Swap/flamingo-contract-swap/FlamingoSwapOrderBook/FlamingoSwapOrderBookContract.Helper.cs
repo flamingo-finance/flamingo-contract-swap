@@ -76,6 +76,31 @@ namespace FlamingoSwapOrderBook
             return false;
         }
 
+        private static bool InsertOrderAt(ByteString parentID, ByteString id, LimitOrder order, bool isBuy)
+        {
+            var parentOrder = GetOrder(parentID);
+            var canFollow = (isBuy && (order.price <= parentOrder.price)) || (!isBuy && (order.price >= parentOrder.price));
+            if (!canFollow) return false;
+            
+            if (parentOrder.nextID is not null)
+            {
+                // Check after
+                var nextOrder = GetOrder(parentOrder.nextID);
+                var canPrecede = (isBuy && (nextOrder.price < order.price)) || (!isBuy && (nextOrder.price > order.price));
+                canFollow = canFollow && canPrecede;
+            }
+            if (canFollow)
+            {
+                // Do insert
+                order.nextID = parentOrder.nextID;
+                SetOrder(id, order);
+                parentOrder.nextID = id;
+                SetOrder(parentID, parentOrder);
+                return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// Get the first limit order id
         /// </summary>
@@ -161,6 +186,19 @@ namespace FlamingoSwapOrderBook
                 currentOrder = GetOrder(currentID);
             }
             return false;
+        }
+
+        private static bool RemoveOrderAt(ByteString parentID, ByteString id)
+        {
+            var parentOrder = GetOrder(parentID);
+            if (parentOrder.nextID != id) return false;
+
+            // Do remove
+            var newNextID = GetOrder(id).nextID;
+            DeleteOrder(id);
+            parentOrder.nextID = newNextID;
+            SetOrder(parentID, parentOrder);
+            return true;
         }
 
         /// <summary>
