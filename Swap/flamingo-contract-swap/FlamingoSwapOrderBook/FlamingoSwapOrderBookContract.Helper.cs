@@ -202,21 +202,6 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Remove a fully-deal limit order from orderbook
-        /// </summary>
-        /// <param name="pairKey"></param>
-        /// <param name="isBuy"></param>
-        private static void RemoveFirstOrder(byte[] pairKey, bool isBuy)
-        {
-            // Remove from BookMap
-            var book = GetOrderBook(pairKey);
-            var firstID = isBuy ? book.firstBuyID : book.firstSellID;
-            // Delete the first
-            SetFirstOrderID(pairKey, GetOrder(firstID).nextID, isBuy);
-            DeleteOrder(firstID);
-        }
-
-        /// <summary>
         /// Check if a limit order exists
         /// </summary>
         /// <param name="id"></param>
@@ -405,12 +390,6 @@ namespace FlamingoSwapOrderBook
         {
             StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
             bookMap.Put(pairKey, StdLib.Serialize(book));
-        }
-
-        private static void DeleteOrderBook(byte[] pairKey)
-        {
-            StorageMap bookMap = new(Storage.CurrentContext, BookMapPrefix);
-            bookMap.Delete(pairKey);
         }
 
         /// <summary>

@@ -669,7 +669,6 @@ namespace FlamingoSwapOrderBook
             var bookInfo = GetOrderBook(pairKey);
             var fundAddress = GetFundAddress();
             var firstID = isBuy ? bookInfo.firstSellID : bookInfo.firstBuyID;
-            var firstOrder = GetOrder(firstID);
 
             BigInteger quoteFee = 0;
             BigInteger baseFee = 0;
@@ -677,8 +676,11 @@ namespace FlamingoSwapOrderBook
             var totalQuotePayment = new Map<UInt160, BigInteger>();
             var totalBasePayment = new Map<UInt160, BigInteger>();
 
-            while (leftAmount > 0)
+            while (firstID is not null)
             {
+                var firstOrder = GetOrder(firstID);
+                if ((isBuy && firstOrder.price > price) || (!isBuy && firstOrder.price < price)) break;
+
                 BigInteger quoteAmount;
                 BigInteger baseAmount;
                 BigInteger quotePayment;
@@ -691,7 +693,7 @@ namespace FlamingoSwapOrderBook
                     baseAmount = firstOrder.amount;
 
                     // Remove full-fill order
-                    RemoveFirstOrder(pairKey, !isBuy);
+                    DeleteOrder(firstID);
                     DeleteReceipt(firstOrder.maker, firstID);
 
                     onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, firstID, isBuy, firstOrder.maker, firstOrder.price, 0);
@@ -733,11 +735,20 @@ namespace FlamingoSwapOrderBook
                 }
 
                 // Check if still tradable
+                if (leftAmount == 0) break;
                 firstID = firstOrder.nextID;
-                if (firstID is null) break;
-                firstOrder = GetOrder(firstID);
-                // Check the price
-                if ((isBuy && firstOrder.price > price) || (!isBuy && firstOrder.price < price)) break;
+            }
+
+            // Update book if necessary
+            if (isBuy && bookInfo.firstSellID != firstID)
+            {
+                bookInfo.firstSellID = firstID;
+                SetOrderBook(pairKey, bookInfo);
+            }
+            if (!isBuy && bookInfo.firstBuyID != firstID)
+            {
+                bookInfo.firstBuyID = firstID;
+                SetOrderBook(pairKey, bookInfo);
             }
 
             // Do transfer
