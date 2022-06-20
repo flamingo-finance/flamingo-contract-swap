@@ -292,7 +292,7 @@ namespace FlamingoSwapRouter
 
         private static ByteString StorageGet(string key)
         {
-            return Storage.Get(Storage.CurrentContext, key);
+            return Storage.Get(Storage.CurrentReadOnlyContext, key);
         }
 
         private static void StoragePut(string key, string value)
