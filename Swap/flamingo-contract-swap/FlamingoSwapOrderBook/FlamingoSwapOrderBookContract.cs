@@ -229,19 +229,18 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Add a new order into orderbook with an expected parent order id
         /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
         /// <param name="parentID"></param>
         /// <param name="maker"></param>
-        /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
         /// <returns>Null or a new order id</returns>
-        public static ByteString AddLimitOrderAt(UInt160 tokenA, UInt160 tokenB, ByteString parentID, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount)
+        public static ByteString AddLimitOrderAt(ByteString parentID, UInt160 maker, BigInteger price, BigInteger amount)
         {
-            // Check if exist
-            var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(OrderExists(parentID), "Parent Order Not Exists");
+            var receipt = GetReceipt(GetOrder(parentID).maker, parentID);
+
+            // Check if paused
+            var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
             Assert(!BookPaused(pairKey), "Book is Paused");
 
             // Check parameters
@@ -257,8 +256,8 @@ namespace FlamingoSwapOrderBook
 
             // Deposit token
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(bookInfo.quoteToken, maker, me, amount * price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals));
-            else SafeTransfer(bookInfo.baseToken, maker, me, amount);
+            if (receipt.isBuy) SafeTransfer(receipt.quoteToken, maker, me, amount * price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals));
+            else SafeTransfer(receipt.baseToken, maker, me, amount);
 
             // Insert new order
             var id = GetUnusedID();
@@ -266,18 +265,18 @@ namespace FlamingoSwapOrderBook
                 maker = maker,
                 price = price,
                 amount = amount
-            }, isBuy), "Add Order Fail");
+            }, receipt.isBuy), "Add Order Fail");
 
             // Add receipt
             SetReceipt(maker, id, new OrderReceipt(){
-                baseToken = bookInfo.baseToken,
-                quoteToken = bookInfo.quoteToken,
+                baseToken = receipt.baseToken,
+                quoteToken = receipt.quoteToken,
                 id = id,
                 time = Runtime.Time,
-                isBuy = isBuy,
+                isBuy = receipt.isBuy,
                 totalAmount = amount
             });
-            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, isBuy, maker, price, amount);
+            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, receipt.isBuy, maker, price, amount);
             return id;
         }
 
@@ -316,34 +315,31 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Cancel a limit order with its id and parent order id
         /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
         /// <param name="parentID"></param>
-        /// <param name="isBuy"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static bool CancelOrderAt(UInt160 tokenA, UInt160 tokenB, ByteString parentID, bool isBuy, ByteString id)
+        public static bool CancelOrderAt(ByteString parentID, ByteString id)
         {
-            // Check if exist
-            var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(BookExists(pairKey), "Book Not Exists");
             if (!OrderExists(id)) return false;
             Assert(OrderExists(parentID), "Parent Order Not Exists");
             var order = GetOrder(id);
             Assert(Runtime.CheckWitness(order.maker), "No Authorization");
 
             // Do remove
-            var bookInfo = GetOrderBook(pairKey);
-            Assert(GetReceipt(order.maker, id).isBuy == isBuy && RemoveOrderAt(parentID, id), "Remove Order Fail");
+            var receipt = GetReceipt(order.maker, id);
+            var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
+            var quoteDecimals = GetQuoteDecimals(pairKey);
+
+            Assert(RemoveOrderAt(parentID, id), "Remove Order Fail");
 
             // Remove receipt
             DeleteReceipt(order.maker, id);
-            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, isBuy, order.maker, order.price, 0);
+            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, receipt.isBuy, order.maker, order.price, 0);
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(bookInfo.quoteToken, me, order.maker, order.amount * order.price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals));
-            else SafeTransfer(bookInfo.baseToken, me, order.maker, order.amount);
+            if (receipt.isBuy) SafeTransfer(receipt.quoteToken, me, order.maker, order.amount * order.price / BigInteger.Pow(10, quoteDecimals));
+            else SafeTransfer(receipt.baseToken, me, order.maker, order.amount);
             return true;
         }
 
