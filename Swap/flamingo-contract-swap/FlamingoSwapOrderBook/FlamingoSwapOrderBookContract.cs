@@ -414,6 +414,7 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0, "Invalid Price");
+            if (BookPaused(pairKey)) return 0;
 
             return GetTotalTradableInternal(pairKey, isBuy, price);
         }
@@ -454,8 +455,9 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
-            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
+            if (BookPaused(pairKey)) return new BigInteger[] { amount, 0 };
 
+            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
             return MatchOrderInternal(pairKey, isBuy, marketPrice, price, amount);
         }
 
@@ -465,6 +467,7 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && amount > 0, "Invalid Parameters");
+            if (BookPaused(pairKey)) return new BigInteger[] { amount, 0 };
 
             return MatchOrderInternal(pairKey, isBuy, price, price, amount);
         }
@@ -521,8 +524,9 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && quoteAmount > 0, "Invalid Parameters");
-            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
+            if (BookPaused(pairKey)) return new BigInteger[] { quoteAmount, 0 };
 
+            var marketPrice = isBuy ? GetBuyPrice(pairKey) : GetSellPrice(pairKey);
             return MatchQuoteInternal(pairKey, isBuy, marketPrice, price, quoteAmount);
         }
 
@@ -532,6 +536,7 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(price > 0 && quoteAmount > 0, "Invalid Parameters");
+            if (BookPaused(pairKey)) return new BigInteger[] { quoteAmount, 0 };
 
             return MatchQuoteInternal(pairKey, isBuy, price, price, quoteAmount);
         }
