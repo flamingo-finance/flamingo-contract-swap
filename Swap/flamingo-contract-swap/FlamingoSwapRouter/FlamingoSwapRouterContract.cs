@@ -210,7 +210,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountIn"></param>
         /// <param name="tokenIn"></param>
         /// <param name="tokenOut"></param>
-        /// <returns></returns>
+        /// <returns>[totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice]</returns>
         public static BigInteger[] GetAmountOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
@@ -276,7 +276,7 @@ namespace FlamingoSwapRouter
         /// <param name="amountOut"></param>
         /// <param name="tokenIn"></param>
         /// <param name="tokenOut"></param>
-        /// <returns></returns>
+        /// <returns>[totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice]</returns>
         public static BigInteger[] GetAmountIn(BigInteger amountOut, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
@@ -413,8 +413,8 @@ namespace FlamingoSwapRouter
         /// 获取链式交易报价和交易策略
         /// </summary>
         /// <param name="amountIn">第一种token输入量</param>
-        /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut）</param>
-        /// <returns></returns>
+        /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut)</param>
+        /// <returns>[tokenIn->token1,token1->token2...,tokenN->tokenOut][totalToBook,totalToPool,totalOutBook,totalOutPool,lastDealPrice]</returns>
         public static List<BigInteger[]> GetAmountsOut(BigInteger amountIn, UInt160[] paths)
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
@@ -433,8 +433,8 @@ namespace FlamingoSwapRouter
         /// 获取链式交易逆向报价和交易策略
         /// </summary>
         /// <param name="amountOut">最后一种token输出量</param>
-        /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut）</param>
-        /// <returns></returns>
+        /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut)</param>
+        /// <returns>[tokenN->tokenOut...,token1->token2,tokenIn->token1][totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice]</returns>
         public static List<BigInteger[]> GetAmountsIn(BigInteger amountOut, UInt160[] paths)
         {
             Assert(paths.Length >= 2, "INVALID_PATH");
@@ -625,17 +625,18 @@ namespace FlamingoSwapRouter
         /// <param name="tokenOut"></param>
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
-        /// <param name="quoteScale"></param>
+        /// <param name="quoteDecimals"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool SwapAMMTillPrice(UInt160 sender, BigInteger amountInMax, BigInteger amountOutMin, UInt160 tokenIn, UInt160 tokenOut, bool isBuy, BigInteger price, BigInteger quoteScale, BigInteger deadLine)
+        public static bool SwapAMMTillPrice(UInt160 sender, BigInteger amountInMax, BigInteger amountOutMin, UInt160 tokenIn, UInt160 tokenOut, bool isBuy, BigInteger price, uint quoteDecimals, BigInteger deadLine)
         {
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
+            Assert(amountInMax > 0 && amountOutMin >= 0 && price > 0 && deadLine > 0, "Invalid Parameters");
 
             var data = GetReserves(tokenIn, tokenOut);
 
-            var amountIn = GetAMMAmountInTillPrice(isBuy, price, quoteScale, data[0], data[1]);
+            var amountIn = GetAMMAmountInTillPrice(isBuy, price, BigInteger.Pow(10, (int)quoteDecimals), data[0], data[1]);
             var amountOut = GetAMMAmountOut(amountIn, data[0], data[1]);
 
             Assert(amountOut >= amountOutMin, "Insufficient AmountOut", amountOut);
