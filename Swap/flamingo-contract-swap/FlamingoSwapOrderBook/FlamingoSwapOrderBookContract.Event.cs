@@ -12,7 +12,7 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         [DisplayName("BookStatusChanged")]
         public static event BookStatusChangedEvent onBookStatusChanged;
-        public delegate void BookStatusChangedEvent(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount, bool isPaused);
+        public delegate void BookStatusChangedEvent(UInt160 baseToken, UInt160 quoteToken, BigInteger quoteScale, BigInteger minOrderAmount, BigInteger maxOrderAmount, bool isPaused);
 
         /// <summary>
         /// When order status changed

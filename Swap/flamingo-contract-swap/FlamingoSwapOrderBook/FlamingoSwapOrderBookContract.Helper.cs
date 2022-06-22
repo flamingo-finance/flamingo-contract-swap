@@ -363,10 +363,10 @@ namespace FlamingoSwapOrderBook
             return ((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteToken;
         }
 
-        private static int GetQuoteDecimals(byte[] pairKey)
+        private static BigInteger GetQuoteScale(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentReadOnlyContext, BookMapPrefix);
-            return (int)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteDecimals;
+            return (BigInteger)((OrderBook)StdLib.Deserialize(bookMap.Get(pairKey))).quoteScale;
         }
 
         private static BigInteger GetMaxOrderAmount(byte[] pairKey)

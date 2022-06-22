@@ -140,9 +140,9 @@ namespace FlamingoSwapRouter
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
-        public static int GetQuoteDecimals(UInt160 tokenA, UInt160 tokenB)
+        public static BigInteger GetQuoteScale(UInt160 tokenA, UInt160 tokenB)
         {
-            return (int)Contract.Call(OrderBook, "getQuoteDecimals", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
+            return (BigInteger)Contract.Call(OrderBook, "getQuoteScale", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
         }
 
         /// <summary>

@@ -225,17 +225,17 @@ namespace FlamingoSwapRouter
 
             if (BookTradable(tokenIn, tokenOut))
             {
-                var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
+                var quoteScale = GetQuoteScale(tokenIn, tokenOut);
                 var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
 
                 while (bookPrice > 0)
                 {
-                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
+                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
 
                     // First AMM
                     if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteScale, ammReverse[0], ammReverse[1]);
                         if (leftIn <= amountToPool) amountToPool = leftIn;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
@@ -291,17 +291,17 @@ namespace FlamingoSwapRouter
 
             if (BookTradable(tokenIn, tokenOut))
             {
-                var quoteDecimals = GetQuoteDecimals(tokenIn, tokenOut);
+                var quoteScale = GetQuoteScale(tokenIn, tokenOut);
                 var bookPrice = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
 
                 while (bookPrice > 0)
                 {
-                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteDecimals) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteDecimals);
+                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
 
                     // First AMM
                     if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteDecimals, ammReverse[0], ammReverse[1]);
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteScale, ammReverse[0], ammReverse[1]);
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         if (amountOutPool >= leftOut)
                         {
@@ -381,12 +381,12 @@ namespace FlamingoSwapRouter
         /// </summary>
         /// <param name="reverseBase">基准库存</param>
         /// <param name="reverseQuote">报价库存</param>
-        /// <param name="quoteDecimals">报价精度</param>
+        /// <param name="quoteScale">报价精度</param>
         /// <returns></returns>
-        public static BigInteger GetAMMPrice(BigInteger reverseBase, BigInteger reverseQuote, int quoteDecimals)
+        public static BigInteger GetAMMPrice(BigInteger reverseBase, BigInteger reverseQuote, BigInteger quoteScale)
         {
             Assert(reverseBase > 0 && reverseQuote > 0, "Reserve Invalid");
-            return reverseQuote * BigInteger.Pow(10, quoteDecimals) / reverseBase;
+            return reverseQuote * quoteScale / reverseBase;
         }
 
 
@@ -395,15 +395,15 @@ namespace FlamingoSwapRouter
         /// </summary>
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
-        /// <param name="quoteDecimals"></param>
+        /// <param name="quoteScale"></param>
         /// <param name="reserveIn"></param>
         /// <param name="reserveOut"></param>
-        public static BigInteger GetAMMAmountInTillPrice(bool isBuy, BigInteger price, int quoteDecimals, BigInteger reserveIn, BigInteger reserveOut)
+        public static BigInteger GetAMMAmountInTillPrice(bool isBuy, BigInteger price, BigInteger quoteScale, BigInteger reserveIn, BigInteger reserveOut)
         {
-            Assert(price > 0 && quoteDecimals > 0 && reserveIn > 0 && reserveOut > 0, "Parameter Invalid");
+            Assert(price > 0 && quoteScale > 0 && reserveIn > 0 && reserveOut > 0, "Parameter Invalid");
             var reverseInNew = BigInteger.Pow(reserveIn, 2) * 9 / 1000000;
-            if (isBuy) reverseInNew += reserveIn * reserveOut * price * 3988 / BigInteger.Pow(10, quoteDecimals) / 1000;
-            else reverseInNew += reserveIn * reserveOut * BigInteger.Pow(10, quoteDecimals) * 3988 / price / 1000;
+            if (isBuy) reverseInNew += reserveIn * reserveOut * price * 3988 / quoteScale / 1000;
+            else reverseInNew += reserveIn * reserveOut * quoteScale * 3988 / price / 1000;
             reverseInNew = (reverseInNew.Sqrt() - reserveIn * 3 / 1000) * 1000 / 1994;
             return reverseInNew - reserveIn;
         }
@@ -622,17 +622,17 @@ namespace FlamingoSwapRouter
         /// <param name="tokenOut"></param>
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
-        /// <param name="quoteDecimals"></param>
+        /// <param name="quoteScale"></param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool SwapAMMTillPrice(UInt160 sender, BigInteger amountInMax, BigInteger amountOutMin, UInt160 tokenIn, UInt160 tokenOut, bool isBuy, BigInteger price, int quoteDecimals, BigInteger deadLine)
+        public static bool SwapAMMTillPrice(UInt160 sender, BigInteger amountInMax, BigInteger amountOutMin, UInt160 tokenIn, UInt160 tokenOut, bool isBuy, BigInteger price, BigInteger quoteScale, BigInteger deadLine)
         {
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
 
             var data = GetReserves(tokenIn, tokenOut);
 
-            var amountIn = GetAMMAmountInTillPrice(isBuy, price, quoteDecimals, data[0], data[1]);
+            var amountIn = GetAMMAmountInTillPrice(isBuy, price, quoteScale, data[0], data[1]);
             var amountOut = GetAMMAmountOut(amountIn, data[0], data[1]);
 
             Assert(amountOut >= amountOutMin, "Insufficient AmountOut", amountOut);

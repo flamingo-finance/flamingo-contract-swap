@@ -40,7 +40,7 @@ namespace FlamingoSwapOrderBook
         {
             public UInt160 baseToken;
             public UInt160 quoteToken;
-            public uint quoteDecimals;
+            public BigInteger quoteScale;
             public BigInteger minOrderAmount;
             public BigInteger maxOrderAmount;
 
@@ -66,15 +66,16 @@ namespace FlamingoSwapOrderBook
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
+            var quoteScale = BigInteger.Pow(10, (int)quoteDecimals);
             if (BookExists(pairKey)) return false;
             SetOrderBook(pairKey, new OrderBook(){
                 baseToken = baseToken,
                 quoteToken = quoteToken,
-                quoteDecimals = quoteDecimals,
+                quoteScale = quoteScale,
                 minOrderAmount = minOrderAmount,
                 maxOrderAmount = maxOrderAmount
             });
-            onBookStatusChanged(baseToken, quoteToken, quoteDecimals, minOrderAmount, maxOrderAmount, BookPaused(pairKey));
+            onBookStatusChanged(baseToken, quoteToken, quoteScale, minOrderAmount, maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -99,7 +100,7 @@ namespace FlamingoSwapOrderBook
             Assert(minOrderAmount <= book.maxOrderAmount, "Invalid Amount Limit");
             book.minOrderAmount = minOrderAmount;
             SetOrderBook(pairKey, book);
-            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -124,7 +125,7 @@ namespace FlamingoSwapOrderBook
             Assert(maxOrderAmount >= book.minOrderAmount, "Invalid Amount Limit");
             book.maxOrderAmount = maxOrderAmount;
             SetOrderBook(pairKey, book);
-            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -145,7 +146,7 @@ namespace FlamingoSwapOrderBook
             if (book.baseToken != baseToken || book.quoteToken != quoteToken) return false;
 
             SetPaused(pairKey);
-            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -166,7 +167,7 @@ namespace FlamingoSwapOrderBook
             if (book.baseToken != baseToken || book.quoteToken != quoteToken) return false;
 
             RemovePaused(pairKey);
-            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteDecimals, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
             return true;
         }
 
@@ -202,7 +203,7 @@ namespace FlamingoSwapOrderBook
 
             // Deposit token
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(bookInfo.quoteToken, maker, me, leftAmount * price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals));
+            if (isBuy) SafeTransfer(bookInfo.quoteToken, maker, me, leftAmount * price / bookInfo.quoteScale);
             else SafeTransfer(bookInfo.baseToken, maker, me, leftAmount);
 
             // Do add
@@ -256,7 +257,7 @@ namespace FlamingoSwapOrderBook
 
             // Deposit token
             var me = Runtime.ExecutingScriptHash;
-            if (receipt.isBuy) SafeTransfer(receipt.quoteToken, maker, me, amount * price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals));
+            if (receipt.isBuy) SafeTransfer(receipt.quoteToken, maker, me, amount * price / bookInfo.quoteScale);
             else SafeTransfer(receipt.baseToken, maker, me, amount);
 
             // Insert new order
@@ -307,7 +308,7 @@ namespace FlamingoSwapOrderBook
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
-            if (isBuy) SafeTransfer(bookInfo.quoteToken, me, order.maker, order.amount * order.price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals));
+            if (isBuy) SafeTransfer(bookInfo.quoteToken, me, order.maker, order.amount * order.price / bookInfo.quoteScale);
             else SafeTransfer(bookInfo.baseToken, me, order.maker, order.amount);
             return true;
         }
@@ -328,7 +329,7 @@ namespace FlamingoSwapOrderBook
             // Do remove
             var receipt = GetReceipt(order.maker, id);
             var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
-            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var quoteScale = GetQuoteScale(pairKey);
 
             Assert(RemoveOrderAt(parentID, id), "Remove Order Fail");
 
@@ -338,7 +339,7 @@ namespace FlamingoSwapOrderBook
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
-            if (receipt.isBuy) SafeTransfer(receipt.quoteToken, me, order.maker, order.amount * order.price / BigInteger.Pow(10, quoteDecimals));
+            if (receipt.isBuy) SafeTransfer(receipt.quoteToken, me, order.maker, order.amount * order.price / quoteScale);
             else SafeTransfer(receipt.baseToken, me, order.maker, order.amount);
             return true;
         }
@@ -478,7 +479,7 @@ namespace FlamingoSwapOrderBook
             var firstID = GetFirstOrderID(pairKey, !isBuy);
             if (firstID is null) return new BigInteger[] { amount, totalPayment };
 
-            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var quoteScale = GetQuoteScale(pairKey);
             var currentOrder = GetOrder(firstID);
 
             while((isBuy && currentOrder.price < startPrice) || (!isBuy && currentOrder.price > startPrice))
@@ -494,12 +495,12 @@ namespace FlamingoSwapOrderBook
 
                 if (currentOrder.amount <= amount) 
                 {
-                    totalPayment += currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                    totalPayment += currentOrder.amount * currentOrder.price / quoteScale;
                     amount -= currentOrder.amount;
                 }
                 else
                 {
-                    totalPayment += amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                    totalPayment += amount * currentOrder.price / quoteScale;
                     amount = 0;
                 }
 
@@ -547,7 +548,7 @@ namespace FlamingoSwapOrderBook
             var firstID = GetFirstOrderID(pairKey, !isBuy);
             if (firstID is null) return new BigInteger[] { quoteAmount, totalTradable };
 
-            var quoteDecimals = GetQuoteDecimals(pairKey);
+            var quoteScale = GetQuoteScale(pairKey);
             var currentOrder = GetOrder(firstID);
 
             while((isBuy && currentOrder.price < startPrice) || (!isBuy && currentOrder.price > startPrice))
@@ -561,7 +562,7 @@ namespace FlamingoSwapOrderBook
                 // Check price
                 if ((isBuy && currentOrder.price > endPrice) || (!isBuy && currentOrder.price < endPrice)) break;
 
-                var payment = currentOrder.amount * currentOrder.price / BigInteger.Pow(10, quoteDecimals);
+                var payment = currentOrder.amount * currentOrder.price / quoteScale;
                 if (payment <= quoteAmount) 
                 {
                     totalTradable += currentOrder.amount;
@@ -570,9 +571,9 @@ namespace FlamingoSwapOrderBook
                 else
                 {
                     // For buyer, real payment <= expected
-                    if (isBuy) totalTradable += quoteAmount * BigInteger.Pow(10, quoteDecimals) / currentOrder.price;
+                    if (isBuy) totalTradable += quoteAmount * quoteScale / currentOrder.price;
                     // For seller, real payment >= expected
-                    else totalTradable += (quoteAmount * BigInteger.Pow(10, quoteDecimals) + currentOrder.price - 1) / currentOrder.price;
+                    else totalTradable += (quoteAmount * quoteScale + currentOrder.price - 1) / currentOrder.price;
                     quoteAmount = 0;
                 }
 
@@ -690,7 +691,7 @@ namespace FlamingoSwapOrderBook
                 if (firstOrder.amount <= leftAmount)
                 {
                     // Full-fill
-                    quoteAmount = firstOrder.amount * firstOrder.price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals);
+                    quoteAmount = firstOrder.amount * firstOrder.price / bookInfo.quoteScale;
                     baseAmount = firstOrder.amount;
 
                     // Remove full-fill order
@@ -703,7 +704,7 @@ namespace FlamingoSwapOrderBook
                 else
                 {
                     // Part-fill
-                    quoteAmount = leftAmount * firstOrder.price / BigInteger.Pow(10, (int)bookInfo.quoteDecimals);
+                    quoteAmount = leftAmount * firstOrder.price / bookInfo.quoteScale;
                     baseAmount = leftAmount;
 
                     // Update order
@@ -826,13 +827,13 @@ namespace FlamingoSwapOrderBook
             return GetQuoteToken(pairKey);
         }
 
-        public static int GetQuoteDecimals(UInt160 tokenA, UInt160 tokenB)
+        public static BigInteger GetQuoteScale(UInt160 tokenA, UInt160 tokenB)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
 
-            return GetQuoteDecimals(pairKey);
+            return GetQuoteScale(pairKey);
         }
 
         public static BigInteger GetMaxOrderAmount(UInt160 tokenA, UInt160 tokenB)
