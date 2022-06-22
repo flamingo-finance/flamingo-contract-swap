@@ -150,12 +150,12 @@ namespace FlamingoSwapRouter
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
-        /// <param name="startPrice"></param>
-        /// <param name="endPrice"></param>
-        /// <param name="amountInMax"></param>
-        private static BigInteger SendMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger price, BigInteger amount)
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        private static BigInteger SendMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
-            return (BigInteger)Contract.Call(OrderBook, "dealMarketOrder", CallFlags.All, new object[] { tokenA, tokenB, sender, isBuy, price, amount });
+            return (BigInteger)Contract.Call(OrderBook, "dealMarketOrder", CallFlags.All, new object[] { tokenA, tokenB, isBuy, price, amount });
         }
 
         /// <summary>

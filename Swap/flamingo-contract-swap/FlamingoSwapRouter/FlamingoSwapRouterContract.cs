@@ -583,8 +583,11 @@ namespace FlamingoSwapRouter
         /// </summary>
         /// <param name="tokenIn"></param>
         /// <param name="tokenOut"></param>
-        /// <param name="amountIn"></param>
-        /// <param name="amountOut"></param>
+        /// <param name="amountToBook"></param>
+        /// <param name="amountToPool"></param>
+        /// <param name="amountOutBook"></param>
+        /// <param name="amountOutPool"></param>
+        /// <param name="bookDealPrice"></param>
         /// <returns></returns>
         private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountToBook, BigInteger amountToPool, BigInteger amountOutBook, BigInteger amountOutPool, BigInteger bookDealPrice)
         {
@@ -596,11 +599,11 @@ namespace FlamingoSwapRouter
                 Approve(tokenIn, OrderBook, amountToBook);
                 if (isBuy)
                 {
-                    Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookDealPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
+                    Assert(SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
                 }
                 else
                 {
-                    Assert(SendMarketOrder(tokenIn, tokenOut, me, isBuy, bookDealPrice, amountToBook) == 0, "Not Full-filled");
+                    Assert(SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, amountToBook) == 0, "Not Full-filled");
                 }
                 Retrieve(tokenIn, OrderBook);
             }
