@@ -120,6 +120,7 @@ namespace ProxyTemplate
             Assert(UpdateBalance(prefix, owner, -amount), "Update Fail", prefix);
         }
 
+
         public static BigInteger DepositOf(UInt160 token, UInt160 owner)
         {
             Assert(token.IsValid && owner.IsValid, "Invalid Parameters");
