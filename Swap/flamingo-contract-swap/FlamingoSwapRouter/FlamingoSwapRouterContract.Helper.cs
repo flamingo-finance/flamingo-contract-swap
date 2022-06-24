@@ -8,9 +8,6 @@ namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract
     {
-        //[Syscall("System.Runtime.Notify")]
-        //private static extern void Notify(string eventName, params object[] data);
-
         /// <summary>
         /// 断言
         /// </summary>
@@ -67,56 +64,53 @@ namespace FlamingoSwapRouter
         }
 
         /// <summary>
-        /// 给定一个价格区间，查询限价簿剩余不能满足的输入量和能够交易的输出量
+        /// 给定一个价格区间(从锚点订单到指定价格)，查询限价簿剩余不能满足的输入量和能够交易的输出量
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
-        /// <param name="startPrice"></param>
-        /// <param name="endPrice"></param>
-        /// <param name="amountOutMin"></param>
-        public static BigInteger[] GetOrderBookAmountOut(UInt160 tokenA, UInt160 tokenB, BigInteger startPrice, BigInteger endPrice, BigInteger amountOutMin)
-        {
-            return (BigInteger[])Contract.Call(OrderBook, "getAmountOut", CallFlags.ReadOnly, new object[] { tokenA, tokenB, startPrice, endPrice, amountOutMin });
-        }
-
-        /// <summary>
-        /// 给定一个价格区间，查询限价簿剩余不能满足的输出量和能够交易的输入量
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="startPrice"></param>
-        /// <param name="endPrice"></param>
-        /// <param name="amountInMax"></param>
-        public static BigInteger[] GetOrderBookAmountIn(UInt160 tokenA, UInt160 tokenB, BigInteger startPrice, BigInteger endPrice, BigInteger amountInMax)
-        {
-            return (BigInteger[])Contract.Call(OrderBook, "getAmountIn", CallFlags.ReadOnly, new object[] { tokenA, tokenB, startPrice, endPrice, amountInMax });
-        }
-
-        /// <summary>
-        /// 向限价簿获取交易对的最优报价
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="isBuy"></param>
-        public static BigInteger GetOrderBookPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy)
-        {
-            return (BigInteger)Contract.Call(OrderBook, "getMarketPrice", CallFlags.ReadOnly, new object[] { tokenA, tokenB, isBuy });
-        }
-
-        /// <summary>
-        /// 向限价簿获取交易对的下一级报价
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="isBuy"></param>
+        /// <param name="anchorID"></param>
         /// <param name="price"></param>
-        public static BigInteger GetOrderBookNextPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price)
+        /// <param name="amountIn"></param>
+        public static BigInteger[] GetOrderBookAmountOut(UInt160 tokenA, UInt160 tokenB, ByteString anchorID, BigInteger price, BigInteger amountIn)
         {
-            return (BigInteger)Contract.Call(OrderBook, "getNextPrice", CallFlags.ReadOnly, new object[] { tokenA, tokenB, isBuy, price });
+            return (BigInteger[])Contract.Call(OrderBook, "getAmountOut", CallFlags.ReadOnly, new object[] { tokenA, tokenB, anchorID, price, amountIn });
         }
 
         /// <summary>
-        /// 查询限价簿交易对是否可用
+        /// 给定一个价格区间(从锚点订单到指定价格)，查询限价簿剩余不能满足的输出量和能够交易的输入量
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="anchorID"></param>
+        /// <param name="price"></param>
+        /// <param name="amountOut"></param>
+        public static BigInteger[] GetOrderBookAmountIn(UInt160 tokenA, UInt160 tokenB, ByteString anchorID, BigInteger price, BigInteger amountOut)
+        {
+            return (BigInteger[])Contract.Call(OrderBook, "getAmountIn", CallFlags.ReadOnly, new object[] { tokenA, tokenB, anchorID, price, amountOut });
+        }
+
+        /// <summary>
+        /// 向限价簿获取交易对的最优报价和该价格的询价锚点
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
+        public static (ByteString, BigInteger) GetOrderBookPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy)
+        {
+            return ((ByteString, BigInteger))Contract.Call(OrderBook, "getMarketPrice", CallFlags.ReadOnly, new object[] { tokenA, tokenB, isBuy });
+        }
+
+        /// <summary>
+        /// 向限价簿获取交易对的下一级报价和对应的询价锚点
+        /// </summary>
+        /// <param name="anchorID"></param>
+        public static (ByteString, BigInteger) GetOrderBookNextPrice(ByteString anchorID)
+        {
+            return ((ByteString, BigInteger))Contract.Call(OrderBook, "getNextPrice", CallFlags.ReadOnly, new object[] { anchorID });
+        }
+
+        /// <summary>
+        /// 查询限价簿交易对是否可用(是否存在以及暂停交易)
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
@@ -136,7 +130,7 @@ namespace FlamingoSwapRouter
         }
 
         /// <summary>
-        /// 向限价簿获取交易对的报价精度
+        /// 向限价簿获取交易对的报价缩放倍数
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
