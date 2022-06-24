@@ -2,12 +2,16 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapRouter
 {
     partial class FlamingoSwapRouterContract
     {
+        //[Syscall("System.Runtime.Notify")]
+        //private static extern void Notify(string eventName, params object[] data);
+
         /// <summary>
         /// 断言
         /// </summary>
@@ -51,118 +55,6 @@ namespace FlamingoSwapRouter
             return (UInt160)pairContract;
         }
 
-        /// <summary>
-        /// 查询TokenA,TokenB交易对合约的里的持有量并按A、B顺序返回
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <returns></returns>
-        public static BigInteger[] GetReserves(UInt160 tokenA, UInt160 tokenB)
-        {
-            var reserveData = (ReservesData)Contract.Call(GetExchangePairWithAssert(tokenA, tokenB), "getReserves", CallFlags.ReadOnly, new object[] { });
-            return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
-        }
-
-        /// <summary>
-        /// 给定一个价格区间(从锚点订单到指定价格)，查询限价簿剩余不能满足的输入量和能够交易的输出量
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="anchorID"></param>
-        /// <param name="price"></param>
-        /// <param name="amountIn"></param>
-        public static BigInteger[] GetOrderBookAmountOut(UInt160 tokenA, UInt160 tokenB, ByteString anchorID, BigInteger price, BigInteger amountIn)
-        {
-            return (BigInteger[])Contract.Call(OrderBook, "getAmountOut", CallFlags.ReadOnly, new object[] { tokenA, tokenB, anchorID, price, amountIn });
-        }
-
-        /// <summary>
-        /// 给定一个价格区间(从锚点订单到指定价格)，查询限价簿剩余不能满足的输出量和能够交易的输入量
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="anchorID"></param>
-        /// <param name="price"></param>
-        /// <param name="amountOut"></param>
-        public static BigInteger[] GetOrderBookAmountIn(UInt160 tokenA, UInt160 tokenB, ByteString anchorID, BigInteger price, BigInteger amountOut)
-        {
-            return (BigInteger[])Contract.Call(OrderBook, "getAmountIn", CallFlags.ReadOnly, new object[] { tokenA, tokenB, anchorID, price, amountOut });
-        }
-
-        /// <summary>
-        /// 向限价簿获取交易对的最优报价和该价格的询价锚点
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="isBuy"></param>
-        public static (ByteString, BigInteger) GetOrderBookPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy)
-        {
-            return ((ByteString, BigInteger))Contract.Call(OrderBook, "getMarketPrice", CallFlags.ReadOnly, new object[] { tokenA, tokenB, isBuy });
-        }
-
-        /// <summary>
-        /// 向限价簿获取交易对的下一级报价和对应的询价锚点
-        /// </summary>
-        /// <param name="anchorID"></param>
-        public static (ByteString, BigInteger) GetOrderBookNextPrice(ByteString anchorID)
-        {
-            return ((ByteString, BigInteger))Contract.Call(OrderBook, "getNextPrice", CallFlags.ReadOnly, new object[] { anchorID });
-        }
-
-        /// <summary>
-        /// 查询限价簿交易对是否可用(是否存在以及暂停交易)
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        public static bool BookTradable(UInt160 tokenA, UInt160 tokenB)
-        {
-            return (bool)Contract.Call(OrderBook, "bookTradable", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
-        }
-
-        /// <summary>
-        /// 向限价簿获取交易对的报价基准代币
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        public static UInt160 GetBaseToken(UInt160 tokenA, UInt160 tokenB)
-        {
-            return (UInt160)Contract.Call(OrderBook, "getBaseToken", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
-        }
-
-        /// <summary>
-        /// 向限价簿获取交易对的报价缩放倍数
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        public static BigInteger GetQuoteScale(UInt160 tokenA, UInt160 tokenB)
-        {
-            return (BigInteger)Contract.Call(OrderBook, "getQuoteScale", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
-        }
-
-        /// <summary>
-        /// 向限价簿转发市场交易请求
-        /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
-        /// <param name="isBuy"></param>
-        /// <param name="price"></param>
-        /// <param name="amount"></param>
-        private static BigInteger SendMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
-        {
-            return (BigInteger)Contract.Call(OrderBook, "dealMarketOrder", CallFlags.All, new object[] { tokenA, tokenB, isBuy, price, amount });
-        }
-
-        /// <summary>
-        /// 向资金池转发兑出请求
-        /// </summary>
-        /// <param name="pairContract"></param>
-        /// <param name="amount0Out"></param>
-        /// <param name="amount1Out"></param>
-        /// <param name="toAddress"></param>
-        private static void SwapOut(UInt160 pairContract, BigInteger amount0Out, BigInteger amount1Out, UInt160 toAddress)
-        {
-            Contract.Call(pairContract, "swap", CallFlags.All, new object[] { amount0Out, amount1Out, toAddress, null });
-        }
 
         /// <summary>
         /// 安全转账，失败则中断退出
@@ -171,11 +63,11 @@ namespace FlamingoSwapRouter
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="amount"></param>
-        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        private static void SafeTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
             try
             {
-                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, data });
+                var result = (bool)Contract.Call(token, "transfer", CallFlags.All, new object[] { from, to, amount, null });
                 Assert(result, "Transfer Fail in Router", token);
             }
             catch (Exception)
@@ -184,7 +76,6 @@ namespace FlamingoSwapRouter
             }
         }
 
-
         /// <summary>
         /// 请求转账，未授权则中断退出
         /// </summary>
@@ -192,12 +83,12 @@ namespace FlamingoSwapRouter
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <param name="amount"></param>
-        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount, byte[] data = null)
+        private static void RequestTransfer(UInt160 token, UInt160 from, UInt160 to, BigInteger amount)
         {
             try
             {
                 var balanceBefore = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
-                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, data });
+                var result = (bool)Contract.Call(from, "approvedTransfer", CallFlags.All, new object[] { token, to, amount, null });
                 var balanceAfter = (BigInteger)Contract.Call(token, "balanceOf", CallFlags.ReadOnly, new object[] { to });
                 Assert(result, "Transfer Not Approved in Router", token);
                 Assert(balanceAfter == balanceBefore + amount, "Unexpected Transfer in Router", token);
@@ -209,84 +100,9 @@ namespace FlamingoSwapRouter
         }
 
 
-        /// <summary>
-        /// Check approval and tranfer as the caller
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="to"></param>
-        /// <param name="amount"></param>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        public static bool ApprovedTransfer(UInt160 token, UInt160 to, BigInteger amount, byte[] data = null)
-        {
-            // Check token
-            Assert(token.IsValid && to.IsValid && !to.IsZero && amount >= 0, "Invalid Parameters");
-
-            // Find allowed
-            Assert(AllowedOf(token, to) >= amount, "Insufficient Allowed");
-            Consume(token, to, amount);
-
-            // Transfer
-            var me = Runtime.ExecutingScriptHash;
-            SafeTransfer(token, me, to, amount, data);
-            return true;
-        }
-
-        /// <summary>
-        /// Approve some tranfer with a maximal amount
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="to"></param>
-        /// <param name="amount"></param>
-        private static void Approve(UInt160 token, UInt160 to, BigInteger amount)
-        {
-            Assert(UpdateAllowed(AllowedMapKey + token, to, +amount), "Update Allowed Fail");
-        }
-
-        /// <summary>
-        /// Decrease the approved amount when transfer happens
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="to"></param>
-        /// <param name="amount"></param>
-        private static void Consume(UInt160 token, UInt160 to, BigInteger amount)
-        {
-            Assert(UpdateAllowed(AllowedMapKey + token, to, -amount), "Update Allowed Fail");
-        }
-
-        /// <summary>
-        /// Retrieve the approval when tranfer is completed
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="to"></param>
-        private static void Retrieve(UInt160 token, UInt160 to)
-        {
-            Assert(UpdateAllowed(AllowedMapKey + token, to, -AllowedOf(token, to)), "Update Allowed Fail");
-        }
-
-        private static BigInteger AllowedOf(UInt160 token, UInt160 to)
-        {
-            StorageMap allowedMap = new(Storage.CurrentReadOnlyContext, AllowedMapKey + token);
-            return (BigInteger)allowedMap.Get(to);
-        }
-
-        private static bool UpdateAllowed(string allowedKey, UInt160 owner, BigInteger increment)
-        {
-            StorageMap allowedMap = new(Storage.CurrentContext, allowedKey);
-            BigInteger allowed = (BigInteger)allowedMap[owner];
-            allowed += increment;
-            if (allowed < 0) return false;
-            if (allowed.IsZero)
-                allowedMap.Delete(owner);
-            else
-                allowedMap.Put(owner, allowed);
-            return true;
-        }
-
-
         private static ByteString StorageGet(string key)
         {
-            return Storage.Get(Storage.CurrentReadOnlyContext, key);
+            return Storage.Get(Storage.CurrentContext, key);
         }
 
         private static void StoragePut(string key, string value)
@@ -307,36 +123,6 @@ namespace FlamingoSwapRouter
         private static void StoragePut(string key, ByteString value)
         {
             Storage.Put(Storage.CurrentContext, key, value);
-        }
-
-        /// <summary>
-        /// 根据报价计算含手续费价格
-        /// </summary>
-        /// <param name="priceExcludingFee">基准库存</param>
-        /// <returns></returns>
-        private static BigInteger PriceAddAMMFee(BigInteger priceExcludingFee)
-        {
-            return (priceExcludingFee * 1000 + 996) / 997;
-        }
-
-        private static BigInteger PriceAddBookFee(BigInteger priceExcludingFee)
-        {
-            return (priceExcludingFee * 10000 + 9984) / 9985;
-        }
-
-        /// <summary>
-        /// 根据含手续费价格计算原报价
-        /// </summary>
-        /// <param name="priceIncludingFee">基准库存</param>
-        /// <returns></returns>
-        private static BigInteger PriceRemoveAMMFee(BigInteger priceIncludingFee)
-        {
-            return priceIncludingFee * 997 / 1000;
-        }
-
-        private static BigInteger PriceRemoveBookFee(BigInteger priceIncludingFee)
-        {
-            return priceIncludingFee * 9985 / 10000;
         }
     }
 }

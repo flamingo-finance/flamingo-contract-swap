@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapFactory", "Flam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapOrderBook", "FlamingoSwapOrderBook\FlamingoSwapOrderBook.csproj", "{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlamingoSwapAggregator", "FlamingoSwapAggregator\FlamingoSwapAggregator.csproj", "{A0671C7C-AE2A-4BC5-A133-4369D4ADF86C}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProxyTemplate", "ProxyTemplate\ProxyTemplate.csproj", "{71582763-E444-4646-BCCD-828BE7859047}"
 EndProject
 Global
@@ -53,6 +55,10 @@ Global
 		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4F8EF264-8485-4BF9-B458-043C5BC0BDF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0671C7C-AE2A-4BC5-A133-4369D4ADF86C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0671C7C-AE2A-4BC5-A133-4369D4ADF86C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0671C7C-AE2A-4BC5-A133-4369D4ADF86C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0671C7C-AE2A-4BC5-A133-4369D4ADF86C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{71582763-E444-4646-BCCD-828BE7859047}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{71582763-E444-4646-BCCD-828BE7859047}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{71582763-E444-4646-BCCD-828BE7859047}.Release|Any CPU.ActiveCfg = Release|Any CPU

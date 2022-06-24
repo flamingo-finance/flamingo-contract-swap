@@ -5,9 +5,9 @@ using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract;
 using Neo.SmartContract.Framework.Attributes;
 
-namespace FlamingoSwapRouter
+namespace FlamingoSwapAggregator
 {
-    public partial class FlamingoSwapRouterContract
+    public partial class FlamingoSwapAggregatorContract
     {
         #region Admin
         [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
@@ -16,8 +16,12 @@ namespace FlamingoSwapRouter
         [InitialValue("0xca2d20610d7982ebe0bed124ee7e9b2d580a6efc", ContractParameterType.Hash160)]
         static readonly UInt160 Factory = default;
 
+        [InitialValue("0x909d0466c628505d99bfc2921465949449e6d5d3", ContractParameterType.Hash160)]
+        static readonly UInt160 OrderBook = default;
+
         const string AdminKey = nameof(superAdmin);
 
+        private const string AllowedMapKey = nameof(AllowedMapKey);
 
         // When this contract address is included in the transaction signature,
         // this method will be triggered as a VerificationTrigger to verify that the signature is correct.
