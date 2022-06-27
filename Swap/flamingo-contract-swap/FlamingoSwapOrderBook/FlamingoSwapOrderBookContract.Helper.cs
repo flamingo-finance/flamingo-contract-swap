@@ -336,8 +336,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="id"></param>
         private static void DeleteReceipt(UInt160 maker, ByteString id)
         {
-            StorageMap orderMap = new(Storage.CurrentContext, ReceiptMapPrefix);
-            orderMap.Delete(maker + id);
+            StorageMap receiptMap = new(Storage.CurrentContext, ReceiptMapPrefix);
+            receiptMap.Delete(maker + id);
         }
 
         /// <summary>
