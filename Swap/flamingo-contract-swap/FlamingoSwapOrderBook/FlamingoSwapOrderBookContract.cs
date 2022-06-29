@@ -647,40 +647,42 @@ namespace FlamingoSwapOrderBook
             var totalQuotePayment = new Map<UInt160, BigInteger>();
             var totalBasePayment = new Map<UInt160, BigInteger>();
 
-            while (firstID is not null)
+            var currentID = firstID;
+            while (currentID is not null)
             {
-                var firstOrder = GetOrder(firstID);
-                if ((isBuy && firstOrder.price > price) || (!isBuy && firstOrder.price < price)) break;
+                var currentOrder = GetOrder(currentID);
+                if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
 
                 BigInteger quoteAmount;
                 BigInteger baseAmount;
                 BigInteger quotePayment;
                 BigInteger basePayment;
 
-                if (firstOrder.amount <= leftAmount)
+                if (currentOrder.amount <= leftAmount)
                 {
                     // Full-fill
-                    quoteAmount = firstOrder.amount * firstOrder.price / bookInfo.quoteScale;
-                    baseAmount = firstOrder.amount;
+                    quoteAmount = currentOrder.amount * currentOrder.price / bookInfo.quoteScale;
+                    baseAmount = currentOrder.amount;
 
                     // Remove full-fill order
-                    DeleteOrder(firstID);
-                    DeleteReceipt(firstOrder.maker, firstID);
+                    DeleteOrder(currentID);
+                    DeleteReceipt(currentOrder.maker, currentID);
+                    firstID = currentOrder.nextID;
 
-                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, firstID, isBuy, firstOrder.maker, firstOrder.price, 0);
-                    leftAmount -= firstOrder.amount;
+                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, currentID, isBuy, currentOrder.maker, currentOrder.price, 0);
+                    leftAmount -= currentOrder.amount;
                 }
                 else
                 {
                     // Part-fill
-                    quoteAmount = leftAmount * firstOrder.price / bookInfo.quoteScale;
+                    quoteAmount = leftAmount * currentOrder.price / bookInfo.quoteScale;
                     baseAmount = leftAmount;
 
                     // Update order
-                    firstOrder.amount -= leftAmount;
-                    SetOrder(firstID, firstOrder);
+                    currentOrder.amount -= leftAmount;
+                    SetOrder(currentID, currentOrder);
 
-                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, firstID, isBuy, firstOrder.maker, firstOrder.price, firstOrder.amount);
+                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, currentID, isBuy, currentOrder.maker, currentOrder.price, currentOrder.amount);
                     leftAmount = 0;
                 }
 
@@ -692,8 +694,8 @@ namespace FlamingoSwapOrderBook
 
                 if (isBuy)
                 {
-                    if (totalQuotePayment.HasKey(firstOrder.maker)) totalQuotePayment[firstOrder.maker] += quotePayment;
-                    else totalQuotePayment[firstOrder.maker] = quotePayment;
+                    if (totalQuotePayment.HasKey(currentOrder.maker)) totalQuotePayment[currentOrder.maker] += quotePayment;
+                    else totalQuotePayment[currentOrder.maker] = quotePayment;
                     if (totalBasePayment.HasKey(taker)) totalBasePayment[taker] += basePayment;
                     else totalBasePayment[taker] = basePayment;
                 }
@@ -701,13 +703,13 @@ namespace FlamingoSwapOrderBook
                 {
                     if (totalQuotePayment.HasKey(taker)) totalQuotePayment[taker] += quotePayment;
                     else totalQuotePayment[taker] = quotePayment;
-                    if (totalBasePayment.HasKey(firstOrder.maker)) totalBasePayment[firstOrder.maker] += basePayment;
-                    else totalBasePayment[firstOrder.maker] = basePayment;
+                    if (totalBasePayment.HasKey(currentOrder.maker)) totalBasePayment[currentOrder.maker] += basePayment;
+                    else totalBasePayment[currentOrder.maker] = basePayment;
                 }
 
                 // Check if still tradable
                 if (leftAmount == 0) break;
-                firstID = firstOrder.nextID;
+                currentID = currentOrder.nextID;
             }
 
             // Update book if necessary
