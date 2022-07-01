@@ -8,7 +8,7 @@ using Neo.SmartContract.Framework.Attributes;
 
 namespace FlamingoSwapAggregator
 {
-    [DisplayName("Flamingo Aggregator")]
+    [DisplayName("FlamingoSwapAggregator")]
     [ManifestExtra("Author", "Flamingo Finance")]
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
