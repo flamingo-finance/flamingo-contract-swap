@@ -239,9 +239,9 @@ namespace FlamingoSwapAggregator
                     var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
 
                     // First AMM
-                    if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
+                    if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteScale, ammReverse[0], ammReverse[1]);
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         if (leftIn <= amountToPool) amountToPool = leftIn;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
@@ -311,9 +311,9 @@ namespace FlamingoSwapAggregator
                     var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
 
                     // First AMM
-                    if ((isBuy && PriceAddAMMFee(ammPrice) < PriceAddBookFee(bookPrice)) || (!isBuy && PriceAddAMMFee(ammPrice) > PriceAddBookFee(bookPrice)))
+                    if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, PriceRemoveAMMFee(PriceAddBookFee(bookPrice)), quoteScale, ammReverse[0], ammReverse[1]);
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         if (amountOutPool >= leftOut)
                         {
@@ -623,7 +623,7 @@ namespace FlamingoSwapAggregator
                 Approve(tokenIn, OrderBook, amountToBook);
                 if (isBuy)
                 {
-                    Assert(SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, (amountOutBook * 10000 + 9984) / 9985) == 0, "Not Full-filled");
+                    Assert(SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, (amountOutBook * 1000 + 996) / 997) == 0, "Not Full-filled");
                 }
                 else
                 {
