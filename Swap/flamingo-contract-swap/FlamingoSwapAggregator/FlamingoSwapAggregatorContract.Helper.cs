@@ -314,29 +314,29 @@ namespace FlamingoSwapAggregator
         /// </summary>
         /// <param name="priceExcludingFee">基准库存</param>
         /// <returns></returns>
-        private static BigInteger PriceAddAMMFee(BigInteger priceExcludingFee)
-        {
-            return (priceExcludingFee * 1000 + 996) / 997;
-        }
+        // private static BigInteger PriceAddAMMFee(BigInteger priceExcludingFee)
+        // {
+        //     return (priceExcludingFee * 1000 + 996) / 997;
+        // }
 
-        private static BigInteger PriceAddBookFee(BigInteger priceExcludingFee)
-        {
-            return (priceExcludingFee * 10000 + 9984) / 9985;
-        }
+        // private static BigInteger PriceAddBookFee(BigInteger priceExcludingFee)
+        // {
+        //     return (priceExcludingFee * 1000 + 996) / 997;
+        // }
 
         /// <summary>
         /// 根据含手续费价格计算原报价
         /// </summary>
         /// <param name="priceIncludingFee">基准库存</param>
         /// <returns></returns>
-        private static BigInteger PriceRemoveAMMFee(BigInteger priceIncludingFee)
-        {
-            return priceIncludingFee * 997 / 1000;
-        }
+        // private static BigInteger PriceRemoveAMMFee(BigInteger priceIncludingFee)
+        // {
+        //     return priceIncludingFee * 997 / 1000;
+        // }
 
-        private static BigInteger PriceRemoveBookFee(BigInteger priceIncludingFee)
-        {
-            return priceIncludingFee * 9985 / 10000;
-        }
+        // private static BigInteger PriceRemoveBookFee(BigInteger priceIncludingFee)
+        // {
+        //     return priceIncludingFee * 997 / 1000;
+        // }
     }
 }

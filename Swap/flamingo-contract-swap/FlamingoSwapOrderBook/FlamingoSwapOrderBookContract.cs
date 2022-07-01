@@ -687,8 +687,8 @@ namespace FlamingoSwapOrderBook
                 }
 
                 // Record payment
-                quotePayment = quoteAmount * 9985 / 10000;
-                basePayment = baseAmount * 9985 / 10000;
+                quotePayment = quoteAmount * 997 / 1000;
+                basePayment = baseAmount * 997 / 1000;
                 quoteFee += quoteAmount - quotePayment;
                 baseFee += baseAmount - basePayment;
 
@@ -864,12 +864,12 @@ namespace FlamingoSwapOrderBook
             if (isBuy)
             {
                 var result = MatchQuoteInternal(pairKey, isBuy, anchorID, price, amountIn);
-                return new BigInteger[]{ result[0], result[1] * 9985 / 10000 };   // 0.15% fee
+                return new BigInteger[]{ result[0], result[1] * 997 / 1000 };   // 0.3% fee
             }
             else
             {
                 var result = MatchOrderInternal(pairKey, isBuy, anchorID, price, amountIn);
-                return new BigInteger[]{ result[0], result[1] * 9985 / 10000 };   // 0.15% fee
+                return new BigInteger[]{ result[0], result[1] * 997 / 1000 };   // 0.3% fee
             }
         }
 
@@ -893,14 +893,14 @@ namespace FlamingoSwapOrderBook
             var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (isBuy)
             {
-                var amountIn = MatchOrderInternal(pairKey, isBuy, anchorID, price, (amountOut * 10000 + 9984) / 9985)[1];   // 0.15% fee
-                var leftOut = amountOut - MatchQuoteInternal(pairKey, isBuy, anchorID, price, amountIn)[1] * 9985 / 10000;
+                var amountIn = MatchOrderInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997)[1];   // 0.3% fee
+                var leftOut = amountOut - MatchQuoteInternal(pairKey, isBuy, anchorID, price, amountIn)[1] * 997 / 1000;
                 return new BigInteger[]{ leftOut, amountIn };
             }
             else
             {
-                var amountIn = MatchQuoteInternal(pairKey, isBuy, anchorID, price, (amountOut * 10000 + 9984) / 9985)[1];   // 0.15% fee
-                var leftOut = amountOut - MatchOrderInternal(pairKey, isBuy, anchorID, price, amountIn)[1] * 9985 / 10000;
+                var amountIn = MatchQuoteInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997)[1];   // 0.3% fee
+                var leftOut = amountOut - MatchOrderInternal(pairKey, isBuy, anchorID, price, amountIn)[1] * 997 / 1000;
                 return new BigInteger[]{ leftOut, amountIn };
             }
         }
