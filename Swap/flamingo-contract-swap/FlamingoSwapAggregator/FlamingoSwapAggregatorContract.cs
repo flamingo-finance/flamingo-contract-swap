@@ -242,7 +242,7 @@ namespace FlamingoSwapAggregator
                     if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
                         var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
-                        if (leftIn <= amountToPool) amountToPool = leftIn;
+                        if (leftIn < amountToPool) amountToPool = leftIn;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
                         totalOutPool += amountOutPool;
@@ -315,7 +315,7 @@ namespace FlamingoSwapAggregator
                     {
                         var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
-                        if (amountOutPool >= leftOut)
+                        if (amountOutPool > leftOut)
                         {
                             amountToPool = GetAMMAmountIn(leftOut, ammReverse[0], ammReverse[1]);
                             amountOutPool = leftOut;
@@ -601,6 +601,166 @@ namespace FlamingoSwapAggregator
             return true;
         }
 
+        /// <summary>
+        /// 综合现有报价处理并发送限价单请求(需要maker签名)
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="maker"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        /// <returns></returns>
+        public static ByteString AddLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount)
+        {
+            //验证参数
+            Assert(price > 0 && amount > 0, "Invalid Parameters");
+            var caller = Runtime.CallingScriptHash;
+            Assert(ContractManagement.GetContract(caller) == null, "Forbidden");
+            Assert(BookTradable(tokenA, tokenB), "Orderbook Not Available");
+
+            var leftAmount = DealMarketOrder(tokenA, tokenB, maker, isBuy, price, amount);
+            if (leftAmount == 0) return null;
+            else return SendLimitOrder(tokenA, tokenB, maker, isBuy, price, leftAmount);
+        }
+
+        /// <summary>
+        /// 在提出限价单前处理可成交部分(需要maker签名)
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="taker"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        /// <returns></returns>
+        private static BigInteger DealMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
+        {
+            var leftAmount = amount;
+
+            var quoteScale = GetQuoteScale(tokenA, tokenB);
+            var baseToken = GetBaseToken(tokenA, tokenB);
+            var quoteToken = baseToken == tokenA ? tokenB : tokenA;
+            (var anchorID, var bookPrice) = GetOrderBookPrice(tokenA, tokenB, isBuy);
+
+            var ammReverse = GetReserves(baseToken, quoteToken);
+            var ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
+
+            if (isBuy)
+            {
+                BigInteger totalToPool = 0;
+                BigInteger totalOutPool = 0;
+                BigInteger totalOutBook = 0;
+                BigInteger lastDealPrice = 0;
+                while (bookPrice > 0 && (ammPrice < price || bookPrice <= price))
+                {
+                    // First AMM
+                    if (ammPrice < price && ammPrice < bookPrice)
+                    {
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[1], ammReverse[0]);
+                        var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
+                        if (amountOutPool > leftAmount)
+                        {
+                            amountToPool = GetAMMAmountIn(leftAmount, ammReverse[1], ammReverse[0]);
+                            amountOutPool = leftAmount;
+                        }
+                        totalToPool += amountToPool;
+                        totalOutPool += amountOutPool;
+                        ammReverse[1] += amountToPool;
+                        ammReverse[0] -= amountOutPool;
+                        leftAmount -= amountOutPool;
+                    }
+
+                    if (leftAmount == 0) break;
+
+                    // Then book
+                    if (bookPrice <= price)
+                    {
+                        var result = GetOrderBookAmountIn(quoteToken, baseToken, anchorID, bookPrice, leftAmount);
+                        totalOutBook += leftAmount - result[0];
+                        lastDealPrice = bookPrice;
+                        leftAmount = result[0];
+                    }
+
+                    if (leftAmount == 0) break;
+                    (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
+                    ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
+                }
+
+                // Finally AMM
+                if (leftAmount > 0 && ammPrice < price)
+                {
+                    var amountToPool = GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[1], ammReverse[0]);
+                    var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
+                    if (amountOutPool > leftAmount)
+                    {
+                        amountToPool = GetAMMAmountIn(leftAmount, ammReverse[1], ammReverse[0]);
+                        amountOutPool = leftAmount;
+                    }
+                    totalToPool += amountToPool;
+                    totalOutPool += amountOutPool;
+                    leftAmount -= amountOutPool;
+                }
+
+                // Do deal
+                if (totalOutBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, (totalOutBook * 1000 + 996) / 997);
+                if (totalToPool > 0 || totalOutPool > 0) SwapAMM(taker, quoteToken, baseToken, totalToPool, totalOutPool);
+            }
+            else
+            {
+                BigInteger totalToPool = 0;
+                BigInteger totalOutPool = 0;
+                BigInteger totalToBook = 0;
+                BigInteger lastDealPrice = 0;
+                while (bookPrice > 0 && (ammPrice > price || bookPrice >= price))
+                {
+                    // First AMM
+                    if (ammPrice > price && ammPrice > bookPrice)
+                    {
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        if (leftAmount < amountToPool) amountToPool = leftAmount;
+                        var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
+                        totalToPool += amountToPool;
+                        totalOutPool += amountOutPool;
+                        ammReverse[0] += amountToPool;
+                        ammReverse[1] -= amountOutPool;
+                        leftAmount -= amountToPool;
+                    }
+
+                    if (leftAmount == 0) break;
+
+                    // Then book
+                    if (bookPrice >= price)
+                    {
+                        var result = GetOrderBookAmountOut(baseToken, quoteToken, anchorID, bookPrice, leftAmount);
+                        totalToBook += leftAmount - result[0];
+                        lastDealPrice = bookPrice;
+                        leftAmount = result[0];
+                    }
+
+                    if (leftAmount == 0) break;
+                    (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
+                    ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
+                }
+
+                // Finally AMM
+                if (leftAmount > 0 && ammPrice > price)
+                {
+                    var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                    if (leftAmount < amountToPool) amountToPool = leftAmount;
+                    var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
+                    totalToPool += amountToPool;
+                    totalOutPool += amountOutPool;
+                    leftAmount -= amountToPool;
+                }
+
+                // Do deal
+                if (totalToBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, totalToBook);
+                if (totalToPool > 0 || totalOutPool > 0) SwapAMM(taker, baseToken, quoteToken, totalToPool, totalOutPool);
+            }
+
+            return leftAmount;
+        }
 
         /// <summary>
         /// 根据计算好的输入和输出，同时使用资金池和限价簿完成兑换
@@ -623,11 +783,11 @@ namespace FlamingoSwapAggregator
                 Approve(tokenIn, OrderBook, amountToBook);
                 if (isBuy)
                 {
-                    Assert(SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, (amountOutBook * 1000 + 996) / 997) == 0, "Not Full-filled");
+                    SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, (amountOutBook * 1000 + 996) / 997);
                 }
                 else
                 {
-                    Assert(SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, amountToBook) == 0, "Not Full-filled");
+                    SendMarketOrder(tokenIn, tokenOut, isBuy, bookDealPrice, amountToBook);
                 }
                 Retrieve(tokenIn, OrderBook);
             }

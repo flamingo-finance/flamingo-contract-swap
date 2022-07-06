@@ -71,6 +71,7 @@ namespace FlamingoSwapAggregator
         /// <param name="anchorID"></param>
         /// <param name="price"></param>
         /// <param name="amountIn"></param>
+        /// <returns></returns>
         public static BigInteger[] GetOrderBookAmountOut(UInt160 tokenA, UInt160 tokenB, ByteString anchorID, BigInteger price, BigInteger amountIn)
         {
             return (BigInteger[])Contract.Call(OrderBook, "getAmountOut", CallFlags.ReadOnly, new object[] { tokenA, tokenB, anchorID, price, amountIn });
@@ -84,6 +85,7 @@ namespace FlamingoSwapAggregator
         /// <param name="anchorID"></param>
         /// <param name="price"></param>
         /// <param name="amountOut"></param>
+        /// <returns></returns>
         public static BigInteger[] GetOrderBookAmountIn(UInt160 tokenA, UInt160 tokenB, ByteString anchorID, BigInteger price, BigInteger amountOut)
         {
             return (BigInteger[])Contract.Call(OrderBook, "getAmountIn", CallFlags.ReadOnly, new object[] { tokenA, tokenB, anchorID, price, amountOut });
@@ -95,6 +97,7 @@ namespace FlamingoSwapAggregator
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <param name="isBuy"></param>
+        /// <returns></returns>
         public static (ByteString, BigInteger) GetOrderBookPrice(UInt160 tokenA, UInt160 tokenB, bool isBuy)
         {
             return ((ByteString, BigInteger))Contract.Call(OrderBook, "getMarketPrice", CallFlags.ReadOnly, new object[] { tokenA, tokenB, isBuy });
@@ -104,6 +107,7 @@ namespace FlamingoSwapAggregator
         /// 向限价簿获取交易对的下一级报价和对应的询价锚点
         /// </summary>
         /// <param name="anchorID"></param>
+        /// <returns></returns>
         public static (ByteString, BigInteger) GetOrderBookNextPrice(ByteString anchorID)
         {
             return ((ByteString, BigInteger))Contract.Call(OrderBook, "getNextPrice", CallFlags.ReadOnly, new object[] { anchorID });
@@ -114,6 +118,7 @@ namespace FlamingoSwapAggregator
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
+        /// <returns></returns>
         public static bool BookTradable(UInt160 tokenA, UInt160 tokenB)
         {
             return (bool)Contract.Call(OrderBook, "bookTradable", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
@@ -124,6 +129,7 @@ namespace FlamingoSwapAggregator
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
+        /// <returns></returns>
         public static UInt160 GetBaseToken(UInt160 tokenA, UInt160 tokenB)
         {
             return (UInt160)Contract.Call(OrderBook, "getBaseToken", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
@@ -134,22 +140,53 @@ namespace FlamingoSwapAggregator
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
+        /// <returns></returns>
         public static BigInteger GetQuoteScale(UInt160 tokenA, UInt160 tokenB)
         {
             return (BigInteger)Contract.Call(OrderBook, "getQuoteScale", CallFlags.ReadOnly, new object[] { tokenA, tokenB });
         }
 
         /// <summary>
-        /// 向限价簿转发市场交易请求
+        /// 向限价簿转发市场交易请求(使用合约余额)
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
+        /// <returns></returns>
         private static BigInteger SendMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
             return (BigInteger)Contract.Call(OrderBook, "dealMarketOrder", CallFlags.All, new object[] { tokenA, tokenB, isBuy, price, amount });
+        }
+
+        /// <summary>
+        /// 向限价簿转发市场交易请求(需要taker授权)
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        /// <returns></returns>
+        private static BigInteger SendMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
+        {
+            return (BigInteger)Contract.Call(OrderBook, "dealMarketOrder", CallFlags.All, new object[] { tokenA, tokenB, taker, isBuy, price, amount });
+        }
+
+        /// <summary>
+        /// 向限价簿转发限价交易请求
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="maker"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        /// <returns></returns>
+        private static ByteString SendLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount)
+        {
+            return (ByteString)Contract.Call(OrderBook, "addLimitOrder", CallFlags.All, new object[] { tokenA, tokenB, maker, isBuy, price, amount });
         }
 
         /// <summary>
@@ -184,7 +221,6 @@ namespace FlamingoSwapAggregator
             }
         }
 
-
         /// <summary>
         /// 请求转账，未授权则中断退出
         /// </summary>
@@ -207,7 +243,6 @@ namespace FlamingoSwapAggregator
                 Assert(false, "Transfer Error in Aggregator", token);
             }
         }
-
 
         /// <summary>
         /// Check approval and tranfer as the caller
@@ -282,7 +317,6 @@ namespace FlamingoSwapAggregator
                 allowedMap.Put(owner, allowed);
             return true;
         }
-
 
         private static ByteString StorageGet(string key)
         {
