@@ -361,7 +361,7 @@ namespace FlamingoSwapAggregator
         /// <returns></returns>
         public static BigInteger GetAMMAmountOut(BigInteger amountIn, BigInteger reserveIn, BigInteger reserveOut)
         {
-            Assert(amountIn > 0 && reserveIn > 0 && reserveOut > 0, "AmountIn Must > 0");
+            Assert(amountIn >= 0 && reserveIn > 0 && reserveOut > 0, "AmountIn Must >= 0");
 
             var amountInWithFee = amountIn * 997;
             var numerator = amountInWithFee * reserveOut;
@@ -380,7 +380,7 @@ namespace FlamingoSwapAggregator
         /// <returns></returns>
         public static BigInteger GetAMMAmountIn(BigInteger amountOut, BigInteger reserveIn, BigInteger reserveOut)
         {
-            Assert(amountOut > 0 && reserveIn > 0 && reserveOut > 0, "AmountOut Must > 0");
+            Assert(amountOut >= 0 && reserveIn > 0 && reserveOut > 0, "AmountOut Must >= 0");
             var numerator = reserveIn * amountOut * 1000;
             var denominator = (reserveOut - amountOut) * 997;
             var amountIn = (numerator / denominator) + 1;
