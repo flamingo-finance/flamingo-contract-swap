@@ -652,12 +652,12 @@ namespace FlamingoSwapAggregator
                 BigInteger totalOutPool = 0;
                 BigInteger totalOutBook = 0;
                 BigInteger lastDealPrice = 0;
-                while (bookPrice > 0 && (ammPrice < price || bookPrice <= price))
+                while (bookPrice > 0 && bookPrice <= price)
                 {
                     // First AMM
-                    if (ammPrice < price && ammPrice < bookPrice)
+                    if (ammPrice < bookPrice)
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[1], ammReverse[0]);
+                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[1], ammReverse[0]);
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
                         if (amountOutPool > leftAmount)
                         {
@@ -712,10 +712,10 @@ namespace FlamingoSwapAggregator
                 BigInteger totalOutPool = 0;
                 BigInteger totalToBook = 0;
                 BigInteger lastDealPrice = 0;
-                while (bookPrice > 0 && (ammPrice > price || bookPrice >= price))
+                while (bookPrice > 0 && bookPrice >= price)
                 {
                     // First AMM
-                    if (ammPrice > price && ammPrice > bookPrice)
+                    if (ammPrice > bookPrice)
                     {
                         var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         if (leftAmount < amountToPool) amountToPool = leftAmount;
@@ -746,7 +746,7 @@ namespace FlamingoSwapAggregator
                 // Finally AMM
                 if (leftAmount > 0 && ammPrice > price)
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                    var amountToPool = GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[0], ammReverse[1]);
                     if (leftAmount < amountToPool) amountToPool = leftAmount;
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                     totalToPool += amountToPool;
