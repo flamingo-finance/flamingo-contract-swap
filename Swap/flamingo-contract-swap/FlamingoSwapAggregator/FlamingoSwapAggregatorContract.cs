@@ -232,12 +232,11 @@ namespace FlamingoSwapAggregator
             if (BookTradable(tokenIn, tokenOut))
             {
                 var quoteScale = GetQuoteScale(tokenIn, tokenOut);
+                var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
                 (var anchorID, var bookPrice) = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
 
                 while (bookPrice > 0)
                 {
-                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
-
                     // First AMM
                     if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
@@ -261,6 +260,7 @@ namespace FlamingoSwapAggregator
                     leftIn = result[0];
 
                     if (leftIn == 0) break;
+                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
             }
@@ -304,12 +304,11 @@ namespace FlamingoSwapAggregator
             if (BookTradable(tokenIn, tokenOut))
             {
                 var quoteScale = GetQuoteScale(tokenIn, tokenOut);
+                var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
                 (var anchorID, var bookPrice) = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
 
                 while (bookPrice > 0)
                 {
-                    var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
-
                     // First AMM
                     if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
@@ -337,6 +336,7 @@ namespace FlamingoSwapAggregator
                     leftOut = result[0];
 
                     if (leftOut == 0) break;
+                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
             }
@@ -683,8 +683,8 @@ namespace FlamingoSwapAggregator
                     }
 
                     if (leftAmount == 0) break;
+                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
-                    ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
                 }
 
                 // Finally AMM
@@ -739,8 +739,8 @@ namespace FlamingoSwapAggregator
                     }
 
                     if (leftAmount == 0) break;
+                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
-                    ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
                 }
 
                 // Finally AMM

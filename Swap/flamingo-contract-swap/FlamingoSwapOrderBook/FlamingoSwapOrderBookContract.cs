@@ -893,15 +893,13 @@ namespace FlamingoSwapOrderBook
             var isBuy = tokenFrom == GetQuoteToken(pairKey);
             if (isBuy)
             {
-                var amountIn = MatchOrderInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997)[1];   // 0.3% fee
-                var leftOut = amountOut - MatchQuoteInternal(pairKey, isBuy, anchorID, price, amountIn)[1] * 997 / 1000;
-                return new BigInteger[]{ leftOut, amountIn };
+                var result = MatchOrderInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997);   // 0.3% fee
+                return new BigInteger[]{ result[0] * 997 / 1000, result[1] };
             }
             else
             {
-                var amountIn = MatchQuoteInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997)[1];   // 0.3% fee
-                var leftOut = amountOut - MatchOrderInternal(pairKey, isBuy, anchorID, price, amountIn)[1] * 997 / 1000;
-                return new BigInteger[]{ leftOut, amountIn };
+                var result = MatchQuoteInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997);   // 0.3% fee
+                return new BigInteger[]{ result[0] * 997 / 1000, result[1] };
             }
         }
         #endregion
