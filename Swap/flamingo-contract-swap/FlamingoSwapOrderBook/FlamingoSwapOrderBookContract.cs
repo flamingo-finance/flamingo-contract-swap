@@ -669,7 +669,7 @@ namespace FlamingoSwapOrderBook
                     DeleteReceipt(currentOrder.maker, currentID);
                     firstID = currentOrder.nextID;
 
-                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, currentID, isBuy, currentOrder.maker, currentOrder.price, 0);
+                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, currentID, !isBuy, currentOrder.maker, currentOrder.price, 0);
                     leftAmount -= currentOrder.amount;
                 }
                 else
@@ -682,7 +682,7 @@ namespace FlamingoSwapOrderBook
                     currentOrder.amount -= leftAmount;
                     SetOrder(currentID, currentOrder);
 
-                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, currentID, isBuy, currentOrder.maker, currentOrder.price, currentOrder.amount);
+                    onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, currentID, !isBuy, currentOrder.maker, currentOrder.price, currentOrder.amount);
                     leftAmount = 0;
                 }
 
