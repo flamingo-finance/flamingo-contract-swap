@@ -220,7 +220,7 @@ namespace FlamingoSwapAggregator
         private static BigInteger[] GetStrategyOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
-            var ammReverse = GetReserves(tokenIn, tokenOut);
+            (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
             var leftIn = amountIn;
 
             BigInteger totalToBook = 0;
@@ -240,7 +240,8 @@ namespace FlamingoSwapAggregator
                     // First AMM
                     if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1])
+                            : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         if (leftIn < amountToPool) amountToPool = leftIn;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
@@ -293,7 +294,7 @@ namespace FlamingoSwapAggregator
         {
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
             var leftOut = amountOut;
-            var ammReverse = GetReserves(tokenIn, tokenOut);
+            (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
 
             BigInteger totalToBook = 0;
             BigInteger totalToPool = 0;
@@ -312,7 +313,8 @@ namespace FlamingoSwapAggregator
                     // First AMM
                     if ((isBuy && ammPrice < bookPrice) || (!isBuy && ammPrice > bookPrice))
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1])
+                            : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         if (amountOutPool > leftOut)
                         {
@@ -413,13 +415,20 @@ namespace FlamingoSwapAggregator
         public static BigInteger GetAMMAmountInTillPrice(bool isBuy, BigInteger price, BigInteger quoteScale, BigInteger reserveIn, BigInteger reserveOut)
         {
             Assert(price > 0 && quoteScale > 0 && reserveIn > 0 && reserveOut > 0, "Parameter Invalid");
-            var reverseInNew = BigInteger.Pow(reserveIn, 2) * 9 / 1000000;
-            if (isBuy) reverseInNew += reserveIn * reserveOut * price * 3988 / quoteScale / 1000;
-            else reverseInNew += reserveIn * reserveOut * quoteScale * 3988 / price / 1000;
-            reverseInNew = (reverseInNew.Sqrt() - reserveIn * 3 / 1000) * 1000 / 1994;
-            return reverseInNew - reserveIn;
+            var amountIn = BigInteger.Pow(reserveIn, 2) * 9000000;
+            if (isBuy) amountIn += reserveIn * reserveOut * price * 3988000000000 / quoteScale;
+            else amountIn += reserveIn * reserveOut * quoteScale * 3988000000000 / price;
+            return (amountIn.Sqrt() - reserveIn * 1997000) / 1994000;
         }
 
+        public static BigInteger GetAMMAmountInTillPriceWithFundFee(bool isBuy, BigInteger price, BigInteger quoteScale, BigInteger reserveIn, BigInteger reserveOut)
+        {
+            Assert(price > 0 && quoteScale > 0 && reserveIn > 0 && reserveOut > 0, "Parameter Invalid");
+            var amountIn = BigInteger.Pow(reserveIn, 2) * 6250000;
+            if (isBuy) amountIn += reserveIn * reserveOut * price * 3986006000000 / quoteScale;
+            else amountIn += reserveIn * reserveOut * quoteScale * 3986006000000 / price;
+            return (amountIn.Sqrt() - reserveIn * 1996500) / 1993003;
+        }
 
         /// <summary>
         /// 获取链式交易报价和交易策略
@@ -643,7 +652,7 @@ namespace FlamingoSwapAggregator
             var quoteToken = baseToken == tokenA ? tokenB : tokenA;
             (var anchorID, var bookPrice) = GetOrderBookPrice(tokenA, tokenB, isBuy);
 
-            var ammReverse = GetReserves(baseToken, quoteToken);
+            (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(baseToken, quoteToken);
             var ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
 
             if (isBuy)
@@ -657,7 +666,8 @@ namespace FlamingoSwapAggregator
                     // First AMM
                     if (ammPrice < bookPrice)
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[1], ammReverse[0]);
+                        var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[1], ammReverse[0])
+                            : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[1], ammReverse[0]);
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
                         if (amountOutPool > leftAmount)
                         {
@@ -690,7 +700,8 @@ namespace FlamingoSwapAggregator
                 // Finally AMM
                 if (leftAmount > 0 && ammPrice < price)
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[1], ammReverse[0]);
+                    var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, price, quoteScale, ammReverse[1], ammReverse[0])
+                            : GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[1], ammReverse[0]);
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
                     if (amountOutPool > leftAmount)
                     {
@@ -717,7 +728,8 @@ namespace FlamingoSwapAggregator
                     // First AMM
                     if (ammPrice > bookPrice)
                     {
-                        var amountToPool = GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1])
+                            : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
                         if (leftAmount < amountToPool) amountToPool = leftAmount;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
@@ -746,7 +758,8 @@ namespace FlamingoSwapAggregator
                 // Finally AMM
                 if (leftAmount > 0 && ammPrice > price)
                 {
-                    var amountToPool = GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[0], ammReverse[1]);
+                    var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, price, quoteScale, ammReverse[0], ammReverse[1])
+                            : GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[0], ammReverse[1]);
                     if (leftAmount < amountToPool) amountToPool = leftAmount;
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                     totalToPool += amountToPool;

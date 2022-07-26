@@ -63,6 +63,14 @@ namespace FlamingoSwapAggregator
             return tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 };
         }
 
+        public static (BigInteger[], bool) GetReservesAndCheckFund(UInt160 tokenA, UInt160 tokenB)
+        {
+            var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
+            var reserveData = (ReservesData)Contract.Call(pairContract, "getReserves", CallFlags.ReadOnly, new object[] { });
+            var hasFundFee = (byte[])Contract.Call(pairContract, "getFundAddress", CallFlags.ReadOnly, new object[] { }) != null;
+            return (tokenA.ToUInteger() < tokenB.ToUInteger() ? new BigInteger[] { reserveData.Reserve0, reserveData.Reserve1 } : new BigInteger[] { reserveData.Reserve1, reserveData.Reserve0 }, hasFundFee);
+        }
+
         /// <summary>
         /// 给定一个价格区间(从锚点订单到指定价格)，查询限价簿剩余不能满足的输入量和能够交易的输出量
         /// </summary>
@@ -342,35 +350,5 @@ namespace FlamingoSwapAggregator
         {
             Storage.Put(Storage.CurrentContext, key, value);
         }
-
-        /// <summary>
-        /// 根据报价计算含手续费价格
-        /// </summary>
-        /// <param name="priceExcludingFee">基准库存</param>
-        /// <returns></returns>
-        // private static BigInteger PriceAddAMMFee(BigInteger priceExcludingFee)
-        // {
-        //     return (priceExcludingFee * 1000 + 996) / 997;
-        // }
-
-        // private static BigInteger PriceAddBookFee(BigInteger priceExcludingFee)
-        // {
-        //     return (priceExcludingFee * 1000 + 996) / 997;
-        // }
-
-        /// <summary>
-        /// 根据含手续费价格计算原报价
-        /// </summary>
-        /// <param name="priceIncludingFee">基准库存</param>
-        /// <returns></returns>
-        // private static BigInteger PriceRemoveAMMFee(BigInteger priceIncludingFee)
-        // {
-        //     return priceIncludingFee * 997 / 1000;
-        // }
-
-        // private static BigInteger PriceRemoveBookFee(BigInteger priceIncludingFee)
-        // {
-        //     return priceIncludingFee * 997 / 1000;
-        // }
     }
 }
