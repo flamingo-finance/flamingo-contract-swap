@@ -223,7 +223,7 @@ namespace FlamingoSwapOrderBook
                 isBuy = isBuy,
                 totalAmount = leftAmount
             });
-            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, isBuy, maker, price, leftAmount);
+            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, !!isBuy, maker, price, leftAmount);
             return id;
         }
 
@@ -277,7 +277,7 @@ namespace FlamingoSwapOrderBook
                 isBuy = receipt.isBuy,
                 totalAmount = amount
             });
-            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, receipt.isBuy, maker, price, amount);
+            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, !!receipt.isBuy, maker, price, amount);
             return id;
         }
 
@@ -304,7 +304,7 @@ namespace FlamingoSwapOrderBook
 
             // Remove receipt
             DeleteReceipt(order.maker, id);
-            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, isBuy, order.maker, order.price, 0);
+            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, !!isBuy, order.maker, order.price, 0);
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
@@ -335,7 +335,7 @@ namespace FlamingoSwapOrderBook
 
             // Remove receipt
             DeleteReceipt(order.maker, id);
-            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, receipt.isBuy, order.maker, order.price, 0);
+            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, !!receipt.isBuy, order.maker, order.price, 0);
 
             // Withdraw token
             var me = Runtime.ExecutingScriptHash;
@@ -530,7 +530,6 @@ namespace FlamingoSwapOrderBook
             while (quoteAmount > 0)
             {
                 // Check price
-
                 if ((isBuy && currentOrder.price > price) || (!isBuy && currentOrder.price < price)) break;
                 var payment = currentOrder.amount * currentOrder.price / bookInfo.quoteScale;
                 if (payment <= quoteAmount) 
@@ -899,7 +898,7 @@ namespace FlamingoSwapOrderBook
             else
             {
                 var result = MatchQuoteInternal(pairKey, isBuy, anchorID, price, (amountOut * 1000 + 996) / 997);   // 0.3% fee
-                return new BigInteger[]{ result[0] * 997 / 1000, result[1] };
+                return new BigInteger[]{ (result[0] * 997 + 999) / 1000, result[1] };
             }
         }
         #endregion
