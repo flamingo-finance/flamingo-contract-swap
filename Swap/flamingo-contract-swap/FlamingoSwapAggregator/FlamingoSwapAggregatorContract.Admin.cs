@@ -16,7 +16,7 @@ namespace FlamingoSwapAggregator
         [InitialValue("0x701f7fe4c8d325487b64d718419a2a5a4a5e38eb", ContractParameterType.Hash160)]
         static readonly UInt160 Factory = default;
 
-        [InitialValue("0x61dbf0af84032fb8b1da4d54c04dc0c3774e7ebd", ContractParameterType.Hash160)]
+        [InitialValue("0xaa8b511593c8a5ec33a4b28190832a46c13da6fb", ContractParameterType.Hash160)]
         static readonly UInt160 OrderBook = default;
 
         const string AdminKey = nameof(superAdmin);
