@@ -364,7 +364,6 @@ namespace FlamingoSwapAggregator
         public static BigInteger GetAMMAmountOut(BigInteger amountIn, BigInteger reserveIn, BigInteger reserveOut)
         {
             Assert(amountIn >= 0 && reserveIn > 0 && reserveOut > 0, "AmountIn Must >= 0");
-
             var amountInWithFee = amountIn * 997;
             var numerator = amountInWithFee * reserveOut;
             var denominator = reserveIn * 1000 + amountInWithFee;
@@ -773,7 +772,9 @@ namespace FlamingoSwapAggregator
 
                 // Do deal
                 if (totalOutBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, totalToBook);
+                else leftAmount += totalToBook;
                 if (totalOutPool > 0) SwapAMM(taker, baseToken, quoteToken, totalToPool, totalOutPool);
+                else leftAmount += totalToPool;
             }
 
             return leftAmount;
