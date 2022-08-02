@@ -431,7 +431,7 @@ namespace FlamingoSwapAggregator
         }
 
         /// <summary>
-        /// 获取链式交易报价和交易策略
+        /// 获取链式交易的最终输出量
         /// </summary>
         /// <param name="amountIn">第一种token输入量</param>
         /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut)</param>
@@ -457,7 +457,7 @@ namespace FlamingoSwapAggregator
 
 
         /// <summary>
-        /// 获取链式交易逆向报价和交易策略
+        /// 获取链式交易的起始输入量
         /// </summary>
         /// <param name="amountOut">最后一种token输出量</param>
         /// <param name="paths">兑换链Token列表(正向：tokenIn,token1,token2...,tokenOut)</param>
@@ -661,6 +661,7 @@ namespace FlamingoSwapAggregator
                 BigInteger totalOutPool = 0;
                 BigInteger totalOutBook = 0;
                 BigInteger lastDealPrice = 0;
+
                 while (bookPrice > 0 && bookPrice <= price)
                 {
                     // First AMM
@@ -715,14 +716,16 @@ namespace FlamingoSwapAggregator
 
                 // Do deal
                 if (totalOutBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, (totalOutBook * 1000 + 996) / 997);
-                if (totalToPool > 0 || totalOutPool > 0) SwapAMM(taker, quoteToken, baseToken, totalToPool, totalOutPool);
+                if (totalOutPool > 0) SwapAMM(taker, quoteToken, baseToken, totalToPool, totalOutPool);
             }
             else
             {
                 BigInteger totalToPool = 0;
                 BigInteger totalOutPool = 0;
                 BigInteger totalToBook = 0;
+                BigInteger totalOutBook = 0;
                 BigInteger lastDealPrice = 0;
+
                 while (bookPrice > 0 && bookPrice >= price)
                 {
                     // First AMM
@@ -746,6 +749,7 @@ namespace FlamingoSwapAggregator
                     {
                         var result = GetOrderBookAmountOut(baseToken, quoteToken, anchorID, bookPrice, leftAmount);
                         totalToBook += leftAmount - result[0];
+                        totalOutBook += result[1];
                         lastDealPrice = bookPrice;
                         leftAmount = result[0];
                     }
@@ -768,8 +772,8 @@ namespace FlamingoSwapAggregator
                 }
 
                 // Do deal
-                if (totalToBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, totalToBook);
-                if (totalToPool > 0 || totalOutPool > 0) SwapAMM(taker, baseToken, quoteToken, totalToPool, totalOutPool);
+                if (totalOutBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, totalToBook);
+                if (totalOutPool > 0) SwapAMM(taker, baseToken, quoteToken, totalToPool, totalOutPool);
             }
 
             return leftAmount;
@@ -791,7 +795,7 @@ namespace FlamingoSwapAggregator
             var me = Runtime.ExecutingScriptHash;
             var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
 
-            if (amountToBook > 0)
+            if (amountOutBook > 0)
             {
                 Approve(tokenIn, OrderBook, amountToBook);
                 if (isBuy)
@@ -805,7 +809,7 @@ namespace FlamingoSwapAggregator
                 Retrieve(tokenIn, OrderBook);
             }
 
-            if (amountToPool > 0)
+            if (amountOutPool > 0)
             {
                 SwapAMM(me, tokenIn, tokenOut, amountToPool, amountOutPool);
             }
