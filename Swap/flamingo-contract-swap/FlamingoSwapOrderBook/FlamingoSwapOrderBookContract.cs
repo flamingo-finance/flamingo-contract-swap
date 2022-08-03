@@ -345,6 +345,24 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
+        /// Try get the parent order id of an existing order
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="parentID"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static ByteString GetParentOrderID(UInt160 tokenA, UInt160 tokenB, bool isBuy, ByteString id)
+        {
+            // Check if exist
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(BookExists(pairKey), "Book Not Exists");
+            Assert(OrderExists(id), "Order Not Exists");
+
+            return GetParentID(pairKey, isBuy, id);
+        }
+
+        /// <summary>
         /// Get first N limit orders and their details
         /// </summary>
         /// <param name="tokenA"></param>

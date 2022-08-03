@@ -102,6 +102,28 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
+        /// Get the parent order id
+        /// </summary>
+        /// <param name="pairKey"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="childID"></param>
+        /// <returns></returns>
+        private static ByteString GetParentID(byte[] pairKey, bool isBuy, ByteString childID)
+        {
+            var firstID = GetFirstOrderID(pairKey, isBuy);
+            if (firstID == childID) return null;
+
+            var currentID = firstID;
+            while (currentID is not null)
+            {
+                var currentOrder = GetOrder(currentID);
+                if (currentOrder.nextID == childID) return currentID;
+                currentID = currentOrder.nextID;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Get the first limit order id
         /// </summary>
         /// <param name="pairKey"></param>
