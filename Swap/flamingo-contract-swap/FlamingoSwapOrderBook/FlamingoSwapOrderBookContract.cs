@@ -510,6 +510,9 @@ namespace FlamingoSwapOrderBook
                 if (currentOrder.nextID is null) break;
                 currentOrder = GetOrder(currentOrder.nextID);
             }
+
+            // A least payment for buyer
+            if (isBuy && totalPayment == 0) totalPayment += 1;
             return new BigInteger[] { amount, totalPayment };
         }
 
@@ -744,17 +747,17 @@ namespace FlamingoSwapOrderBook
             // Do transfer
             foreach (var toAddress in totalQuotePayment.Keys)
             {
-                SafeTransfer(bookInfo.quoteToken, me, toAddress, totalQuotePayment[toAddress]);
+                if (totalQuotePayment[toAddress] > 0) SafeTransfer(bookInfo.quoteToken, me, toAddress, totalQuotePayment[toAddress]);
             }
             foreach (var toAddress in totalBasePayment.Keys)
             {
-                SafeTransfer(bookInfo.baseToken, me, toAddress, totalBasePayment[toAddress]);
+                if (totalBasePayment[toAddress] > 0) SafeTransfer(bookInfo.baseToken, me, toAddress, totalBasePayment[toAddress]);
             }
 
             if (fundAddress is not null)
             {
-                SafeTransfer(bookInfo.quoteToken, me, fundAddress, quoteFee);
-                SafeTransfer(bookInfo.baseToken, me, fundAddress, baseFee);
+                if (quoteFee > 0) SafeTransfer(bookInfo.quoteToken, me, fundAddress, quoteFee);
+                if (baseFee > 0) SafeTransfer(bookInfo.baseToken, me, fundAddress, baseFee);
             }
             return leftAmount;
         }
