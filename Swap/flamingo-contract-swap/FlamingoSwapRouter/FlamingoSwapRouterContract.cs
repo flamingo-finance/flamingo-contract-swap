@@ -17,7 +17,7 @@ namespace FlamingoSwapRouter
     public partial class FlamingoSwapRouterContract : SmartContract
     {
         /// <summary>
-        /// 
+        /// 添加流动性
         /// </summary>
         /// <param name="sender">流动性提供者，用于校验签名，以及接收收益</param>
         /// <param name="tokenA"></param>
