@@ -219,7 +219,6 @@ namespace FlamingoSwapAggregator
 
         private static BigInteger[] GetStrategyOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
-            var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
             var leftIn = amountIn;
 
@@ -231,6 +230,7 @@ namespace FlamingoSwapAggregator
 
             if (BookTradable(tokenIn, tokenOut))
             {
+                var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
                 var quoteScale = GetQuoteScale(tokenIn, tokenOut);
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
                 (var anchorID, var bookPrice) = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
@@ -292,7 +292,6 @@ namespace FlamingoSwapAggregator
 
         private static BigInteger[] GetStrategyIn(BigInteger amountOut, UInt160 tokenIn, UInt160 tokenOut)
         {
-            var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
             var leftOut = amountOut;
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
 
@@ -304,6 +303,7 @@ namespace FlamingoSwapAggregator
 
             if (BookTradable(tokenIn, tokenOut))
             {
+                var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
                 var quoteScale = GetQuoteScale(tokenIn, tokenOut);
                 var ammPrice = isBuy ? GetAMMPrice(ammReverse[1], ammReverse[0], quoteScale) : GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
                 (var anchorID, var bookPrice) = GetOrderBookPrice(tokenIn, tokenOut, isBuy);
@@ -654,13 +654,14 @@ namespace FlamingoSwapAggregator
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(baseToken, quoteToken);
             var ammPrice = GetAMMPrice(ammReverse[0], ammReverse[1], quoteScale);
 
+            BigInteger totalToPool = 0;
+            BigInteger totalOutPool = 0;
+            BigInteger totalToBook = 0;
+            BigInteger totalOutBook = 0;
+            BigInteger lastDealPrice = 0;
+
             if (isBuy)
             {
-                BigInteger totalToPool = 0;
-                BigInteger totalOutPool = 0;
-                BigInteger totalOutBook = 0;
-                BigInteger lastDealPrice = 0;
-
                 while (bookPrice > 0 && bookPrice <= price)
                 {
                     // First AMM
@@ -687,6 +688,7 @@ namespace FlamingoSwapAggregator
                     if (bookPrice <= price)
                     {
                         var result = GetOrderBookAmountIn(quoteToken, baseToken, anchorID, bookPrice, leftAmount);
+                        totalToBook += result[1];
                         totalOutBook += leftAmount - result[0];
                         lastDealPrice = bookPrice;
                         leftAmount = result[0];
@@ -719,12 +721,6 @@ namespace FlamingoSwapAggregator
             }
             else
             {
-                BigInteger totalToPool = 0;
-                BigInteger totalOutPool = 0;
-                BigInteger totalToBook = 0;
-                BigInteger totalOutBook = 0;
-                BigInteger lastDealPrice = 0;
-
                 while (bookPrice > 0 && bookPrice >= price)
                 {
                     // First AMM
@@ -794,10 +790,10 @@ namespace FlamingoSwapAggregator
         private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountToBook, BigInteger amountToPool, BigInteger amountOutBook, BigInteger amountOutPool, BigInteger bookDealPrice)
         {
             var me = Runtime.ExecutingScriptHash;
-            var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
 
             if (amountOutBook > 0)
             {
+                var isBuy = tokenOut == GetBaseToken(tokenIn, tokenOut);
                 Approve(tokenIn, OrderBook, amountToBook);
                 if (isBuy)
                 {
