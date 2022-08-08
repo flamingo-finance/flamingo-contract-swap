@@ -249,6 +249,7 @@ namespace FlamingoSwapAggregator
                         ammReverse[0] += amountToPool;
                         ammReverse[1] -= amountOutPool;
                         leftIn -= amountToPool;
+                        ammPrice = bookPrice;
                     }
 
                     if (leftIn == 0) break;
@@ -261,7 +262,6 @@ namespace FlamingoSwapAggregator
                     leftIn = result[0];
 
                     if (leftIn == 0) break;
-                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
             }
@@ -326,6 +326,7 @@ namespace FlamingoSwapAggregator
                         ammReverse[0] += amountToPool;
                         ammReverse[1] -= amountOutPool;
                         leftOut -= amountOutPool;
+                        ammPrice = bookPrice;
                     }
 
                     if (leftOut == 0) break;
@@ -338,7 +339,6 @@ namespace FlamingoSwapAggregator
                     leftOut = result[0];
 
                     if (leftOut == 0) break;
-                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
             }
@@ -680,6 +680,7 @@ namespace FlamingoSwapAggregator
                         ammReverse[1] += amountToPool;
                         ammReverse[0] -= amountOutPool;
                         leftAmount -= amountOutPool;
+                        ammPrice = bookPrice;
                     }
 
                     if (leftAmount == 0) break;
@@ -695,7 +696,6 @@ namespace FlamingoSwapAggregator
                     }
 
                     if (leftAmount == 0) break;
-                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
 
@@ -735,6 +735,7 @@ namespace FlamingoSwapAggregator
                         ammReverse[0] += amountToPool;
                         ammReverse[1] -= amountOutPool;
                         leftAmount -= amountToPool;
+                        ammPrice = bookPrice;
                     }
 
                     if (leftAmount == 0) break;
@@ -750,7 +751,6 @@ namespace FlamingoSwapAggregator
                     }
 
                     if (leftAmount == 0) break;
-                    ammPrice = bookPrice;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
 
