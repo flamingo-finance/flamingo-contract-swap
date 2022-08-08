@@ -489,8 +489,7 @@ namespace FlamingoSwapOrderBook
         {
             if (!condition)
             {
-                onFault(message, data);
-                ExecutionEngine.Abort();
+                throw new Exception(message);
             }
         }
 

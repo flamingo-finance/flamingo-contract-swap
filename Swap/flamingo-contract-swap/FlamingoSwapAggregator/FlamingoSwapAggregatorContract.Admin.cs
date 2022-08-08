@@ -10,13 +10,24 @@ namespace FlamingoSwapAggregator
     public partial class FlamingoSwapAggregatorContract
     {
         #region Admin
-        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        //Test
+        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        //static readonly UInt160 superAdmin = default;
+
+        //[InitialValue("0x701f7fe4c8d325487b64d718419a2a5a4a5e38eb", ContractParameterType.Hash160)]
+        //static readonly UInt160 Factory = default;
+
+        //[InitialValue("0xaa8b511593c8a5ec33a4b28190832a46c13da6fb", ContractParameterType.Hash160)]
+        //static readonly UInt160 OrderBook = default;
+
+        //Main
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
-        [InitialValue("0x701f7fe4c8d325487b64d718419a2a5a4a5e38eb", ContractParameterType.Hash160)]
+        [InitialValue("0xca2d20610d7982ebe0bed124ee7e9b2d580a6efc", ContractParameterType.Hash160)]
         static readonly UInt160 Factory = default;
 
-        [InitialValue("0xaa8b511593c8a5ec33a4b28190832a46c13da6fb", ContractParameterType.Hash160)]
+        [InitialValue("0x999f51af4d4ecd263b0ed3b8bbfb1c31f6b1d8f8", ContractParameterType.Hash160)]
         static readonly UInt160 OrderBook = default;
 
         const string AdminKey = nameof(superAdmin);

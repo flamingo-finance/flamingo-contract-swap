@@ -9,9 +9,9 @@ using System.ComponentModel;
 namespace FlamingoSwapOrderBook
 {
     [DisplayName("FlamingoSwapOrderBook")]
-    [ManifestExtra("Author", "NEO")]
-    [ManifestExtra("Email", "developer@neo.org")]
-    [ManifestExtra("Description", "This is a FlamingoSwapOrderBook")]
+    [ManifestExtra("Author", "Flamingo Finance")]
+    [ManifestExtra("Email", "developer@flamingo.finance")]
+    [ManifestExtra("Description", "This is a Flamingo Contract")]
     [ContractPermission("*")]
     public partial class FlamingoSwapOrderBookContract : SmartContract
     {

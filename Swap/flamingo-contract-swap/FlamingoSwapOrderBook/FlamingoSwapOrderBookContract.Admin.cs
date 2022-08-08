@@ -12,7 +12,14 @@ namespace FlamingoSwapOrderBook
         #region Admin
 
 #warning Update the admin address if necessary
-        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        //Test
+        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        //static readonly UInt160 superAdmin = default;
+        //[InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", ContractParameterType.Hash160)]
+        //static readonly UInt160 bNEO = default;
+
+        //Main
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
         [InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", ContractParameterType.Hash160)]
         static readonly UInt160 bNEO = default;
@@ -95,10 +102,10 @@ namespace FlamingoSwapOrderBook
 
         #region Upgrade
 
-        public static void Update(ByteString nefFile, string manifest, object data)
+        public static void Update(ByteString nefFile, string manifest)
         {
             Assert(Verify(), "No Authorization");
-            ContractManagement.Update(nefFile, manifest, data);
+            ContractManagement.Update(nefFile, manifest, null);
         }
         #endregion
     }
