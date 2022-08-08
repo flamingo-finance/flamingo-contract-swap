@@ -219,6 +219,7 @@ namespace FlamingoSwapAggregator
 
         private static BigInteger[] GetStrategyOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
+            Assert(amountIn >= 0 && tokenIn.IsValid && tokenOut.IsValid, "Invalid Strategy Parameters");
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
             var leftIn = amountIn;
 
@@ -249,18 +250,19 @@ namespace FlamingoSwapAggregator
                         ammReverse[0] += amountToPool;
                         ammReverse[1] -= amountOutPool;
                         leftIn -= amountToPool;
+                        if (leftIn == 0) break;
                         ammPrice = bookPrice;
                     }
 
-                    if (leftIn == 0) break;
-
                     // Then book
                     var result = GetOrderBookAmountOut(tokenIn, tokenOut, anchorID, bookPrice, leftIn);
+                    Assert(result[0] >= 0 && result[0] <= leftIn && result[1] >= 0, "Invalid Book Match");
                     totalToBook += leftIn - result[0];
                     totalOutBook += result[1];
                     lastDealPrice = bookPrice;
                     leftIn = result[0];
 
+                    // Find next price
                     if (leftIn == 0) break;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
@@ -292,6 +294,7 @@ namespace FlamingoSwapAggregator
 
         private static BigInteger[] GetStrategyIn(BigInteger amountOut, UInt160 tokenIn, UInt160 tokenOut)
         {
+            Assert(amountOut >= 0 && tokenIn.IsValid && tokenOut.IsValid, "Invalid Strategy Parameters");
             var leftOut = amountOut;
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
 
@@ -326,18 +329,19 @@ namespace FlamingoSwapAggregator
                         ammReverse[0] += amountToPool;
                         ammReverse[1] -= amountOutPool;
                         leftOut -= amountOutPool;
+                        if (leftOut == 0) break;
                         ammPrice = bookPrice;
                     }
 
-                    if (leftOut == 0) break;
-
                     // Then book
                     var result = GetOrderBookAmountIn(tokenIn, tokenOut, anchorID, bookPrice, leftOut);
+                    Assert(result[0] >= 0 && result[0] <= leftOut && result[1] >= 0, "Invalid Book Match");
                     totalToBook += result[1];
                     totalOutBook += leftOut - result[0];
                     lastDealPrice = bookPrice;
                     leftOut = result[0];
 
+                    // Find next price
                     if (leftOut == 0) break;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
@@ -680,21 +684,19 @@ namespace FlamingoSwapAggregator
                         ammReverse[1] += amountToPool;
                         ammReverse[0] -= amountOutPool;
                         leftAmount -= amountOutPool;
+                        if (leftAmount == 0) break;
                         ammPrice = bookPrice;
                     }
 
-                    if (leftAmount == 0) break;
-
                     // Then book
-                    if (bookPrice <= price)
-                    {
-                        var result = GetOrderBookAmountIn(quoteToken, baseToken, anchorID, bookPrice, leftAmount);
-                        totalToBook += result[1];
-                        totalOutBook += leftAmount - result[0];
-                        lastDealPrice = bookPrice;
-                        leftAmount = result[0];
-                    }
+                    var result = GetOrderBookAmountIn(quoteToken, baseToken, anchorID, bookPrice, leftAmount);
+                    Assert(result[0] >= 0 && result[0] <= leftAmount && result[1] >= 0, "Invalid Book Match");
+                    totalToBook += result[1];
+                    totalOutBook += leftAmount - result[0];
+                    lastDealPrice = bookPrice;
+                    leftAmount = result[0];
 
+                    // Find next price
                     if (leftAmount == 0) break;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
@@ -735,21 +737,19 @@ namespace FlamingoSwapAggregator
                         ammReverse[0] += amountToPool;
                         ammReverse[1] -= amountOutPool;
                         leftAmount -= amountToPool;
+                        if (leftAmount == 0) break;
                         ammPrice = bookPrice;
                     }
 
-                    if (leftAmount == 0) break;
-
                     // Then book
-                    if (bookPrice >= price)
-                    {
-                        var result = GetOrderBookAmountOut(baseToken, quoteToken, anchorID, bookPrice, leftAmount);
-                        totalToBook += leftAmount - result[0];
-                        totalOutBook += result[1];
-                        lastDealPrice = bookPrice;
-                        leftAmount = result[0];
-                    }
+                    var result = GetOrderBookAmountOut(baseToken, quoteToken, anchorID, bookPrice, leftAmount);
+                    Assert(result[0] >= 0 && result[0] <= leftAmount && result[1] >= 0, "Invalid Book Match");
+                    totalToBook += leftAmount - result[0];
+                    totalOutBook += result[1];
+                    lastDealPrice = bookPrice;
+                    leftAmount = result[0];
 
+                    // Find next price
                     if (leftAmount == 0) break;
                     (anchorID, bookPrice) = GetOrderBookNextPrice(anchorID);
                 }
