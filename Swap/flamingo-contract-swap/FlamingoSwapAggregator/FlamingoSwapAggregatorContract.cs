@@ -799,7 +799,7 @@ namespace FlamingoSwapAggregator
         /// <returns></returns>
         private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountToBook, BigInteger amountToPool, BigInteger amountOutBook, BigInteger amountOutPool, BigInteger bookDealPrice)
         {
-            Assert(amountToBook >= 0 && amountToPool >=0 && amountOutBook >= 0 && amountOutPool >= 0 && bookDealPrice >= 0, "Invalid Swap Aggregation");
+            Assert(amountToBook >= 0 && amountToPool >= 0 && amountOutBook >= 0 && amountOutPool >= 0 && bookDealPrice >= 0, "Invalid Swap Aggregation");
             var me = Runtime.ExecutingScriptHash;
 
             if (amountOutBook > 0)
