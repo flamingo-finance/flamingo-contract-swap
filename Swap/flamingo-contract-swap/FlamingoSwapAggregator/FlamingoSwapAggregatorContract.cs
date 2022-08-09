@@ -219,7 +219,7 @@ namespace FlamingoSwapAggregator
 
         private static BigInteger[] GetStrategyOut(BigInteger amountIn, UInt160 tokenIn, UInt160 tokenOut)
         {
-            Assert(amountIn >= 0 && tokenIn.IsValid && tokenOut.IsValid, "Invalid Strategy Parameters");
+            Assert(amountIn > 0 && tokenIn.IsValid && tokenOut.IsValid, "Invalid Strategy Parameters");
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
             var leftIn = amountIn;
 
@@ -243,6 +243,7 @@ namespace FlamingoSwapAggregator
                     {
                         var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1])
                             : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        Assert(amountToPool >= 0, "Negative AmountToPool");
                         if (leftIn < amountToPool) amountToPool = leftIn;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
@@ -275,6 +276,7 @@ namespace FlamingoSwapAggregator
                 totalOutPool += GetAMMAmountOut(leftIn, ammReverse[0], ammReverse[1]);
             }
 
+            Assert(totalToBook + totalToPool == amountIn, "Invalid Strategy Out");
             return new BigInteger[] { totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice };
         }
 
@@ -294,7 +296,7 @@ namespace FlamingoSwapAggregator
 
         private static BigInteger[] GetStrategyIn(BigInteger amountOut, UInt160 tokenIn, UInt160 tokenOut)
         {
-            Assert(amountOut >= 0 && tokenIn.IsValid && tokenOut.IsValid, "Invalid Strategy Parameters");
+            Assert(amountOut > 0 && tokenIn.IsValid && tokenOut.IsValid, "Invalid Strategy Parameters");
             var leftOut = amountOut;
             (var ammReverse, var hasFundFee) = GetReservesAndCheckFund(tokenIn, tokenOut);
 
@@ -318,6 +320,7 @@ namespace FlamingoSwapAggregator
                     {
                         var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1])
                             : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        Assert(amountToPool >= 0, "Negative AmountToPool");
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         if (amountOutPool > leftOut)
                         {
@@ -354,6 +357,7 @@ namespace FlamingoSwapAggregator
                 totalOutPool += leftOut;
             }
 
+            Assert(totalOutBook + totalOutPool == amountOut, "Invaild Strategy In");
             return new BigInteger[] { totalToBook, totalToPool, totalOutBook, totalOutPool, lastDealPrice };
         }
 
@@ -673,6 +677,7 @@ namespace FlamingoSwapAggregator
                     {
                         var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[1], ammReverse[0])
                             : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[1], ammReverse[0]);
+                        Assert(amountToPool >= 0, "Negative AmountToPool");
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
                         if (amountOutPool > leftAmount)
                         {
@@ -706,6 +711,7 @@ namespace FlamingoSwapAggregator
                 {
                     var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, price, quoteScale, ammReverse[1], ammReverse[0])
                             : GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[1], ammReverse[0]);
+                    Assert(amountToPool >= 0, "Negative AmountToPool");
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[1], ammReverse[0]);
                     if (amountOutPool > leftAmount)
                     {
@@ -718,6 +724,7 @@ namespace FlamingoSwapAggregator
                 }
 
                 // Do deal
+                Assert(leftAmount + totalOutBook + totalOutPool == amount, "Invalid Pre-Deal");
                 if (totalOutBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, (totalOutBook * 1000 + 996) / 997);
                 if (totalOutPool > 0) SwapAMM(taker, quoteToken, baseToken, totalToPool, totalOutPool);
             }
@@ -730,6 +737,7 @@ namespace FlamingoSwapAggregator
                     {
                         var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1])
                             : GetAMMAmountInTillPrice(isBuy, bookPrice, quoteScale, ammReverse[0], ammReverse[1]);
+                        Assert(amountToPool >= 0, "Negative AmountToPool");
                         if (leftAmount < amountToPool) amountToPool = leftAmount;
                         var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                         totalToPool += amountToPool;
@@ -759,6 +767,7 @@ namespace FlamingoSwapAggregator
                 {
                     var amountToPool = hasFundFee ? GetAMMAmountInTillPriceWithFundFee(isBuy, price, quoteScale, ammReverse[0], ammReverse[1])
                             : GetAMMAmountInTillPrice(isBuy, price, quoteScale, ammReverse[0], ammReverse[1]);
+                    Assert(amountToPool >= 0, "Negative AmountToPool");
                     if (leftAmount < amountToPool) amountToPool = leftAmount;
                     var amountOutPool = GetAMMAmountOut(amountToPool, ammReverse[0], ammReverse[1]);
                     totalToPool += amountToPool;
@@ -767,6 +776,7 @@ namespace FlamingoSwapAggregator
                 }
 
                 // Do deal
+                Assert(leftAmount + totalToBook + totalToPool == amount, "Invalid Pre-Deal");
                 if (totalOutBook > 0) SendMarketOrder(tokenA, tokenB, taker, isBuy, lastDealPrice, totalToBook);
                 else leftAmount += totalToBook;
                 if (totalOutPool > 0) SwapAMM(taker, baseToken, quoteToken, totalToPool, totalOutPool);
@@ -789,6 +799,7 @@ namespace FlamingoSwapAggregator
         /// <returns></returns>
         private static void SwapWithOrderBook(UInt160 tokenIn, UInt160 tokenOut, BigInteger amountToBook, BigInteger amountToPool, BigInteger amountOutBook, BigInteger amountOutPool, BigInteger bookDealPrice)
         {
+            Assert(amountToBook >= 0 && amountToPool >=0 && amountOutBook >= 0 && amountOutPool >= 0 && bookDealPrice >= 0, "Invalid Swap Aggregation");
             var me = Runtime.ExecutingScriptHash;
 
             if (amountOutBook > 0)
