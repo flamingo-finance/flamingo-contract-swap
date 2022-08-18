@@ -763,6 +763,63 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
+        /// Deal a whole limit order with it id and parent id
+        /// </summary>
+        /// <param name="taker"></param>
+        /// <param name="parentID"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static bool DealMarketOrderAt(UInt160 taker, ByteString parentID, ByteString id)
+        {
+            if (!OrderExists(id)) return false;
+            Assert(OrderExists(parentID), "Parent Order Not Exists");
+            var order = GetOrder(id);
+            Assert(Runtime.CheckWitness(taker), "No Authorization");
+
+            // Do deal
+            var me = Runtime.ExecutingScriptHash;
+            var receipt = GetReceipt(order.maker, id);
+            var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
+            var quoteScale = GetQuoteScale(pairKey);
+            var fundAddress = GetFundAddress();
+
+            var baseAmount = order.amount;
+            var quoteAmount = order.amount * order.price / quoteScale;
+            var basePayment = baseAmount * 997 / 1000;
+            var quotePayment = quoteAmount * 997 / 1000;
+            var baseFee = baseAmount - basePayment;
+            var quoteFee = quoteAmount - quotePayment;
+
+            if (receipt.isBuy) SafeTransfer(receipt.baseToken, taker, me, baseAmount);
+            else SafeTransfer(receipt.quoteToken, taker, me, quoteAmount);
+
+            // Remove order and receipt
+            Assert(RemoveOrderAt(parentID, id), "Remove Order Fail");
+            DeleteReceipt(order.maker, id);
+            onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, !!receipt.isBuy, order.maker, order.price, 0);
+
+            // Transfer
+            if (receipt.isBuy)
+            {
+                if (basePayment > 0) SafeTransfer(receipt.baseToken, me, order.maker, basePayment);
+                if (quotePayment > 0) SafeTransfer(receipt.quoteToken, me, taker, quotePayment);
+            }
+            else
+            {
+                if (basePayment > 0) SafeTransfer(receipt.baseToken, me, taker, basePayment);
+                if (quotePayment > 0) SafeTransfer(receipt.quoteToken, me, order.maker, quotePayment);
+            }
+
+            if (fundAddress is not null)
+            {
+                if (baseFee > 0) SafeTransfer(receipt.baseToken, me, fundAddress, baseFee);
+                if (quoteFee > 0) SafeTransfer(receipt.quoteToken, me, fundAddress, quoteFee);
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Price reporter
         /// </summary>
         /// <param name="tokenA"></param>
