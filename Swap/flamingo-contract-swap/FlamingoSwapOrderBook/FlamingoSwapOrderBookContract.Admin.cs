@@ -21,12 +21,15 @@ namespace FlamingoSwapOrderBook
         //Main
         [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
+        [InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
+        static readonly UInt160 WhiteListContract = default;
         [InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", ContractParameterType.Hash160)]
         static readonly UInt160 bNEO = default;
 
         private const string AdminKey = nameof(superAdmin);
         private const string GASAdminKey = nameof(GASAdminKey);
         private const string FundAddresskey = nameof(FundAddresskey);
+        private const string WhiteListContractKey = nameof(WhiteListContract);
 
         private static readonly byte[] OrderIDKey = new byte[] { 0x00 };
         private static readonly byte[] BookMapPrefix = new byte[] { 0x01 };
@@ -80,6 +83,32 @@ namespace FlamingoSwapOrderBook
             StoragePut(GASAdminKey, GASAdmin);
             return true;
         }
+        #endregion
+
+        #region WhiteContract
+
+        [Safe]
+        public static UInt160 GetWhiteListContract()
+        {
+            var whiteList = StorageGet(WhiteListContractKey);
+            return whiteList?.Length == 20 ? (UInt160)whiteList : WhiteListContract;
+        }
+
+        public static bool SetWhiteListContract(UInt160 whiteList)
+        {
+            Assert(Verify(), "Forbidden");
+            Assert(whiteList.IsAddress(), "Invalid Address");
+            StoragePut(WhiteListContractKey, whiteList);
+            return true;
+        }
+
+        public static bool CheckIsRouter(UInt160 callScript)
+        {
+            Assert(callScript.IsAddress(), "Invalid CallScript Address");
+            var whiteList = GetWhiteListContract();
+            return (bool)Contract.Call(whiteList, "checkRouter", CallFlags.ReadOnly, new object[] { callScript });
+        }
+
         #endregion
 
         #region FundFee

@@ -189,10 +189,11 @@ namespace FlamingoSwapAggregator
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
+        /// <param name="receiptAmount"></param>
         /// <returns></returns>
-        private static ByteString SendLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount)
+        private static ByteString SendLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount, BigInteger receiptAmount)
         {
-            return (ByteString)Contract.Call(OrderBook, "addLimitOrder", CallFlags.All, new object[] { tokenA, tokenB, maker, isBuy, price, amount });
+            return (ByteString)Contract.Call(OrderBook, "addLimitOrder", CallFlags.All, new object[] { tokenA, tokenB, maker, isBuy, price, amount, receiptAmount });
         }
 
         /// <summary>

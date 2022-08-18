@@ -183,13 +183,19 @@ namespace FlamingoSwapOrderBook
         /// <returns>Null or a new order id</returns>
         public static ByteString AddLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount)
         {
+            return AddLimitOrder(tokenA, tokenB, maker, isBuy, price, amount, amount);
+        }
+
+        public static ByteString AddLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 maker, bool isBuy, BigInteger price, BigInteger amount, BigInteger receiptAmount)
+        {
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(BookExists(pairKey), "Book Not Exists");
             Assert(!BookPaused(pairKey), "Book is Paused");
 
             // Check parameters
-            Assert(price > 0 && amount > 0, "Invalid Parameters");
+            Assert(price > 0 && amount > 0 && receiptAmount >= amount, "Invalid Parameters");
+            if (receiptAmount > amount) Assert(CheckIsRouter(Runtime.CallingScriptHash), "Only Router Can Custom Receipt");
 
             // Check maker
             Assert(Runtime.CheckWitness(maker), "No Authorization");
@@ -221,7 +227,7 @@ namespace FlamingoSwapOrderBook
                 id = id,
                 time = Runtime.Time,
                 isBuy = isBuy,
-                totalAmount = leftAmount
+                totalAmount = receiptAmount
             });
             onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, !!isBuy, maker, price, leftAmount);
             return id;
@@ -237,6 +243,11 @@ namespace FlamingoSwapOrderBook
         /// <returns>Null or a new order id</returns>
         public static ByteString AddLimitOrderAt(ByteString parentID, UInt160 maker, BigInteger price, BigInteger amount)
         {
+            return AddLimitOrderAt(parentID, maker, price, amount, amount);
+        }
+
+        public static ByteString AddLimitOrderAt(ByteString parentID, UInt160 maker, BigInteger price, BigInteger amount, BigInteger receiptAmount)
+        {
             Assert(OrderExists(parentID), "Parent Order Not Exists");
             var receipt = GetReceipt(GetOrder(parentID).maker, parentID);
 
@@ -245,7 +256,8 @@ namespace FlamingoSwapOrderBook
             Assert(!BookPaused(pairKey), "Book is Paused");
 
             // Check parameters
-            Assert(price > 0 && amount > 0, "Invalid Parameters");
+            Assert(price > 0 && amount > 0 && receiptAmount >= amount, "Invalid Parameters");
+            if (receiptAmount > amount) Assert(CheckIsRouter(Runtime.CallingScriptHash), "Only Router Can Custom Receipt");
 
             // Check maker
             Assert(Runtime.CheckWitness(maker), "No Authorization");
@@ -275,7 +287,7 @@ namespace FlamingoSwapOrderBook
                 id = id,
                 time = Runtime.Time,
                 isBuy = receipt.isBuy,
-                totalAmount = amount
+                totalAmount = receiptAmount
             });
             onOrderStatusChanged(receipt.baseToken, receipt.quoteToken, id, !!receipt.isBuy, maker, price, amount);
             return id;

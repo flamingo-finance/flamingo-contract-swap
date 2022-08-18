@@ -637,7 +637,7 @@ namespace FlamingoSwapAggregator
 
             var leftAmount = DealMarketOrder(tokenA, tokenB, maker, isBuy, price, amount);
             if (leftAmount == 0) return null;
-            else return SendLimitOrder(tokenA, tokenB, maker, isBuy, price, leftAmount);
+            else return SendLimitOrder(tokenA, tokenB, maker, isBuy, price, leftAmount, amount);
         }
 
         /// <summary>
