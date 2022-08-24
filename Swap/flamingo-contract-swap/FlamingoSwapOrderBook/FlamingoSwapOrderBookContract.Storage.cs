@@ -44,25 +44,28 @@ namespace FlamingoSwapOrderBook
             return GetOrder(page, id);
         }
 
-        private static void RemoveLimitOrder(ByteString id)
+        private static void UpdateLimitOrder(LimitOrder order)
         {
-            // Delete order and index 
-            var page = GetIndex(id);
-            DeleteOrder(page, id);
-            DeleteIndex(id);
-
-            // Update page status
-            var pageOccupancy = GetPageOccupancy(page) - 1;
-            Assert(pageOccupancy >= 0, "Invalid Page Occupancy");
-            UpdatePageOccupancy(page, pageOccupancy);
+            SetOrder(order.page, order.id, order);
         }
 
-        private static Iterator GetOrdersByPage(BigInteger page)
+        private static void RemoveLimitOrder(LimitOrder order)
+        {
+            // Delete order and index 
+            DeleteOrder(order.page, order.id);
+            DeleteIndex(order.id);
+
+            // Update page status
+            var pageOccupancy = GetPageOccupancy(order.page) - 1;
+            Assert(pageOccupancy >= 0, "Invalid Page Occupancy");
+            UpdatePageOccupancy(order.page, pageOccupancy);
+        }
+
+        private static Iterator GetPage(BigInteger page)
         {
             var orderMap = new StorageMap(Storage.CurrentContext, OrderMapPrefix);
             return orderMap.Find((ByteString)page, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
         }
-
 
         #region BookMap
         private static void SetBook(byte[] pairKey, BookInfo book)
@@ -74,7 +77,8 @@ namespace FlamingoSwapOrderBook
         private static BookInfo GetBook(byte[] pairKey)
         {
             var bookMap = new StorageMap(Storage.CurrentReadOnlyContext, BookMapPrefix);
-            return (BookInfo)StdLib.Deserialize(bookMap.Get(pairKey));
+            var bookInfo = bookMap.Get(pairKey);
+            return bookInfo is null ? new BookInfo() : (BookInfo)StdLib.Deserialize(bookInfo);
         }
         #endregion
 
@@ -108,7 +112,8 @@ namespace FlamingoSwapOrderBook
         private static LimitOrder GetOrder(BigInteger page, ByteString id)
         {
             var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
-            return (LimitOrder)StdLib.Deserialize(orderMap.Get(page + id));
+            var order = orderMap.Get(page + id);
+            return order is null ? new LimitOrder() : (LimitOrder)StdLib.Deserialize(orderMap.Get(page + id));
         }
 
         private static void DeleteOrder(BigInteger page, ByteString id)
