@@ -9,62 +9,83 @@ namespace FlamingoSwapOrderBook
 {
     public partial class FlamingoSwapOrderBookContract
     {
-        private static BigInteger GetFirstAvailablePage()
+        [Safe]
+        public static BookInfo GetBookInfo(UInt160 tokenA, UInt160 tokenB)
         {
-            var pageCount = GetPageCounter();
-            for (var page = BigInteger.Zero; page < pageCount; page++)
-            {
-                if (GetPageOccupancy(page) < ORDER_PER_PAGE) return page;
-            }
-            return pageCount;
-        }
-
-        private static ByteString AddLimitOrder(LimitOrder order)
-        {
-            // Get id and page
-            var id = GetUnusedID();
-            var page = GetFirstAvailablePage();
-            order.id = id;
-            order.page = page;
-            SetIndex(id, page);
-            SetOrder(page, id, order);
-
-            // Update page status
-            if (page == GetPageCounter()) UpdatePageCounter(page + 1);
-            var pageOccupancy = GetPageOccupancy(page) + 1;
-            Assert(pageOccupancy <= ORDER_PER_PAGE, "Using Full Page");
-            UpdatePageOccupancy(page, pageOccupancy);
-            return id;
+            return GetBook(GetPairKey(tokenA, tokenB));
         }
 
         [Safe]
         public static LimitOrder GetLimitOrder(ByteString id)
         {
-            var page = GetIndex(id);
-            return GetOrder(page, id);
+            var index = GetIndex(id);
+            return GetOrder(index, id);
         }
 
-        private static void UpdateLimitOrder(LimitOrder order)
+        [Safe]
+        public static LimitOrder[] GetOrdersOnPage(UInt160 tokenA, UInt160 tokenB, BigInteger page)
         {
-            SetOrder(order.page, order.id, order);
+            var results = new LimitOrder[0];
+            var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
+            var iterator = orderMap.Find(GetPairKey(tokenA, tokenB).ToByteString() + page, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
+            while (iterator.Next()) Append(results, (LimitOrder)iterator.Value);
+            return results;
         }
 
-        private static void RemoveLimitOrder(LimitOrder order)
+        [Safe]
+        public static LimitOrder[] GetOrdersOf(UInt160 maker)
+        {
+            var results = new LimitOrder[0];
+            var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
+            var iterator = orderMap.Find(maker, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
+            while (iterator.Next()) Append(results, (LimitOrder)iterator.Value);
+            return results;
+        }
+
+        private static BigInteger GetFirstAvailablePage(byte[] pairKey)
+        {
+            var pageCount = GetPageCounter(pairKey);
+            for (var page = BigInteger.One; page <= pageCount; page++)
+            {
+                if (GetPageOccupancy(pairKey, page) < ORDER_PER_PAGE) return page;
+            }
+            return pageCount + 1;
+        }
+
+        private static ByteString AddLimitOrder(byte[] pairKey, LimitOrder order)
+        {
+            // Get id and page
+            var id = GetUnusedID();
+            var page = GetFirstAvailablePage(pairKey);
+            order.id = id;
+            order.page = page;
+            var index = pairKey.ToByteString() + order.page + order.maker;
+            SetIndex(id, index);
+            SetOrder(index, id, order);
+
+            // Update page status
+            if (page > GetPageCounter(pairKey)) UpdatePageCounter(pairKey, page);
+            var pageOccupancy = GetPageOccupancy(pairKey, page) + 1;
+            Assert(pageOccupancy <= ORDER_PER_PAGE, "Using Full Page");
+            UpdatePageOccupancy(pairKey, page, pageOccupancy);
+            return id;
+        }
+
+        private static void UpdateLimitOrder(ByteString index, LimitOrder order)
+        {
+            SetOrder(index, order.id, order);
+        }
+
+        private static void RemoveLimitOrder(byte[] pairKey, ByteString index, LimitOrder order)
         {
             // Delete order and index 
-            DeleteOrder(order.page, order.id);
+            DeleteOrder(index, order.id);
             DeleteIndex(order.id);
 
             // Update page status
-            var pageOccupancy = GetPageOccupancy(order.page) - 1;
+            var pageOccupancy = GetPageOccupancy(pairKey, order.page) - 1;
             Assert(pageOccupancy >= 0, "Invalid Page Occupancy");
-            UpdatePageOccupancy(order.page, pageOccupancy);
-        }
-
-        private static Iterator GetPage(BigInteger page)
-        {
-            var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
-            return orderMap.Find((ByteString)page, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
+            UpdatePageOccupancy(pairKey, order.page, pageOccupancy);
         }
 
         #region BookMap
@@ -83,16 +104,16 @@ namespace FlamingoSwapOrderBook
         #endregion
 
         #region OrderIndex
-        private static void SetIndex(ByteString id, BigInteger page)
+        private static void SetIndex(ByteString id, ByteString index)
         {
             var orderIndex = new StorageMap(Storage.CurrentContext, OrderIndexKey);
-            orderIndex.Put(id, page);
+            orderIndex.Put(id, index);
         }
 
-        private static BigInteger GetIndex(ByteString id)
+        private static ByteString GetIndex(ByteString id)
         {
             var orderIndex = new StorageMap(Storage.CurrentReadOnlyContext, OrderIndexKey);
-            return (BigInteger)orderIndex.Get(id);
+            return orderIndex.Get(id);
         }
 
         private static void DeleteIndex(ByteString id)
@@ -103,51 +124,51 @@ namespace FlamingoSwapOrderBook
         #endregion
 
         #region OrderMap
-        private static void SetOrder(BigInteger page, ByteString id, LimitOrder order)
+        private static void SetOrder(ByteString index, ByteString id, LimitOrder order)
         {
             var orderMap = new StorageMap(Storage.CurrentContext, OrderMapPrefix);
-            orderMap.Put(page + id, StdLib.Serialize(order));
+            orderMap.Put(index + id, StdLib.Serialize(order));
         }
 
-        private static LimitOrder GetOrder(BigInteger page, ByteString id)
+        private static LimitOrder GetOrder(ByteString index, ByteString id)
         {
             var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
-            var order = orderMap.Get(page + id);
+            var order = orderMap.Get(index + id);
             return order is null ? new LimitOrder() : (LimitOrder)StdLib.Deserialize(order);
         }
 
-        private static void DeleteOrder(BigInteger page, ByteString id)
+        private static void DeleteOrder(ByteString index, ByteString id)
         {
             var orderMap = new StorageMap(Storage.CurrentContext, OrderMapPrefix);
-            orderMap.Delete(page + id);
+            orderMap.Delete(index + id);
         }
         #endregion
 
         #region PageMap
-        private static void UpdatePageOccupancy(BigInteger page, BigInteger amount)
+        private static void UpdatePageOccupancy(byte[] pairKey, BigInteger page, BigInteger amount)
         {
             var pageMap = new StorageMap(Storage.CurrentContext, PageMapPrefix);
-            pageMap.Put((ByteString)page, amount);
+            pageMap.Put(pairKey.ToByteString() + page, amount);
         }
 
-        [Safe]
-        public static BigInteger GetPageOccupancy(BigInteger page)
+        private static BigInteger GetPageOccupancy(byte[] pairKey, BigInteger page)
         {
             var pageMap = new StorageMap(Storage.CurrentReadOnlyContext, PageMapPrefix);
-            return (BigInteger)pageMap.Get((ByteString)page);
+            return (BigInteger)pageMap.Get(pairKey.ToByteString() + page);
         }
         #endregion
 
         #region PageCounter
-        private static void UpdatePageCounter(BigInteger count)
+        private static void UpdatePageCounter(byte[] pairKey, BigInteger count)
         {
-            Storage.Put(Storage.CurrentContext, PageCounterKey, count);
+            var counterMap = new StorageMap(Storage.CurrentContext, PageCounterKey);
+            counterMap.Put(pairKey, count - 1);
         }
 
-        [Safe]
-        public static BigInteger GetPageCounter()
+        private static BigInteger GetPageCounter(byte[] pairKey)
         {
-            return (BigInteger)Storage.Get(Storage.CurrentReadOnlyContext, PageCounterKey);
+            var counterMap = new StorageMap(Storage.CurrentReadOnlyContext, PageCounterKey);
+            return (BigInteger)counterMap.Get(pairKey) + 1;
         }
         #endregion
 
