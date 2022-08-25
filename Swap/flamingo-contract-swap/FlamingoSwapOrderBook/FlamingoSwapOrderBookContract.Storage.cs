@@ -63,7 +63,7 @@ namespace FlamingoSwapOrderBook
 
         private static Iterator GetPage(BigInteger page)
         {
-            var orderMap = new StorageMap(Storage.CurrentContext, OrderMapPrefix);
+            var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
             return orderMap.Find((ByteString)page, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
         }
 
@@ -113,7 +113,7 @@ namespace FlamingoSwapOrderBook
         {
             var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
             var order = orderMap.Get(page + id);
-            return order is null ? new LimitOrder() : (LimitOrder)StdLib.Deserialize(orderMap.Get(page + id));
+            return order is null ? new LimitOrder() : (LimitOrder)StdLib.Deserialize(order);
         }
 
         private static void DeleteOrder(BigInteger page, ByteString id)
@@ -127,7 +127,7 @@ namespace FlamingoSwapOrderBook
         private static void UpdatePageOccupancy(BigInteger page, BigInteger amount)
         {
             var pageMap = new StorageMap(Storage.CurrentContext, PageMapPrefix);
-            pageMap.Put((ByteString)page, amount.ToString());
+            pageMap.Put((ByteString)page, amount);
         }
 
         [Safe]

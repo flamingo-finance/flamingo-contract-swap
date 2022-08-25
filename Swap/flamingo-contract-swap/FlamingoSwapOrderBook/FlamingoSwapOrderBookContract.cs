@@ -445,10 +445,5 @@ namespace FlamingoSwapOrderBook
             //转出tokenOut
             SwapOut(pairContract, amount0Out, amount1Out, sender);
         }
-
-        public static BigInteger[] TestDealOrders(UInt160 tokenA, UInt160 tokenB, UInt160 taker, bool isBuy, BigInteger amount, ByteString id1, ByteString id2)
-        {
-            return DealOrders(tokenA, tokenB, taker, isBuy, amount, new ByteString[] {id1,id2});
-        }
     }
 }
