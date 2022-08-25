@@ -41,6 +41,18 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
+        /// 查询token缩写
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="message"></param>
+        /// <param name="data"></param>
+        public static string GetTokenSymbol(UInt160 token)
+        {
+            Assert(token.IsValid, "Invalid Address");
+            return (string)Contract.Call(token, "symbol", CallFlags.ReadOnly, new object[] {});
+        }
+
+        /// <summary>
         /// 安全查询交易对，查不到立即中断合约执行
         /// </summary>
         /// <param name="tokenA"></param>

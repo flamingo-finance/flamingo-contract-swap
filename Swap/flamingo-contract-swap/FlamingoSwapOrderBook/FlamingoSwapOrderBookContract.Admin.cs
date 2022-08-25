@@ -12,7 +12,7 @@ namespace FlamingoSwapOrderBook
         #region Admin
 
 #warning Update the admin address if necessary
-        [InitialValue("NdrUjmLFCmr6RjM52njho5sFUeeTdKPxG9", ContractParameterType.Hash160)]
+        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
         [InitialValue("0xc0695bdb8a87a40aff33c73ff6349ccc05fa9f01", ContractParameterType.Hash160)]
@@ -31,8 +31,9 @@ namespace FlamingoSwapOrderBook
         private static readonly byte[] PageCounterKey = new byte[] { 0x01 };
         private static readonly byte[] BookMapPrefix = new byte[] { 0x02 };
         private static readonly byte[] PageMapPrefix = new byte[] { 0x03 };
-        private static readonly byte[] OrderIndexKey = new byte[] { 0x04 };
-        private static readonly byte[] OrderMapPrefix = new byte[] { 0x05 };
+        private static readonly byte[] OrderIndexPrefix = new byte[] { 0x04 };
+        private static readonly byte[] MakerIndexPrefix = new byte[] { 0x05 };
+        private static readonly byte[] OrderMapPrefix = new byte[] { 0x06 };
 
         // When this contract address is included in the transaction signature,
         // this method will be triggered as a VerificationTrigger to verify that the signature is correct.

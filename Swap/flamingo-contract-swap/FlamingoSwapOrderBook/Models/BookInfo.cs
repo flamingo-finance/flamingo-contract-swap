@@ -5,11 +5,12 @@ namespace FlamingoSwapOrderBook
 {
     public struct BookInfo
     {
-        public UInt160 baseToken;
-        public UInt160 quoteToken;
-        public BigInteger quoteScale;
-        public BigInteger minOrderAmount;
-        public BigInteger maxOrderAmount;
-        public bool isPaused;
+        public string Symbol;
+        public UInt160 BaseToken;
+        public UInt160 QuoteToken;
+        public BigInteger QuoteScale;
+        public BigInteger MinOrderAmount;
+        public BigInteger MaxOrderAmount;
+        public bool IsPaused;
     }
 }

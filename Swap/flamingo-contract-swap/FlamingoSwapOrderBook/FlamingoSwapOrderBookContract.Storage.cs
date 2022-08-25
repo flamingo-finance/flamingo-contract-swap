@@ -18,7 +18,7 @@ namespace FlamingoSwapOrderBook
         [Safe]
         public static LimitOrder GetLimitOrder(ByteString id)
         {
-            var index = GetIndex(id);
+            var index = GetOrderIndex(id);
             return GetOrder(index, id);
         }
 
@@ -27,7 +27,8 @@ namespace FlamingoSwapOrderBook
         {
             var results = new LimitOrder[0];
             var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
-            var iterator = orderMap.Find(GetPairKey(tokenA, tokenB).ToByteString() + page, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
+            var prefix = GetBookInfo(tokenA, tokenB).Symbol + page;
+            var iterator = orderMap.Find(prefix, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
             while (iterator.Next()) Append(results, (LimitOrder)iterator.Value);
             return results;
         }
@@ -36,9 +37,10 @@ namespace FlamingoSwapOrderBook
         public static LimitOrder[] GetOrdersOf(UInt160 maker)
         {
             var results = new LimitOrder[0];
+            var makerIndex = new StorageMap(Storage.CurrentReadOnlyContext, MakerIndexPrefix);
             var orderMap = new StorageMap(Storage.CurrentReadOnlyContext, OrderMapPrefix);
-            var iterator = orderMap.Find(maker, FindOptions.ValuesOnly | FindOptions.DeserializeValues);
-            while (iterator.Next()) Append(results, (LimitOrder)iterator.Value);
+            var iterator = makerIndex.Find(maker, FindOptions.ValuesOnly);
+            while (iterator.Next()) Append(results, (LimitOrder)StdLib.Deserialize(orderMap.Get((ByteString)iterator.Value)));
             return results;
         }
 
@@ -52,15 +54,16 @@ namespace FlamingoSwapOrderBook
             return pageCount + 1;
         }
 
-        private static ByteString AddLimitOrder(byte[] pairKey, LimitOrder order)
+        private static ByteString AddLimitOrder(byte[] pairKey, string symbol, LimitOrder order)
         {
             // Get id and page
             var id = GetUnusedID();
             var page = GetFirstAvailablePage(pairKey);
-            order.id = id;
-            order.page = page;
-            var index = pairKey.ToByteString() + order.page + order.maker;
-            SetIndex(id, index);
+            order.ID = id;
+            order.Page = page;
+            var index = symbol + order.Page;
+            SetOrderIndex(id, index);
+            SetMakerIndex(order.Maker + id, index + id);
             SetOrder(index, id, order);
 
             // Update page status
@@ -73,19 +76,20 @@ namespace FlamingoSwapOrderBook
 
         private static void UpdateLimitOrder(ByteString index, LimitOrder order)
         {
-            SetOrder(index, order.id, order);
+            SetOrder(index, order.ID, order);
         }
 
         private static void RemoveLimitOrder(byte[] pairKey, ByteString index, LimitOrder order)
         {
             // Delete order and index 
-            DeleteOrder(index, order.id);
-            DeleteIndex(order.id);
+            DeleteOrder(index, order.ID);
+            DeleteMakerIndex(order.Maker + order.ID);
+            DeleteOrderIndex(order.ID);
 
             // Update page status
-            var pageOccupancy = GetPageOccupancy(pairKey, order.page) - 1;
+            var pageOccupancy = GetPageOccupancy(pairKey, order.Page) - 1;
             Assert(pageOccupancy >= 0, "Invalid Page Occupancy");
-            UpdatePageOccupancy(pairKey, order.page, pageOccupancy);
+            UpdatePageOccupancy(pairKey, order.Page, pageOccupancy);
         }
 
         #region BookMap
@@ -103,22 +107,42 @@ namespace FlamingoSwapOrderBook
         }
         #endregion
 
-        #region OrderIndex
-        private static void SetIndex(ByteString id, ByteString index)
+        #region MakerIndex
+        private static void SetMakerIndex(ByteString index, ByteString orderIndex)
         {
-            var orderIndex = new StorageMap(Storage.CurrentContext, OrderIndexKey);
+            var makerIndex = new StorageMap(Storage.CurrentContext, MakerIndexPrefix);
+            makerIndex.Put(index, orderIndex);
+        }
+
+        private static ByteString GetMakerIndex(ByteString index)
+        {
+            var makerIndex = new StorageMap(Storage.CurrentReadOnlyContext, MakerIndexPrefix);
+            return makerIndex.Get(index);
+        }
+
+        private static void DeleteMakerIndex(ByteString index)
+        {
+            var makerIndex = new StorageMap(Storage.CurrentContext, MakerIndexPrefix);
+            makerIndex.Delete(index);
+        }
+        #endregion
+
+        #region OrderIndex
+        private static void SetOrderIndex(ByteString id, ByteString index)
+        {
+            var orderIndex = new StorageMap(Storage.CurrentContext, OrderIndexPrefix);
             orderIndex.Put(id, index);
         }
 
-        private static ByteString GetIndex(ByteString id)
+        private static ByteString GetOrderIndex(ByteString id)
         {
-            var orderIndex = new StorageMap(Storage.CurrentReadOnlyContext, OrderIndexKey);
+            var orderIndex = new StorageMap(Storage.CurrentReadOnlyContext, OrderIndexPrefix);
             return orderIndex.Get(id);
         }
 
-        private static void DeleteIndex(ByteString id)
+        private static void DeleteOrderIndex(ByteString id)
         {
-            var orderIndex = new StorageMap(Storage.CurrentContext, OrderIndexKey);
+            var orderIndex = new StorageMap(Storage.CurrentContext, OrderIndexPrefix);
             orderIndex.Delete(id);
         }
         #endregion
@@ -162,13 +186,13 @@ namespace FlamingoSwapOrderBook
         private static void UpdatePageCounter(byte[] pairKey, BigInteger count)
         {
             var counterMap = new StorageMap(Storage.CurrentContext, PageCounterKey);
-            counterMap.Put(pairKey, count - 1);
+            counterMap.Put(pairKey, count);
         }
 
         private static BigInteger GetPageCounter(byte[] pairKey)
         {
             var counterMap = new StorageMap(Storage.CurrentReadOnlyContext, PageCounterKey);
-            return (BigInteger)counterMap.Get(pairKey) + 1;
+            return (BigInteger)counterMap.Get(pairKey);
         }
         #endregion
 

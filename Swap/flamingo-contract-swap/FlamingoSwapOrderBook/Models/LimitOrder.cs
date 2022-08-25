@@ -6,15 +6,15 @@ namespace FlamingoSwapOrderBook
 {
     public struct LimitOrder
     {
-        public UInt160 baseToken;
-        public UInt160 quoteToken;
-        public ByteString id;
-        public ulong time;
-        public bool isBuy;
-        public UInt160 maker;
-        public BigInteger price;
-        public BigInteger totalAmount;
-        public BigInteger leftAmount;
-        public BigInteger page;
+        public UInt160 BaseToken;
+        public UInt160 QuoteToken;
+        public ByteString ID;
+        public ulong Time;
+        public bool IsBuy;
+        public UInt160 Maker;
+        public BigInteger Price;
+        public BigInteger TotalAmount;
+        public BigInteger LeftAmount;
+        public BigInteger Page;
     }
 }

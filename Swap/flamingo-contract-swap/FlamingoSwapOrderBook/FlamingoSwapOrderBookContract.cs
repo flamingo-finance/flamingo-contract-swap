@@ -18,21 +18,21 @@ namespace FlamingoSwapOrderBook
         public static void CancelOrder(ByteString orderID)
         {
             // Get order and book info
-            var index = GetIndex(orderID);
+            var index = GetOrderIndex(orderID);
             Assert(index is not null, "Order Not Exists");
             var order = GetOrder(index, orderID);
-            Assert(Runtime.CheckWitness(order.maker), "No Authorization");
+            Assert(Runtime.CheckWitness(order.Maker), "No Authorization");
             var me = Runtime.ExecutingScriptHash;
-            var pairKey = GetPairKey(order.baseToken, order.quoteToken);
+            var pairKey = GetPairKey(order.BaseToken, order.QuoteToken);
             var bookInfo = GetBook(pairKey);
 
             // Remove order and index
             RemoveLimitOrder(pairKey, index, order);
-            onOrderStatusChanged(order.baseToken, order.quoteToken, orderID, order.isBuy, order.maker, order.price, 0);
+            onOrderStatusChanged(order.BaseToken, order.QuoteToken, orderID, order.IsBuy, order.Maker, order.Price, 0);
 
             // Do transfer
-            if (order.isBuy) SafeTransfer(order.quoteToken, me, order.maker, order.leftAmount * order.price / bookInfo.quoteScale);
-            else SafeTransfer(order.baseToken, me, order.maker, order.leftAmount);
+            if (order.IsBuy) SafeTransfer(order.QuoteToken, me, order.Maker, order.LeftAmount * order.Price / bookInfo.QuoteScale);
+            else SafeTransfer(order.BaseToken, me, order.Maker, order.LeftAmount);
         }
 
         public static BigInteger DealOrder(UInt160 taker, ByteString orderID, BigInteger amount)
@@ -42,44 +42,44 @@ namespace FlamingoSwapOrderBook
             Assert(Runtime.CheckWitness(taker), "No Authorization");
 
             // Get order and book info
-            var index = GetIndex(orderID);
+            var index = GetOrderIndex(orderID);
             Assert(index is not null, "Order Not Exists");
             var order = GetOrder(index, orderID);
-            var pairKey = GetPairKey(order.baseToken, order.quoteToken);
+            var pairKey = GetPairKey(order.BaseToken, order.QuoteToken);
             var bookInfo = GetBook(pairKey);
 
             var me = Runtime.ExecutingScriptHash;
             var fundAddress = GetFundAddress();
 
-            var baseAmount = amount > order.leftAmount ? order.leftAmount : amount;
-            var quoteAmount = baseAmount * order.price / bookInfo.quoteScale;
+            var baseAmount = amount > order.LeftAmount ? order.LeftAmount : amount;
+            var quoteAmount = baseAmount * order.Price / bookInfo.QuoteScale;
             var basePayment = baseAmount * 997 / 1000;
             var quotePayment = quoteAmount * 997 / 1000;
 
-            if (order.isBuy) SafeTransfer(order.baseToken, taker, me, baseAmount);
-            else SafeTransfer(order.quoteToken, taker, me, quoteAmount > 0 ? quoteAmount : 1);
+            if (order.IsBuy) SafeTransfer(order.BaseToken, taker, me, baseAmount);
+            else SafeTransfer(order.QuoteToken, taker, me, quoteAmount > 0 ? quoteAmount : 1);
 
             // Update or remove order
-            if (baseAmount < order.leftAmount)
+            if (baseAmount < order.LeftAmount)
             {
-                order.leftAmount -= baseAmount;
+                order.LeftAmount -= baseAmount;
                 UpdateLimitOrder(index, order);
-                onOrderStatusChanged(order.baseToken, order.quoteToken, orderID, order.isBuy, order.maker, order.price, order.leftAmount);
+                onOrderStatusChanged(order.BaseToken, order.QuoteToken, orderID, order.IsBuy, order.Maker, order.Price, order.LeftAmount);
             }
             else
             {
                 RemoveLimitOrder(pairKey, index, order);
-                onOrderStatusChanged(order.baseToken, order.quoteToken, orderID, order.isBuy, order.maker, order.price, 0);
+                onOrderStatusChanged(order.BaseToken, order.QuoteToken, orderID, order.IsBuy, order.Maker, order.Price, 0);
             }
             
             // Transfer
-            SafeTransfer(order.baseToken, me, order.isBuy ? order.maker : taker, basePayment);
-            SafeTransfer(order.quoteToken, me, order.isBuy ? taker : order.maker, quotePayment);
+            SafeTransfer(order.BaseToken, me, order.IsBuy ? order.Maker : taker, basePayment);
+            SafeTransfer(order.QuoteToken, me, order.IsBuy ? taker : order.Maker, quotePayment);
 
             if (fundAddress is not null)
             {
-                SafeTransfer(order.baseToken, me, fundAddress, baseAmount - basePayment);
-                SafeTransfer(order.quoteToken, me, fundAddress, quoteAmount - quotePayment);
+                SafeTransfer(order.BaseToken, me, fundAddress, baseAmount - basePayment);
+                SafeTransfer(order.QuoteToken, me, fundAddress, quoteAmount - quotePayment);
             }
 
             return amount - baseAmount;
@@ -95,7 +95,7 @@ namespace FlamingoSwapOrderBook
             // Get book info
             var pairKey = GetPairKey(tokenA, tokenB);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
 
             var me = Runtime.ExecutingScriptHash;
             var fundAddress = GetFundAddress();
@@ -109,13 +109,13 @@ namespace FlamingoSwapOrderBook
             foreach (var id in orderIDs)
             {
                 // Get order
-                var index = GetIndex(id);
+                var index = GetOrderIndex(id);
                 if (index is null) continue;
                 var order = GetOrder(index, id);
-                Assert(order.baseToken == bookInfo.baseToken && order.quoteToken == bookInfo.quoteToken && order.isBuy ^ isBuy, "Invalid Trading");
+                Assert(order.BaseToken == bookInfo.BaseToken && order.QuoteToken == bookInfo.QuoteToken && order.IsBuy ^ isBuy, "Invalid Trading");
 
-                var baseAmount = amount > order.leftAmount ? order.leftAmount : amount;
-                var quoteAmount = baseAmount * order.price / bookInfo.quoteScale;
+                var baseAmount = amount > order.LeftAmount ? order.LeftAmount : amount;
+                var quoteAmount = baseAmount * order.Price / bookInfo.QuoteScale;
                 var basePayment = baseAmount * 997 / 1000;
                 var quotePayment = quoteAmount * 997 / 1000;
                 baseFee += baseAmount - basePayment;
@@ -125,33 +125,33 @@ namespace FlamingoSwapOrderBook
                 // Record payment
                 takerPayment += isBuy ? (quoteAmount > 0 ? quoteAmount : 1) : baseAmount;
                 takerReceive += isBuy ? basePayment : quotePayment;
-                if (!makerReceive.HasKey(order.maker)) makerReceive[order.maker] = 0;
-                makerReceive[order.maker] += isBuy ? quotePayment : basePayment;
+                if (!makerReceive.HasKey(order.Maker)) makerReceive[order.Maker] = 0;
+                makerReceive[order.Maker] += isBuy ? quotePayment : basePayment;
 
                 // Update or remove order
-                if (baseAmount < order.leftAmount)
+                if (baseAmount < order.LeftAmount)
                 {
-                    order.leftAmount -= baseAmount;
+                    order.LeftAmount -= baseAmount;
                     UpdateLimitOrder(index, order);
-                    onOrderStatusChanged(order.baseToken, order.quoteToken, id, order.isBuy, order.maker, order.price, order.leftAmount);
+                    onOrderStatusChanged(order.BaseToken, order.QuoteToken, id, order.IsBuy, order.Maker, order.Price, order.LeftAmount);
                 }
                 else
                 {
                     RemoveLimitOrder(pairKey, index, order);
-                    onOrderStatusChanged(order.baseToken, order.quoteToken, id, order.isBuy, order.maker, order.price, 0);
+                    onOrderStatusChanged(order.BaseToken, order.QuoteToken, id, order.IsBuy, order.Maker, order.Price, 0);
                 }
             
                 if (amount <= 0) break;
             }
 
             // Do transfer
-            SafeTransfer(isBuy ? bookInfo.quoteToken : bookInfo.baseToken, taker, me, takerPayment);
-            SafeTransfer(isBuy ? bookInfo.baseToken : bookInfo.quoteToken, me, taker, takerReceive);
-            foreach (var toAddress in makerReceive.Keys) SafeTransfer(isBuy ? bookInfo.quoteToken : bookInfo.baseToken, me, toAddress, makerReceive[toAddress]);
+            SafeTransfer(isBuy ? bookInfo.QuoteToken : bookInfo.BaseToken, taker, me, takerPayment);
+            SafeTransfer(isBuy ? bookInfo.BaseToken : bookInfo.QuoteToken, me, taker, takerReceive);
+            foreach (var toAddress in makerReceive.Keys) SafeTransfer(isBuy ? bookInfo.QuoteToken : bookInfo.BaseToken, me, toAddress, makerReceive[toAddress]);
             if (fundAddress is not null)
             {
-                SafeTransfer(bookInfo.quoteToken, me, fundAddress, quoteFee);
-                SafeTransfer(bookInfo.baseToken, me, fundAddress, baseFee);
+                SafeTransfer(bookInfo.QuoteToken, me, fundAddress, quoteFee);
+                SafeTransfer(bookInfo.BaseToken, me, fundAddress, baseFee);
             }
 
             return new BigInteger[] { amount, takerReceive };
@@ -170,17 +170,17 @@ namespace FlamingoSwapOrderBook
             // Then AMM
             var pairKey = GetPairKey(tokenA, tokenB);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             var hasFundFee = HasFundAddress(pairContract);
             var ammReverse = isBuy
-                ? GetReserves(pairContract, bookInfo.quoteToken, bookInfo.baseToken)
-                : GetReserves(pairContract, bookInfo.baseToken, bookInfo.quoteToken);
+                ? GetReserves(pairContract, bookInfo.QuoteToken, bookInfo.BaseToken)
+                : GetReserves(pairContract, bookInfo.BaseToken, bookInfo.QuoteToken);
 
             // Get amountIn and amountOut
             var amountIn = hasFundFee
-                ? GetAmountInTillPriceWithFundFee(isBuy, price, bookInfo.quoteScale, ammReverse[0], ammReverse[1])
-                : GetAmountInTillPrice(isBuy, price, bookInfo.quoteScale, ammReverse[0], ammReverse[1]);
+                ? GetAmountInTillPriceWithFundFee(isBuy, price, bookInfo.QuoteScale, ammReverse[0], ammReverse[1])
+                : GetAmountInTillPrice(isBuy, price, bookInfo.QuoteScale, ammReverse[0], ammReverse[1]);
             if (amountIn < 0) amountIn = 0;
             var amountOut = GetAmountOut(amountIn, ammReverse[0], ammReverse[1]);
             if (isBuy && leftAmount < amountOut)
@@ -197,25 +197,25 @@ namespace FlamingoSwapOrderBook
             // Do swap
             if (amountOut > 0) 
             {
-                SwapAMM(pairContract, maker, isBuy ? bookInfo.quoteToken : bookInfo.baseToken, isBuy ? bookInfo.baseToken : bookInfo.quoteToken, amountIn, amountOut);
+                SwapAMM(pairContract, maker, isBuy ? bookInfo.QuoteToken : bookInfo.BaseToken, isBuy ? bookInfo.BaseToken : bookInfo.QuoteToken, amountIn, amountOut);
                 leftAmount -= isBuy ? amountOut : amountIn;
             }
 
             // Add new limit order
-            if (leftAmount < bookInfo.minOrderAmount || leftAmount > bookInfo.maxOrderAmount) return null;
+            if (leftAmount < bookInfo.MinOrderAmount || leftAmount > bookInfo.MaxOrderAmount) return null;
             var me = Runtime.ExecutingScriptHash;
-            SafeTransfer(isBuy ? bookInfo.quoteToken : bookInfo.baseToken, maker, me, isBuy ? leftAmount * price / bookInfo.quoteScale : leftAmount);
-            var id = AddLimitOrder(pairKey, new LimitOrder(){
-                baseToken = bookInfo.baseToken,
-                quoteToken = bookInfo.quoteToken,
-                time = Runtime.Time,
-                isBuy = isBuy,
-                maker = maker,
-                price = price,
-                totalAmount = amount,
-                leftAmount = leftAmount
+            SafeTransfer(isBuy ? bookInfo.QuoteToken : bookInfo.BaseToken, maker, me, isBuy ? leftAmount * price / bookInfo.QuoteScale : leftAmount);
+            var id = AddLimitOrder(pairKey, bookInfo.Symbol, new LimitOrder(){
+                BaseToken = bookInfo.BaseToken,
+                QuoteToken = bookInfo.QuoteToken,
+                Time = Runtime.Time,
+                IsBuy = isBuy,
+                Maker = maker,
+                Price = price,
+                TotalAmount = amount,
+                LeftAmount = leftAmount
             });
-            onOrderStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, id, isBuy, maker, price, leftAmount);
+            onOrderStatusChanged(bookInfo.BaseToken, bookInfo.QuoteToken, id, isBuy, maker, price, leftAmount);
             return id;
         }
 
@@ -232,10 +232,10 @@ namespace FlamingoSwapOrderBook
 
             // Then AMM
             var bookInfo = GetBookInfo(tokenA, tokenB);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             var hasFundFee = HasFundAddress(pairContract);
-            var ammReverse = GetReserves(pairContract, bookInfo.baseToken, bookInfo.quoteToken);
+            var ammReverse = GetReserves(pairContract, bookInfo.BaseToken, bookInfo.QuoteToken);
 
             // Get amountIn and amountOut
             var amountIn = isBuy ? GetAmountIn(leftAmount, ammReverse[1], ammReverse[0]) : leftAmount;
@@ -243,7 +243,7 @@ namespace FlamingoSwapOrderBook
             Assert(amountOut + receivedPayment >= amountOutMin, "Insufficient AmountOut");
 
             // Do swap
-            SwapAMM(pairContract, taker, isBuy ? bookInfo.quoteToken : bookInfo.baseToken, isBuy ? bookInfo.baseToken : bookInfo.quoteToken, amountIn, amountOut);
+            SwapAMM(pairContract, taker, isBuy ? bookInfo.QuoteToken : bookInfo.BaseToken, isBuy ? bookInfo.BaseToken : bookInfo.QuoteToken, amountIn, amountOut);
         }
 
         /// <summary>
@@ -264,15 +264,16 @@ namespace FlamingoSwapOrderBook
             var pairKey = GetPairKey(baseToken, quoteToken);
             var quoteScale = BigInteger.Pow(10, (int)quoteDecimals);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is null, "Book Already Exists");
+            Assert(bookInfo.BaseToken is null, "Book Already Exists");
 
             SetBook(pairKey, new BookInfo(){
-                baseToken = baseToken,
-                quoteToken = quoteToken,
-                quoteScale = quoteScale,
-                minOrderAmount = minOrderAmount,
-                maxOrderAmount = maxOrderAmount,
-                isPaused = false
+                Symbol = GetTokenSymbol(baseToken) + "/" + GetTokenSymbol(quoteToken),
+                BaseToken = baseToken,
+                QuoteToken = quoteToken,
+                QuoteScale = quoteScale,
+                MinOrderAmount = minOrderAmount,
+                MaxOrderAmount = maxOrderAmount,
+                IsPaused = false
             });
             onBookStatusChanged(baseToken, quoteToken, quoteScale, minOrderAmount, maxOrderAmount, false);
         }
@@ -290,12 +291,12 @@ namespace FlamingoSwapOrderBook
 
             var pairKey = GetPairKey(tokenA, tokenB);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
-            Assert(minOrderAmount <= bookInfo.maxOrderAmount, "Invalid Amount Limit");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
+            Assert(minOrderAmount <= bookInfo.MaxOrderAmount, "Invalid Amount Limit");
 
-            bookInfo.minOrderAmount = minOrderAmount;
+            bookInfo.MinOrderAmount = minOrderAmount;
             SetBook(pairKey, bookInfo);
-            onBookStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, bookInfo.quoteScale, bookInfo.minOrderAmount, bookInfo.maxOrderAmount, bookInfo.isPaused);
+            onBookStatusChanged(bookInfo.BaseToken, bookInfo.QuoteToken, bookInfo.QuoteScale, bookInfo.MinOrderAmount, bookInfo.MaxOrderAmount, bookInfo.IsPaused);
         }
 
         /// <summary>
@@ -311,12 +312,12 @@ namespace FlamingoSwapOrderBook
 
             var pairKey = GetPairKey(tokenA, tokenB);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
-            Assert(maxOrderAmount >= bookInfo.minOrderAmount, "Invalid Amount Limit");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
+            Assert(maxOrderAmount >= bookInfo.MinOrderAmount, "Invalid Amount Limit");
 
-            bookInfo.maxOrderAmount = maxOrderAmount;
+            bookInfo.MaxOrderAmount = maxOrderAmount;
             SetBook(pairKey, bookInfo);
-            onBookStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, bookInfo.quoteScale, bookInfo.minOrderAmount, bookInfo.maxOrderAmount, bookInfo.isPaused);
+            onBookStatusChanged(bookInfo.BaseToken, bookInfo.QuoteToken, bookInfo.QuoteScale, bookInfo.MinOrderAmount, bookInfo.MaxOrderAmount, bookInfo.IsPaused);
         }
 
         /// <summary>
@@ -330,12 +331,12 @@ namespace FlamingoSwapOrderBook
 
             var pairKey = GetPairKey(tokenA, tokenB);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
-            Assert(bookInfo.isPaused != true, "Already Paused");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
+            Assert(bookInfo.IsPaused != true, "Already Paused");
 
-            bookInfo.isPaused = true;
+            bookInfo.IsPaused = true;
             SetBook(pairKey, bookInfo);
-            onBookStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, bookInfo.quoteScale, bookInfo.minOrderAmount, bookInfo.maxOrderAmount, bookInfo.isPaused);
+            onBookStatusChanged(bookInfo.BaseToken, bookInfo.QuoteToken, bookInfo.QuoteScale, bookInfo.MinOrderAmount, bookInfo.MaxOrderAmount, bookInfo.IsPaused);
         }
 
         /// <summary>
@@ -349,12 +350,12 @@ namespace FlamingoSwapOrderBook
 
             var pairKey = GetPairKey(tokenA, tokenB);
             var bookInfo = GetBook(pairKey);
-            Assert(bookInfo.baseToken is not null, "Book Not Exists");
-            Assert(bookInfo.isPaused == true, "Not Paused");
+            Assert(bookInfo.BaseToken is not null, "Book Not Exists");
+            Assert(bookInfo.IsPaused == true, "Not Paused");
 
-            bookInfo.isPaused = false;
+            bookInfo.IsPaused = false;
             SetBook(pairKey, bookInfo);
-            onBookStatusChanged(bookInfo.baseToken, bookInfo.quoteToken, bookInfo.quoteScale, bookInfo.minOrderAmount, bookInfo.maxOrderAmount, bookInfo.isPaused);
+            onBookStatusChanged(bookInfo.BaseToken, bookInfo.QuoteToken, bookInfo.QuoteScale, bookInfo.MinOrderAmount, bookInfo.MaxOrderAmount, bookInfo.IsPaused);
         }
 
         /// <summary>
