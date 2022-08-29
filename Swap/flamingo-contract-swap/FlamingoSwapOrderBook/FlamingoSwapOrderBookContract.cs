@@ -35,7 +35,9 @@ namespace FlamingoSwapOrderBook
             Assert(ContractManagement.GetContract(sender) == null, "Forbidden");
 
             // Market order
-            var leftAmount = expectBookAmount > 0 ? amount - expectBookAmount + DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : amount;
+            var leftAmount = amount;
+            if (isBuy) leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, (expectBookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
+            else leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : 0;
             if (leftAmount == 0) return null;
 
             // Swap AMM
@@ -120,8 +122,10 @@ namespace FlamingoSwapOrderBook
             Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var price = slippage * book.quoteScale / amount;
 
+            var leftAmount = amount;
             var balanceBefore = GetBalanceOf(book.quoteToken, sender);
-            var leftAmount = expectBookAmount > 0 ? amount - expectBookAmount + DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : amount;
+            if (isBuy) leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, (expectBookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
+            else leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : 0;
             var balanceAfter = GetBalanceOf(book.quoteToken, sender);
             if (leftAmount == 0)
             {
