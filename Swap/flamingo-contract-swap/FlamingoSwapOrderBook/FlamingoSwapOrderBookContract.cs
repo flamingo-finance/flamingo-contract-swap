@@ -446,7 +446,7 @@ namespace FlamingoSwapOrderBook
         /// <param name="n"></param>
         /// <returns></returns>
         [Safe]
-        public static OrderReceipt[] GetNOrders(UInt160 tokenA, UInt160 tokenB, bool isBuy, uint pos, uint n)
+        public static OrderReceipt[] GetFirstNOrders(UInt160 tokenA, UInt160 tokenB, bool isBuy, uint pos, uint n)
         {
             var results = new OrderReceipt[n];
 
