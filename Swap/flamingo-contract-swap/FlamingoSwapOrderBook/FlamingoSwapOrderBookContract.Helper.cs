@@ -254,7 +254,8 @@ namespace FlamingoSwapOrderBook
         private static LimitOrder GetOrder(ByteString id)
         {
             StorageMap orderMap = new(Storage.CurrentReadOnlyContext, OrderMapPrefix);
-            return (LimitOrder)StdLib.Deserialize(orderMap.Get(id));
+            var order = orderMap.Get(id);
+            return order is null ? new LimitOrder() : (LimitOrder)StdLib.Deserialize(order);
         }
 
         /// <summary>
@@ -287,7 +288,8 @@ namespace FlamingoSwapOrderBook
         private static OrderReceipt GetReceipt(UInt160 maker, ByteString id)
         {
             StorageMap receiptMap = new(Storage.CurrentReadOnlyContext, ReceiptMapPrefix);
-            return (OrderReceipt)StdLib.Deserialize(receiptMap.Get(maker + id));
+            var receipt = receiptMap.Get(maker + id);
+            return receipt is null ? new OrderReceipt() : (OrderReceipt)StdLib.Deserialize(receipt);
         }
 
         /// <summary>
@@ -335,7 +337,8 @@ namespace FlamingoSwapOrderBook
         private static OrderBook GetOrderBook(byte[] pairKey)
         {
             StorageMap bookMap = new(Storage.CurrentReadOnlyContext, BookMapPrefix);
-            return (OrderBook)StdLib.Deserialize(bookMap.Get(pairKey));
+            var book = bookMap.Get(pairKey);
+            return book is null ? new OrderBook() : (OrderBook)StdLib.Deserialize(book);
         }
 
         /// <summary>

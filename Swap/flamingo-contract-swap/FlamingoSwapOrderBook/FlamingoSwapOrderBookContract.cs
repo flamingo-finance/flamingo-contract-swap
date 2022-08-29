@@ -28,12 +28,19 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         public static ByteString RouteLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger price, BigInteger expectBookAmount)
         {
+            Assert(amount > 0 && price > 0 && expectBookAmount >= 0 && amount >= expectBookAmount, "Invalid Parameters");
+            var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(Runtime.CheckWitness(sender), "No Authorization");
+            Assert(ContractManagement.GetContract(sender) == null, "Forbidden");
+
             // Market order
-            var leftAmount = expectBookAmount > 0 ? amount - expectBookAmount + DealMarketOrder(tokenA, tokenB, sender, isBuy, price, expectBookAmount) : amount;
+            var leftAmount = expectBookAmount > 0 ? amount - expectBookAmount + DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : amount;
+            if (leftAmount == 0) return null;
 
             // Swap AMM
-            var pairKey = GetPairKey(tokenA, tokenB);
             var book = GetOrderBook(pairKey);
+            Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             var hasFundFee = HasFundAddress(pairContract);
 
@@ -83,7 +90,7 @@ namespace FlamingoSwapOrderBook
                 id = id,
                 time = Runtime.Time,
                 isBuy = isBuy,
-                totalAmount = leftAmount
+                totalAmount = amount
             });
             onOrderStatusChanged(book.baseToken, book.quoteToken, id, !!isBuy, sender, price, leftAmount);
             return id;
@@ -99,16 +106,28 @@ namespace FlamingoSwapOrderBook
         /// <param name="amount"></param>
         /// <param name="slippage"></param>
         /// <param name="expectBookAmount"></param>
-        public static void RouteMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger slippage, BigInteger expectBookAmount)
+        /// <returns></returns>
+        public static bool RouteMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger slippage, BigInteger expectBookAmount)
         {
-            // Market order
+            Assert(amount > 0 && slippage > 0 && expectBookAmount >= 0 && amount >= expectBookAmount, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
+            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(Runtime.CheckWitness(sender), "No Authorization");
+            Assert(ContractManagement.GetContract(sender) == null, "Forbidden");
+
+            // Market order
             var book = GetOrderBook(pairKey);
+            Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var price = slippage * book.quoteScale / amount;
 
-            var balanceBefore = GetBalanceOf(isBuy ? book.quoteToken : book.quoteToken, sender);
-            var leftAmount = expectBookAmount > 0 ? amount - expectBookAmount + DealMarketOrder(tokenA, tokenB, sender, isBuy, price, expectBookAmount) : amount;
-            var balanceAfter = GetBalanceOf(isBuy ? book.quoteToken : book.quoteToken, sender);
+            var balanceBefore = GetBalanceOf(book.quoteToken, sender);
+            var leftAmount = expectBookAmount > 0 ? amount - expectBookAmount + DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : amount;
+            var balanceAfter = GetBalanceOf(book.quoteToken, sender);
+            if (leftAmount == 0)
+            {
+                Assert(isBuy ? balanceBefore - balanceAfter <= slippage : balanceAfter - balanceBefore >= slippage, "Insufficient Slippage");
+                return true;
+            }
 
             // Swap AMM
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
@@ -119,6 +138,7 @@ namespace FlamingoSwapOrderBook
 
             if (amountOut > 0) SwapAMM(pairContract, sender, isBuy ? book.quoteToken : book.baseToken, isBuy ? book.baseToken : book.quoteToken, amountIn, amountOut);
             Assert(isBuy ? amountIn + balanceBefore - balanceAfter <= slippage : amountOut + balanceAfter - balanceBefore >= slippage, "Insufficient Slippage");
+            return true;
         }
 
         #region DEX like API
@@ -130,7 +150,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="quoteDecimals"></param>
         /// <param name="minOrderAmount"></param>
         /// <param name="maxOrderAmount"></param>
-        public static void RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount)
+        /// <returns></returns>
+        public static bool RegisterOrderBook(UInt160 baseToken, UInt160 quoteToken, uint quoteDecimals, BigInteger minOrderAmount, BigInteger maxOrderAmount)
         {
             Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(baseToken != quoteToken, "Invalid Trade Pair");
@@ -148,6 +169,7 @@ namespace FlamingoSwapOrderBook
                 maxOrderAmount = maxOrderAmount
             });
             onBookStatusChanged(baseToken, quoteToken, quoteScale, minOrderAmount, maxOrderAmount, BookPaused(pairKey));
+            return true;
         }
 
         /// <summary>
@@ -156,9 +178,9 @@ namespace FlamingoSwapOrderBook
         /// <param name="baseToken"></param>
         /// <param name="quoteToken"></param>
         /// <param name="minOrderAmount"></param>
-        public static void SetMinOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger minOrderAmount)
+        /// <returns></returns>
+        public static bool SetMinOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger minOrderAmount)
         {
-            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(minOrderAmount > 0, "Invalid Amount Limit");
             Assert(Verify(), "No Authorization");
 
@@ -170,6 +192,7 @@ namespace FlamingoSwapOrderBook
             book.minOrderAmount = minOrderAmount;
             SetOrderBook(pairKey, book);
             onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            return true;
         }
 
         /// <summary>
@@ -178,9 +201,9 @@ namespace FlamingoSwapOrderBook
         /// <param name="baseToken"></param>
         /// <param name="quoteToken"></param>
         /// <param name="maxOrderAmount"></param>
-        public static void SetMaxOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger maxOrderAmount)
+        /// <returns></returns>
+        public static bool SetMaxOrderAmount(UInt160 baseToken, UInt160 quoteToken, BigInteger maxOrderAmount)
         {
-            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(maxOrderAmount > 0, "Invalid Amount Limit");
             Assert(Verify(), "No Authorization");
 
@@ -192,6 +215,7 @@ namespace FlamingoSwapOrderBook
             book.maxOrderAmount = maxOrderAmount;
             SetOrderBook(pairKey, book);
             onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            return true;
         }
 
         /// <summary>
@@ -199,9 +223,9 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="baseToken"></param>
         /// <param name="quoteToken"></param>
-        public static void PauseOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        /// <returns></returns>
+        public static bool PauseOrderBook(UInt160 baseToken, UInt160 quoteToken)
         {
-            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
@@ -211,6 +235,7 @@ namespace FlamingoSwapOrderBook
 
             SetPaused(pairKey);
             onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            return true;
         }
 
         /// <summary>
@@ -218,9 +243,9 @@ namespace FlamingoSwapOrderBook
         /// </summary>
         /// <param name="baseToken"></param>
         /// <param name="quoteToken"></param>
-        public static void ResumeOrderBook(UInt160 baseToken, UInt160 quoteToken)
+        /// <returns></returns>
+        public static bool ResumeOrderBook(UInt160 baseToken, UInt160 quoteToken)
         {
-            Assert(baseToken.IsAddress() && quoteToken.IsAddress(), "Invalid Address");
             Assert(Verify(), "No Authorization");
 
             var pairKey = GetPairKey(baseToken, quoteToken);
@@ -230,6 +255,7 @@ namespace FlamingoSwapOrderBook
 
             RemovePaused(pairKey);
             onBookStatusChanged(book.baseToken, book.quoteToken, book.quoteScale, book.minOrderAmount, book.maxOrderAmount, BookPaused(pairKey));
+            return true;
         }
 
         /// <summary>
@@ -253,6 +279,7 @@ namespace FlamingoSwapOrderBook
 
             // Deposit token
             var book = GetOrderBook(pairKey);
+            Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             if (amount < book.minOrderAmount || amount > book.maxOrderAmount) return null;
             var me = Runtime.ExecutingScriptHash;
             if (isBuy) SafeTransfer(book.quoteToken, maker, me, amount * price / book.quoteScale);
@@ -291,7 +318,9 @@ namespace FlamingoSwapOrderBook
         {
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
-            var receipt = GetReceipt(GetOrder(parentID).maker, parentID);
+            var parent = GetOrder(parentID);
+            Assert(parent.maker.IsAddress(), "Parent Not Exists");
+            var receipt = GetReceipt(parent.maker, parentID);
             var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
             Assert(!BookPaused(pairKey), "Book is Paused");
             Assert(Runtime.CheckWitness(maker), "No Authorization");
@@ -334,12 +363,13 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenB"></param>
         /// <param name="isBuy"></param>
         /// <param name="id"></param>
-        public static void CancelOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, ByteString id)
+        /// <returns></returns>
+        public static bool CancelOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, ByteString id)
         {
             // Check if exist
             var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(OrderExists(id), "Order Not Exists");
             var order = GetOrder(id);
+            Assert(order.maker.IsAddress(), "Order Not Exists");
             Assert(Runtime.CheckWitness(order.maker), "No Authorization");
 
             // Do remove
@@ -354,6 +384,7 @@ namespace FlamingoSwapOrderBook
             var me = Runtime.ExecutingScriptHash;
             if (isBuy) SafeTransfer(book.quoteToken, me, order.maker, order.amount * order.price / book.quoteScale);
             else SafeTransfer(book.baseToken, me, order.maker, order.amount);
+            return true;
         }
 
         /// <summary>
@@ -364,9 +395,8 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         public static bool CancelOrderAt(ByteString parentID, ByteString id)
         {
-            if (!OrderExists(id)) return false;
-            Assert(OrderExists(parentID), "Parent Order Not Exists");
             var order = GetOrder(id);
+            Assert(order.maker.IsAddress(), "Order Not Exists");
             Assert(Runtime.CheckWitness(order.maker), "No Authorization");
 
             // Do remove
@@ -640,6 +670,7 @@ namespace FlamingoSwapOrderBook
         {
             // Check if can deal
             var book = GetOrderBook(pairKey);
+            Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var firstID = isBuy ? book.firstSellID : book.firstBuyID;
             if (firstID is null) return leftAmount;
             var firstOrder = GetOrder(firstID);
@@ -765,16 +796,19 @@ namespace FlamingoSwapOrderBook
         /// <param name="taker"></param>
         /// <param name="parentID"></param>
         /// <param name="id"></param>
-        public static void DealMarketOrderAt(UInt160 taker, ByteString parentID, ByteString id)
+        /// <returns></returns>
+        public static bool DealMarketOrderAt(UInt160 taker, ByteString parentID, ByteString id)
         {
+            // Check parameters
             Assert(Runtime.CheckWitness(taker), "No Authorization");
-            
-            // Do deal
             var order = GetOrder(id);
-            var me = Runtime.ExecutingScriptHash;
+            Assert(order.maker.IsAddress(), "Order Not Exists");
             var receipt = GetReceipt(order.maker, id);
             var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
             Assert(!BookPaused(pairKey), "Book is Paused");
+
+            // Do deal
+            var me = Runtime.ExecutingScriptHash;
             var quoteScale = GetOrderBook(pairKey).quoteScale;
             var fundAddress = GetFundAddress();
 
@@ -810,6 +844,7 @@ namespace FlamingoSwapOrderBook
                 SafeTransfer(receipt.baseToken, me, fundAddress, baseFee);
                 SafeTransfer(receipt.quoteToken, me, fundAddress, quoteFee);
             }
+            return true;
         }
 
         /// <summary>
