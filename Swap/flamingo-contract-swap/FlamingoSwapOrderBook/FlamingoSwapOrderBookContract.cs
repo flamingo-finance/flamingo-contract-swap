@@ -909,20 +909,23 @@ namespace FlamingoSwapOrderBook
         /// <summary>
         /// Claim the staged fundfee payment to fund address
         /// </summary>
-        /// <param name="token"></param>
+        /// <param name="tokens"></param>
         /// <returns></returns>
-        public static BigInteger ClaimFundFee(UInt160 token)
+        public static bool ClaimFundFee(UInt160[] tokens)
         {
             var fundAddress = GetFundAddress();
-            if (fundAddress is null) return 0;
-            var amount = GetStagedFundFee(token);
+            if (fundAddress is null) return false;
             var me = Runtime.ExecutingScriptHash;
-            if (amount > 0)
+            foreach (var token in tokens)
             {
-                CleanStagedFundFee(token);
-                SafeTransfer(token, me, fundAddress, amount);
+                var amount = GetStagedFundFee(token);
+                if (amount > 0)
+                {
+                    CleanStagedFundFee(token);
+                    SafeTransfer(token, me, fundAddress, amount);
+                }
             }
-            return amount;
+            return true;
         }
 
         /// <summary>
