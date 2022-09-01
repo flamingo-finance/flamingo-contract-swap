@@ -30,6 +30,7 @@ namespace FlamingoSwapOrderBook
         private static readonly byte[] OrderMapPrefix = new byte[] { 0x02 };
         private static readonly byte[] ReceiptMapPrefix = new byte[] { 0x03 };
         private static readonly byte[] PauseMapPrefix = new byte[] { 0x04 };
+        private static readonly byte[] FeeMapPrefix = new byte[] { 0x05 };
 
         // When this contract address is included in the transaction signature,
         // this method will be triggered as a VerificationTrigger to verify that the signature is correct.

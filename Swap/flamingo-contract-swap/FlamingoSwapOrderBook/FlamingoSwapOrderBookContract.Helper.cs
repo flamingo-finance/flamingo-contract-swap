@@ -353,6 +353,39 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
+        /// Stage the fundfee payment for later claim
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="amount"></param>
+        private static void StageFundFee(UInt160 token, BigInteger amount)
+        {
+            Assert(amount >= 0, "Invalid Fee Amount");
+            StorageMap feeMap = new(Storage.CurrentContext, FeeMapPrefix);
+            feeMap.Put(token, (BigInteger)feeMap.Get(token) + amount);
+        }
+
+        /// <summary>
+        /// Get staged fundfee amount
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        private static BigInteger GetStagedFundFee(UInt160 token)
+        {
+            StorageMap feeMap = new(Storage.CurrentReadOnlyContext, FeeMapPrefix);
+            return (BigInteger)feeMap.Get(token);
+        }
+
+        /// <summary>
+        /// Reset the staged fundfee amount to 0
+        /// </summary>
+        /// <param name="token"></param>
+        private static void CleanStagedFundFee(UInt160 token)
+        {
+            StorageMap feeMap = new(Storage.CurrentContext, FeeMapPrefix);
+            feeMap.Delete(token);
+        }
+
+        /// <summary>
         /// Find a random number as order ID 
         /// </summary>
         /// <returns></returns>

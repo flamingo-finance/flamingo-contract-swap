@@ -122,26 +122,30 @@ namespace FlamingoSwapOrderBook
             Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var price = slippage * book.quoteScale / amount;
 
-            var leftAmount = amount;
-            var balanceBefore = GetBalanceOf(book.quoteToken, sender);
-            if (isBuy) leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, (expectBookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
-            else leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : 0;
-            var balanceAfter = GetBalanceOf(book.quoteToken, sender);
-            if (leftAmount == 0)
+            var quoteAmount = BigInteger.Zero;
+            if (expectBookAmount > 0)
             {
-                Assert(isBuy ? balanceBefore - balanceAfter <= slippage : balanceAfter - balanceBefore >= slippage, "Insufficient Slippage");
-                return true;
+                var balanceBefore = GetBalanceOf(book.quoteToken, sender);
+                if (isBuy) amount -= expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, (expectBookAmount * 1000 + 996) / 997, false) * 997 / 1000;
+                else amount -= expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false);
+                var balanceAfter = GetBalanceOf(book.quoteToken, sender);
+                quoteAmount = isBuy ? balanceBefore - balanceAfter : balanceAfter - balanceBefore;
+                if (amount == 0)
+                {
+                    Assert(isBuy ? quoteAmount <= slippage : quoteAmount >= slippage, "Insufficient Slippage");
+                    return true;
+                }
             }
 
             // Swap AMM
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             var ammReverse = GetReserves(pairContract, book.baseToken, book.quoteToken);
 
-            var amountIn = isBuy ? GetAmountIn(leftAmount, ammReverse[1], ammReverse[0]) : leftAmount;
-            var amountOut = isBuy ? leftAmount : GetAmountOut(leftAmount, ammReverse[0], ammReverse[1]);
+            var amountIn = isBuy ? GetAmountIn(amount, ammReverse[1], ammReverse[0]) : amount;
+            var amountOut = isBuy ? amount : GetAmountOut(amount, ammReverse[0], ammReverse[1]);
 
             if (amountOut > 0) SwapAMM(pairContract, sender, isBuy ? book.quoteToken : book.baseToken, isBuy ? book.baseToken : book.quoteToken, amountIn, amountOut);
-            Assert(isBuy ? amountIn + balanceBefore - balanceAfter <= slippage : amountOut + balanceAfter - balanceBefore >= slippage, "Insufficient Slippage");
+            Assert(isBuy ? amountIn + quoteAmount <= slippage : amountOut + quoteAmount >= slippage, "Insufficient Slippage");
             return true;
         }
 
@@ -476,6 +480,30 @@ namespace FlamingoSwapOrderBook
             return results;
         }
 
+        [Safe]
+        public static OrderReceipt[] GetFirstNOrders(ByteString orderID, uint n)
+        {
+            var results = new OrderReceipt[n];
+
+            var currentOrderID = orderID;
+            var currentOrder = GetOrder(currentOrderID);
+            if (!currentOrder.maker.IsAddress()) return results;
+            for (int i = 0; i < n; i++)
+            {
+                var receipt = GetReceipt(currentOrder.maker, currentOrderID);
+                receipt.maker = currentOrder.maker;
+                receipt.price = currentOrder.price;
+                receipt.leftAmount = currentOrder.amount;
+                results[i] = receipt;
+
+                if (currentOrder.nextID is null) break;
+
+                currentOrderID = currentOrder.nextID;
+                currentOrder = GetOrder(currentOrder.nextID);
+            }
+            return results;
+        }
+
         /// <summary>
         /// Get all orders and their details of maker
         /// </summary>
@@ -488,7 +516,7 @@ namespace FlamingoSwapOrderBook
         {
             var results = new OrderReceipt[n];
             var iterator = ReceiptsOf(maker);
-            // Makeup details
+            // Make up details
             for (int i = 0; i < pos + n; i++)
             {
                 if (iterator.Next() && i >= pos)
@@ -498,6 +526,36 @@ namespace FlamingoSwapOrderBook
                     results[i - pos].maker = order.maker;
                     results[i - pos].price = order.price;
                     results[i - pos].leftAmount = order.amount;
+                }
+            }
+            return results;
+        }
+
+        [Safe]
+        public static OrderReceipt[] GetOrdersOf(ByteString orderID, uint n)
+        {
+            var results = new OrderReceipt[n];
+            var order = GetOrder(orderID);
+            if (!order.maker.IsAddress()) return results;
+            var iterator = ReceiptsOf(order.maker);
+            // Make up details
+            while (iterator.Next())
+            {
+                var receipt = (OrderReceipt)iterator.Value;
+                if (receipt.id.Equals(orderID))
+                {
+                    for (int i = 0; i < n; i++)
+                    {
+                        results[i] = receipt;
+                        order = GetOrder(results[i].id);
+                        results[i].maker = order.maker;
+                        results[i].price = order.price;
+                        results[i].leftAmount = order.amount;
+
+                        if (!iterator.Next()) break;
+                        receipt = (OrderReceipt)iterator.Value;
+                    }
+                    return results;
                 }
             }
             return results;
@@ -785,12 +843,9 @@ namespace FlamingoSwapOrderBook
                 foreach (var toAddress in makerReceive.Keys) SafeTransfer(book.baseToken, me, toAddress, makerReceive[toAddress]);
             }
             
+            StageFundFee(book.baseToken, baseFee);
+            StageFundFee(book.quoteToken, quoteFee);
 
-            if (fundAddress is not null)
-            {
-                SafeTransfer(book.quoteToken, me, fundAddress, quoteFee);
-                SafeTransfer(book.baseToken, me, fundAddress, baseFee);
-            }
             return leftAmount;
         }
 
@@ -849,6 +904,25 @@ namespace FlamingoSwapOrderBook
                 SafeTransfer(receipt.quoteToken, me, fundAddress, quoteFee);
             }
             return true;
+        }
+
+        /// <summary>
+        /// Claim the staged fundfee payment to fund address
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public static BigInteger ClaimFundFee(UInt160 token)
+        {
+            var fundAddress = GetFundAddress();
+            if (fundAddress is null) return 0;
+            var amount = GetStagedFundFee(token);
+            var me = Runtime.ExecutingScriptHash;
+            if (amount > 0)
+            {
+                CleanStagedFundFee(token);
+                SafeTransfer(token, me, fundAddress, amount);
+            }
+            return amount;
         }
 
         /// <summary>
