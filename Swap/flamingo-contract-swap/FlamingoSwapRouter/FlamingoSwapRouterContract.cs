@@ -31,7 +31,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] AddLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证参数
-            Assert(sender.IsValid && tokenA.IsValid && tokenB.IsValid && amountADesired >= 0 && amountBDesired >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(amountADesired >= 0 && amountBDesired >= 0 && amountAMin >= 0 && amountBMin >= 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -80,7 +80,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] AddLiquidity(UInt160 tokenA, UInt160 tokenB, BigInteger amountADesired, BigInteger amountBDesired, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证参数
-            Assert(tokenA.IsValid && tokenB.IsValid && amountADesired >= 0 && amountBDesired >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(amountADesired >= 0 && amountBDesired >= 0 && amountAMin >= 0 && amountBMin >= 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
@@ -142,7 +142,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] RemoveLiquidity(UInt160 sender, UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证参数
-            Assert(sender.IsValid && tokenA.IsValid && tokenB.IsValid && liquidity >= 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(liquidity > 0 && amountAMin >= 0 && amountBMin >= 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -166,7 +166,7 @@ namespace FlamingoSwapRouter
         public static BigInteger[] RemoveLiquidity(UInt160 tokenA, UInt160 tokenB, BigInteger liquidity, BigInteger amountAMin, BigInteger amountBMin, BigInteger deadLine)
         {
             //验证参数
-            Assert(tokenA.IsValid && tokenB.IsValid && liquidity > 0 && amountAMin >= 0 && amountBMin >= 0 && deadLine > 0, "Invalid Parameters");
+            Assert(liquidity > 0 && amountAMin >= 0 && amountBMin >= 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
@@ -214,8 +214,6 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger GetAmountOut(BigInteger amountIn, BigInteger reserveIn, BigInteger reserveOut)
         {
-            //    Assert(amountIn > 0, "amountIn should be positive number");
-            //    Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
             Assert(amountIn > 0 && reserveIn > 0 && reserveOut > 0, "AmountIn Must > 0");
 
             var amountInWithFee = amountIn * 997;
@@ -234,8 +232,6 @@ namespace FlamingoSwapRouter
         /// <returns></returns>
         public static BigInteger GetAmountIn(BigInteger amountOut, BigInteger reserveIn, BigInteger reserveOut)
         {
-            //Assert(amountOut > 0, "amountOut should be positive number");
-            //Assert(reserveIn > 0 && reserveOut > 0, "reserve should be positive number");
             Assert(amountOut > 0 && reserveIn > 0 && reserveOut > 0, "AmountOut Must > 0");
             var numerator = reserveIn * amountOut * 1000;
             var denominator = (reserveOut - amountOut) * 997;
@@ -320,7 +316,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenInForTokenOut(UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(sender.IsValid && amountIn > 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(amountOutMin >= 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -339,7 +335,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenInForTokenOut(BigInteger amountIn, BigInteger amountOutMin, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(amountIn > 0 && amountOutMin >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(amountOutMin >= 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
@@ -369,7 +365,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenOutForTokenIn(UInt160 sender, BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(sender.IsValid && amountOut > 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(amountInMax >= 0, "Invalid Parameters");
             //验证权限
             Assert(Runtime.CheckWitness(sender), "Forbidden");
             //看看有没有超过最后期限
@@ -388,7 +384,7 @@ namespace FlamingoSwapRouter
         public static bool SwapTokenOutForTokenIn(BigInteger amountOut, BigInteger amountInMax, UInt160[] paths, BigInteger deadLine)
         {
             //验证参数
-            Assert(amountOut > 0 && amountInMax >= 0 && paths.Length >= 2 && deadLine > 0, "Invalid Parameters");
+            Assert(amountInMax >= 0, "Invalid Parameters");
             //验证权限
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden");
