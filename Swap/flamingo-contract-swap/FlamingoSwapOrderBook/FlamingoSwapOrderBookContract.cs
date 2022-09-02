@@ -444,7 +444,7 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Get first N limit orders and their details
+        /// Get first N limit orders and their details, start from pos
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
@@ -483,6 +483,12 @@ namespace FlamingoSwapOrderBook
             return results;
         }
 
+        /// <summary>
+        /// Get first N limit orders and their details, start from orderID
+        /// </summary>
+        /// <param name="orderID"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
         [Safe]
         public static OrderReceipt[] GetFirstNOrders(ByteString orderID, uint n)
         {
@@ -508,7 +514,7 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Get all orders and their details of maker
+        /// Get N orders of maker and their details, start from pos
         /// </summary>
         /// <param name="maker"></param>
         /// <param name="pos"></param>
@@ -534,6 +540,12 @@ namespace FlamingoSwapOrderBook
             return results;
         }
 
+        /// <summary>
+        /// Get N orders of maker and their details, start from orderID
+        /// </summary>
+        /// <param name="orderID"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
         [Safe]
         public static OrderReceipt[] GetOrdersOf(ByteString orderID, uint n)
         {
@@ -698,7 +710,7 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Try to make a market deal with orderbook
+        /// Try to make a market deal with orderbook, taker is not a contract
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
@@ -719,6 +731,15 @@ namespace FlamingoSwapOrderBook
             return DealMarketOrderInternal(pairKey, taker, isBuy, price, amount, false);
         }
 
+        /// <summary>
+        /// Try to make a market deal with orderbook, taker is a contract
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <param name="isBuy"></param>
+        /// <param name="price"></param>
+        /// <param name="amount"></param>
+        /// <returns>Left amount</returns>
         public static BigInteger DealMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
             // Check parameters
@@ -945,11 +966,30 @@ namespace FlamingoSwapOrderBook
             return GetOrder(firstID).price;
         }
 
+        /// <summary>
+        /// Get trade pair details
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <returns></returns>
         [Safe]
         public static OrderBook GetBookInfo(UInt160 tokenA, UInt160 tokenB)
         {
             var pairKey = GetPairKey(tokenA, tokenB);
             return GetOrderBook(pairKey);
+        }
+
+        /// <summary>
+        /// Check if a pair of token is tradable
+        /// </summary>
+        /// <param name="tokenA"></param>
+        /// <param name="tokenB"></param>
+        /// <returns></returns>
+        [Safe]
+        public static bool BookTradable(UInt160 tokenA, UInt160 tokenB)
+        {
+            var pairKey = GetPairKey(tokenA, tokenB);
+            return BookExists(pairKey) && !BookPaused(pairKey);
         }
         #endregion
 
