@@ -22,24 +22,26 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenB"></param>
         /// <param name="sender"></param>
         /// <param name="isBuy"></param>
-        /// <param name="amount"></param>
-        /// <param name="price"></param>
-        /// <param name="expectBookAmount"></param>
+        /// <param name="amount">Total buy(real get)/sell amount of the limit order</param>
+        /// <param name="price">Price limit of the order</param>
+        /// <param name="bookAmount">Expected amount to buy(real get)/sell from/to book before amm</param>
+        /// <param name="bookPrice">Price limit of bookAmount part</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static ByteString RouteLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger price, BigInteger expectBookAmount, BigInteger deadLine)
+        public static ByteString RouteLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger price, BigInteger bookAmount, BigInteger bookPrice, BigInteger deadLine)
         {
-            Assert(amount > 0 && price > 0 && expectBookAmount >= 0 && amount >= expectBookAmount, "Invalid Parameters");
+            Assert(amount > 0 && price > 0 && bookAmount >= 0 && amount >= bookAmount, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(!BookPaused(pairKey), "Book Is Paused");
             Assert(Runtime.CheckWitness(sender), "No Authorization");
             Assert(ContractManagement.GetContract(sender) == null, "Forbidden");
-            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
+            if (bookAmount > 0) Assert((isBuy && price >= bookPrice) || (!isBuy && price <= bookPrice), "BookPrice Beyond Limit");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded The Deadline");
 
             // Market order
             var leftAmount = amount;
-            if (isBuy) leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, (expectBookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
-            else leftAmount -= expectBookAmount > 0 ? expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false) : 0;
+            if (isBuy) leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
+            else leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false) : 0;
             if (leftAmount == 0) return null;
 
             // Swap AMM
@@ -107,30 +109,32 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenB"></param>
         /// <param name="sender"></param>
         /// <param name="isBuy"></param>
-        /// <param name="amount"></param>
-        /// <param name="slippage"></param>
-        /// <param name="expectBookAmount"></param>
+        /// <param name="amount">Total buy(real get)/sell amount of the limit order</param>
+        /// <param name="slippage">The amount limit of final payment/receive(real get)</param>
+        /// <param name="bookAmount">Expected amount to buy(real get)/sell from/to book before amm</param>
+        /// <param name="bookPrice">Price limit of bookAmount part</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool RouteMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger slippage, BigInteger expectBookAmount, BigInteger deadLine)
+        public static bool RouteMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger slippage, BigInteger bookAmount, BigInteger bookPrice, BigInteger deadLine)
         {
-            Assert(amount > 0 && slippage > 0 && expectBookAmount >= 0 && amount >= expectBookAmount, "Invalid Parameters");
+            Assert(amount > 0 && slippage > 0 && bookAmount >= 0 && amount >= bookAmount, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(!BookPaused(pairKey), "Book is Paused");
             Assert(Runtime.CheckWitness(sender), "No Authorization");
-            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the deadline");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the Deadline");
 
             // Market order
             var book = GetOrderBook(pairKey);
             Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var price = slippage * book.quoteScale / amount;
+            if (bookAmount > 0) Assert((isBuy && price >= bookPrice) || (!isBuy && price <= bookPrice), "BookPrice Beyond Limit");
 
             var quoteAmount = BigInteger.Zero;
-            if (expectBookAmount > 0)
+            if (bookAmount > 0)
             {
                 var balanceBefore = GetBalanceOf(book.quoteToken, sender);
-                if (isBuy) amount -= expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, (expectBookAmount * 1000 + 996) / 997, false) * 997 / 1000;
-                else amount -= expectBookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, price, expectBookAmount, false);
+                if (isBuy) amount -= bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false) * 997 / 1000;
+                else amount -= bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false);
                 var balanceAfter = GetBalanceOf(book.quoteToken, sender);
                 quoteAmount = isBuy ? balanceBefore - balanceAfter : balanceAfter - balanceBefore;
                 if (amount == 0)
@@ -284,7 +288,7 @@ namespace FlamingoSwapOrderBook
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(!BookPaused(pairKey), "Book Is Paused");
             Assert(Runtime.CheckWitness(maker), "No Authorization");
             Assert(ContractManagement.GetContract(maker) == null, "Forbidden");
 
@@ -333,7 +337,7 @@ namespace FlamingoSwapOrderBook
             Assert(parent.maker.IsAddress(), "Parent Not Exists");
             var receipt = GetReceipt(parent.maker, parentID);
             var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(!BookPaused(pairKey), "Book Is Paused");
             Assert(Runtime.CheckWitness(maker), "No Authorization");
             Assert(ContractManagement.GetContract(maker) == null, "Forbidden");
 
@@ -724,7 +728,7 @@ namespace FlamingoSwapOrderBook
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(!BookPaused(pairKey), "Book Is Paused");
             Assert(Runtime.CheckWitness(taker), "No Authorization");
             Assert(ContractManagement.GetContract(taker) == null, "Forbidden");
 
@@ -745,7 +749,7 @@ namespace FlamingoSwapOrderBook
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(!BookPaused(pairKey), "Book Is Paused");
             var caller = Runtime.CallingScriptHash;
             Assert(ContractManagement.GetContract(caller) != null, "Forbidden"); 
 
@@ -888,7 +892,7 @@ namespace FlamingoSwapOrderBook
             Assert(order.maker.IsAddress(), "Order Not Exists");
             var receipt = GetReceipt(order.maker, id);
             var pairKey = GetPairKey(receipt.baseToken, receipt.quoteToken);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(!BookPaused(pairKey), "Book Is Paused");
 
             // Do deal
             var me = Runtime.ExecutingScriptHash;
