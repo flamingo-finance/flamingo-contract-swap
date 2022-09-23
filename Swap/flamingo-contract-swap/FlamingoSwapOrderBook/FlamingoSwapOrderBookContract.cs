@@ -22,9 +22,9 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenB"></param>
         /// <param name="sender"></param>
         /// <param name="isBuy"></param>
-        /// <param name="amount">Total buy/sell(real get/pay) amount of the limit order</param>
+        /// <param name="amount">Total buy(real get)/sell amount of the limit order</param>
         /// <param name="price">Price limit of the order</param>
-        /// <param name="bookAmount">Expected amount to buy/sell(in-book amount) in book before amm</param>
+        /// <param name="bookAmount">Expected amount to buy(real get)/sell from/to book before amm</param>
         /// <param name="bookPrice">Price limit of bookAmount part</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
@@ -40,7 +40,7 @@ namespace FlamingoSwapOrderBook
 
             // Market order
             var leftAmount = amount;
-            if (isBuy) leftAmount -= bookAmount > 0 ? (bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false)) * 997 / 1000 : 0;
+            if (isBuy) leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
             else leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false) : 0;
             if (leftAmount == 0) return null;
 
@@ -109,9 +109,9 @@ namespace FlamingoSwapOrderBook
         /// <param name="tokenB"></param>
         /// <param name="sender"></param>
         /// <param name="isBuy"></param>
-        /// <param name="amount">Total buy/sell(real get/pay) amount of the limit order</param>
-        /// <param name="slippage">The amount limit of final receive/payment(real get/pay)</param>
-        /// <param name="bookAmount">Expected amount to buy/sell(in-book amount) in book before amm</param>
+        /// <param name="amount">Total buy(real get)/sell amount of the limit order</param>
+        /// <param name="slippage">The amount limit of final payment/receive(real get)</param>
+        /// <param name="bookAmount">Expected amount to buy(real get)/sell from/to book before amm</param>
         /// <param name="bookPrice">Price limit of bookAmount part</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
@@ -133,7 +133,7 @@ namespace FlamingoSwapOrderBook
             if (bookAmount > 0)
             {
                 var balanceBefore = GetBalanceOf(book.quoteToken, sender);
-                if (isBuy) amount -= (bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false)) * 997 / 1000;
+                if (isBuy) amount -= bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false) * 997 / 1000;
                 else amount -= bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false);
                 var balanceAfter = GetBalanceOf(book.quoteToken, sender);
                 quoteAmount = isBuy ? balanceBefore - balanceAfter : balanceAfter - balanceBefore;
