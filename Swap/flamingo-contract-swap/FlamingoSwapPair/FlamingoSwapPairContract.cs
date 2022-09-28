@@ -96,6 +96,20 @@ namespace FlamingoSwapPair
         }
 
         [Safe]
+        public static BigInteger GetReserve0Last()
+        {
+            var r = ReservePairLast;
+            return r.Reserve0;
+        }
+
+        [Safe]
+        public static BigInteger GetReserve1Last()
+        {
+            var r = ReservePairLast;
+            return r.Reserve1;
+        }
+
+        [Safe]
         public static PriceCumulative GetPriceCumulative()
         {
             return Cumulative;
@@ -372,6 +386,8 @@ namespace FlamingoSwapPair
                 priceCumulative.Price0CumulativeLast += reserve.Reserve1 * FIXED * timeElapsed / reserve.Reserve0;
                 priceCumulative.Price1CumulativeLast += reserve.Reserve0 * FIXED * timeElapsed / reserve.Reserve1;
                 priceCumulative.BlockTimestampLast = blockTimestamp;
+
+                ReservePairLast = reserve;
                 Cumulative = priceCumulative;
             }
             reserve.Reserve0 = balance0;
@@ -407,6 +423,26 @@ namespace FlamingoSwapPair
 
                 var val = StdLib.Serialize(value);
                 StoragePut(nameof(ReservePair), val);
+            }
+        }
+
+        private static ReservesData ReservePairLast
+        {
+            get
+            {
+                var val = StorageGet(nameof(ReservePairLast));
+                if (val is null || val.Length == 0)
+                {
+                    return new ReservesData() { Reserve0 = 0, Reserve1 = 0 };
+                }
+                var b = (ReservesData)StdLib.Deserialize(val);
+                return b;
+            }
+            set
+            {
+
+                var val = StdLib.Serialize(value);
+                StoragePut(nameof(ReservePairLast), val);
             }
         }
 
