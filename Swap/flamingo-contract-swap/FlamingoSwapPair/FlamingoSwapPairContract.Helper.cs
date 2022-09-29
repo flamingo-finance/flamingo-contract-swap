@@ -23,8 +23,7 @@ namespace FlamingoSwapPair
         {
             if (!condition)
             {
-                onFault(message, null);
-                ExecutionEngine.Assert(false);
+                throw new Exception(message);
             }
         }
 
@@ -38,8 +37,7 @@ namespace FlamingoSwapPair
         {
             if (!condition)
             {
-                onFault(message, data);
-                ExecutionEngine.Assert(false);
+                throw new Exception(message);
             }
         }
 

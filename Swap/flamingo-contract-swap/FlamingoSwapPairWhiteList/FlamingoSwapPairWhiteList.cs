@@ -7,7 +7,7 @@ using Neo.SmartContract.Framework.Services;
 
 namespace FlamingoSwapPairWhiteList
 {
-    [DisplayName("Flamingo Swap-Pair's WhiteList")]
+    [DisplayName("FlamingoSwapPairWhiteList")]
     [ManifestExtra("Author", "Flamingo Finance")]
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]

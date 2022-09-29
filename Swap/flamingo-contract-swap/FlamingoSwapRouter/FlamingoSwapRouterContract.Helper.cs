@@ -21,8 +21,7 @@ namespace FlamingoSwapRouter
         {
             if (!condition)
             {
-                onFault(message, null);
-                ExecutionEngine.Assert(false);
+                throw new ArgumentException(message);
             }
         }
 
@@ -36,8 +35,7 @@ namespace FlamingoSwapRouter
         {
             if (!condition)
             {
-                onFault(message, data);
-                ExecutionEngine.Assert(false);
+                throw new ArgumentException(message);
             }
         }
 

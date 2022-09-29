@@ -16,8 +16,7 @@ namespace FlamingoSwapFactory
         {
             if (!condition)
             {
-                onFault(message);
-                ExecutionEngine.Assert(false);
+                throw new System.Exception(message);
             }
         }
 
@@ -31,8 +30,7 @@ namespace FlamingoSwapFactory
         {
             if (!condition)
             {
-                onFault(message, data);
-                ExecutionEngine.Assert(false);
+                throw new System.Exception(message);
             }
         }
 

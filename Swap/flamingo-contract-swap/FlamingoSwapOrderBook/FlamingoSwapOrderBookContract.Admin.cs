@@ -13,18 +13,20 @@ namespace FlamingoSwapOrderBook
 
 #warning Update the admin address if necessary
         //Test
-        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", ContractParameterType.Hash160)]
+        static readonly UInt160 superAdmin = default;
+        [InitialValue("0xf9c55e595b39ded1e866efcc163445a168d378d5", Neo.SmartContract.ContractParameterType.Hash160)]
+        static readonly UInt160 WhiteListContract = default;
+        [InitialValue("0x85deac50febfd93988d3f391dea54e8289e43e9e", ContractParameterType.Hash160)]
+        static readonly UInt160 bNEO = default;
+
+        ////Main
+        //[InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
         //static readonly UInt160 superAdmin = default;
+        //[InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 WhiteListContract = default;
         //[InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", ContractParameterType.Hash160)]
         //static readonly UInt160 bNEO = default;
-
-        //Main
-        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", ContractParameterType.Hash160)]
-        static readonly UInt160 superAdmin = default;
-        [InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
-        static readonly UInt160 WhiteListContract = default;
-        [InitialValue("0x48c40d4666f93408be1bef038b6722404d9a4c2a", ContractParameterType.Hash160)]
-        static readonly UInt160 bNEO = default;
 
         private const string AdminKey = nameof(superAdmin);
         private const string GASAdminKey = nameof(GASAdminKey);

@@ -408,7 +408,8 @@ namespace FlamingoSwapRouter
         private static void Swap(BigInteger[] amounts, UInt160[] paths, UInt160 toAddress)
         {
             var max = paths.Length - 1;
-            Assert(paths[0] != paths[max], "Invalid Path");
+            if (toAddress != admin)
+                Assert(paths[0] != paths[max], "Invalid Path");
             for (int i = 0; i < max; i++)
             {
                 var input = paths[i];

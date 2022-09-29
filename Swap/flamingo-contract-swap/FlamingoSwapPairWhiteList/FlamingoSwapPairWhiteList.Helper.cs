@@ -16,8 +16,7 @@ namespace FlamingoSwapPairWhiteList
         {
             if (!condition)
             {
-                onFault(message, null);
-                ExecutionEngine.Assert(false);
+                throw new System.Exception(message);
             }
         }
 
