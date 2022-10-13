@@ -12,19 +12,19 @@ namespace FlamingoSwapPair
     {
         #region Settings
 
-        ////Test
-        //[InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
-        //static readonly UInt160 superAdmin = default;
-
-        //[InitialValue("0x06f12a6aa2b5689ce97f16979b179fb3e31d63d7", Neo.SmartContract.ContractParameterType.Hash160)]
-        //static readonly UInt160 WhiteListContract = default;
-
-        //Main
-        [InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", Neo.SmartContract.ContractParameterType.Hash160)]
+        //Test
+        [InitialValue("NVGUQ1qyL4SdSm7sVmGVkXetjEsvw2L3NT", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 superAdmin = default;
 
-        [InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0xf9c55e595b39ded1e866efcc163445a168d378d5", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 WhiteListContract = default;
+
+        ////Main
+        //[InitialValue("NdDvLrbtqeCVQkaLstAwh3md8SYYwqWRaE", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 superAdmin = default;
+
+        //[InitialValue("0xfb75a5314069b56e136713d38477f647a13991b4", Neo.SmartContract.ContractParameterType.Hash160)]
+        //static readonly UInt160 WhiteListContract = default;
 
         #region TokenAB
 
@@ -33,11 +33,11 @@ namespace FlamingoSwapPair
         public static string Symbol() => "FLP-fWBTC-fUSDT"; //symbol of the token
 
         #region tokenA
-        [InitialValue("0xd6abe115ecb75e1fa0b42f5e85934ce8c1ae2893", Neo.SmartContract.ContractParameterType.Hash160)] //bENO
+        [InitialValue("0x9b9f7db02c0a2d6aa5ad9be7bba843027bf5b5f2", Neo.SmartContract.ContractParameterType.Hash160)] //bENO
         static readonly UInt160 TokenA = default;
         #endregion
 
-        [InitialValue("0xcd48b160c1bbc9d74997b803b9a7ad50a4bef020", Neo.SmartContract.ContractParameterType.Hash160)]
+        [InitialValue("0xa2d5f4378c42d118ebc7e1690f9478d3e00aefa1", Neo.SmartContract.ContractParameterType.Hash160)]
         static readonly UInt160 TokenB = default;
 
 
