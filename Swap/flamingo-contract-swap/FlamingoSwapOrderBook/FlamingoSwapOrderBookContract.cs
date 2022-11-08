@@ -16,7 +16,7 @@ namespace FlamingoSwapOrderBook
     public partial class FlamingoSwapOrderBookContract : SmartContract
     {
         /// <summary>
-        /// Deal and add limit order base on input strategy
+        /// Deal and add limit order base on input strategy, settled by base amount
         /// </summary>
         /// <param name="tokenA"></param>
         /// <param name="tokenB"></param>
@@ -30,7 +30,7 @@ namespace FlamingoSwapOrderBook
         /// <returns></returns>
         public static ByteString RouteLimitOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger price, BigInteger bookAmount, BigInteger bookPrice, BigInteger deadLine)
         {
-            Assert(amount > 0 && price > 0 && bookAmount >= 0 && amount >= bookAmount, "Invalid Parameters");
+            Assert(amount > 0 && price > 0 && bookAmount >= 0 && bookPrice > 0 && amount >= bookAmount, "Invalid Parameters");
             var pairKey = GetPairKey(tokenA, tokenB);
             Assert(!BookPaused(pairKey), "Book Is Paused");
             Assert(Runtime.CheckWitness(sender), "No Authorization");
@@ -40,8 +40,8 @@ namespace FlamingoSwapOrderBook
 
             // Market order
             var leftAmount = amount;
-            if (isBuy) leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false) * 997 / 1000 : 0;
-            else leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false) : 0;
+            if (isBuy) leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false)[0] * 997 / 1000 : 0;
+            else leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false)[0] : 0;
             if (leftAmount == 0) return null;
 
             // Swap AMM
@@ -50,24 +50,24 @@ namespace FlamingoSwapOrderBook
             var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
             var hasFundFee = HasFundAddress(pairContract);
 
-            var ammReverse = isBuy
+            var reverse = isBuy
                 ? GetReserves(pairContract, book.quoteToken, book.baseToken)
                 : GetReserves(pairContract, book.baseToken, book.quoteToken);
             var amountIn = hasFundFee
-                ? GetAmountInTillPriceWithFundFee(isBuy, price, book.quoteScale, ammReverse[0], ammReverse[1])
-                : GetAmountInTillPrice(isBuy, price, book.quoteScale, ammReverse[0], ammReverse[1]);
+                ? GetAmountInTillPriceWithFundFee(isBuy, price, book.quoteScale, reverse[0], reverse[1])
+                : GetAmountInTillPrice(isBuy, price, book.quoteScale, reverse[0], reverse[1]);
             if (amountIn < 0) amountIn = 0;
-            var amountOut = GetAmountOut(amountIn, ammReverse[0], ammReverse[1]);
+            var amountOut = GetAmountOut(amountIn, reverse[0], reverse[1]);
 
             if (isBuy && leftAmount < amountOut)
             {
                 amountOut = leftAmount;
-                amountIn = GetAmountIn(amountOut, ammReverse[0], ammReverse[1]);
+                amountIn = GetAmountIn(amountOut, reverse[0], reverse[1]);
             }
             if (!isBuy && leftAmount < amountIn)
             {
                 amountIn = leftAmount;
-                amountOut = GetAmountOut(amountIn, ammReverse[0], ammReverse[1]);
+                amountOut = GetAmountOut(amountIn, reverse[0], reverse[1]);
             }
 
             if (amountOut > 0) 
@@ -103,56 +103,128 @@ namespace FlamingoSwapOrderBook
         }
 
         /// <summary>
-        /// Deal market order based on input strategy
+        /// Deal market order based on input strategy, half swap like (amountIn & amountOut) but half book like (bookAmount)
         /// </summary>
-        /// <param name="tokenA"></param>
-        /// <param name="tokenB"></param>
+        /// <param name="tokenFrom"></param>
+        /// <param name="tokenTo"></param>
         /// <param name="sender"></param>
-        /// <param name="isBuy"></param>
-        /// <param name="amount">Total buy(real get)/sell amount of the limit order</param>
-        /// <param name="slippage">The amount limit of final payment/receive(real get)</param>
+        /// <param name="amountIn"></param>
+        /// <param name="amountOutMin"></param>
         /// <param name="bookAmount">Expected amount to buy(real get)/sell from/to book before amm</param>
         /// <param name="bookPrice">Price limit of bookAmount part</param>
         /// <param name="deadLine"></param>
         /// <returns></returns>
-        public static bool RouteMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 sender, bool isBuy, BigInteger amount, BigInteger slippage, BigInteger bookAmount, BigInteger bookPrice, BigInteger deadLine)
+        public static bool RouteMarketOrderInForOut(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger amountIn, BigInteger amountOutMin, BigInteger bookAmount, BigInteger bookPrice, BigInteger deadLine)
         {
-            Assert(amount > 0 && slippage > 0 && bookAmount >= 0 && amount >= bookAmount, "Invalid Parameters");
-            var pairKey = GetPairKey(tokenA, tokenB);
-            Assert(!BookPaused(pairKey), "Book is Paused");
+            Assert(amountIn > 0 && amountOutMin > 0 && bookAmount >= 0 && bookPrice > 0, "Invalid Parameters");
             Assert(Runtime.CheckWitness(sender), "No Authorization");
             Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the Deadline");
 
-            // Market order
-            var book = GetOrderBook(pairKey);
-            Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
-            var price = slippage * book.quoteScale / amount;
-            if (bookAmount > 0) Assert((isBuy && price >= bookPrice) || (!isBuy && price <= bookPrice), "BookPrice Beyond Limit");
-
-            var quoteAmount = BigInteger.Zero;
+            // Deal in order book
             if (bookAmount > 0)
             {
-                var balanceBefore = GetBalanceOf(book.quoteToken, sender);
-                if (isBuy) amount -= bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false) * 997 / 1000;
-                else amount -= bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false);
-                var balanceAfter = GetBalanceOf(book.quoteToken, sender);
-                quoteAmount = isBuy ? balanceBefore - balanceAfter : balanceAfter - balanceBefore;
-                if (amount == 0)
+                // Check pair status
+                var pairKey = GetPairKey(tokenFrom, tokenTo);
+                Assert(!BookPaused(pairKey), "Book is Paused");
+                var book = GetOrderBook(pairKey);
+                Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
+
+                // Check price limit
+                var isBuy = tokenTo == book.baseToken;
+                var price = isBuy ? amountIn * book.quoteScale / amountOutMin : amountOutMin * book.quoteScale / amountIn;
+                Assert((isBuy && price >= bookPrice) || (!isBuy && price <= bookPrice), "BookPrice Beyond Limit");
+
+                // Deal and record consumed amountIn and satisfied amountOut
+                if (isBuy)
                 {
-                    Assert(isBuy ? quoteAmount <= slippage : quoteAmount >= slippage, "Insufficient Slippage");
+                    var result = DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false);
+                    amountOutMin -= bookAmount - result[0] * 997 / 1000;
+                    amountIn -= result[1];
+                }
+                else
+                {
+                    var result = DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false);
+                    amountIn -= bookAmount - result[0];
+                    amountOutMin -= result[1];
+                }
+                Assert(amountIn >= 0, "Exceeded AmountIn");  // Should not spend more than amountIn
+                if (amountIn == 0)  // No longer need further swap
+                {
+                    Assert(amountOutMin <= 0, "Insufficient AmountOut");  // Should get more than amountOutMin
                     return true;
                 }
             }
 
             // Swap AMM
-            var pairContract = GetExchangePairWithAssert(tokenA, tokenB);
-            var ammReverse = GetReserves(pairContract, book.baseToken, book.quoteToken);
+            var pairContract = GetExchangePairWithAssert(tokenFrom, tokenTo);
+            var reverse = GetReserves(pairContract, tokenFrom, tokenTo);
+            var amountOut = GetAmountOut(amountIn, reverse[0], reverse[1]);
+            Assert(amountOut >= amountOutMin, "Insufficient AmountOut");
 
-            var amountIn = isBuy ? GetAmountIn(amount, ammReverse[1], ammReverse[0]) : amount;
-            var amountOut = isBuy ? amount : GetAmountOut(amount, ammReverse[0], ammReverse[1]);
+            if (amountOut > 0) SwapAMM(pairContract, sender, tokenFrom, tokenTo, amountIn, amountOut);
+            return true;
+        }
 
-            if (amountOut > 0) SwapAMM(pairContract, sender, isBuy ? book.quoteToken : book.baseToken, isBuy ? book.baseToken : book.quoteToken, amountIn, amountOut);
-            Assert(isBuy ? amountIn + quoteAmount <= slippage : amountOut + quoteAmount >= slippage, "Insufficient Slippage");
+        /// <summary>
+        /// Deal market order based on input strategy, half swap like (amountIn & amountOut) but half book like (bookAmount)
+        /// </summary>
+        /// <param name="tokenFrom"></param>
+        /// <param name="tokenTo"></param>
+        /// <param name="sender"></param>
+        /// <param name="amountInMax"></param>
+        /// <param name="amountOut"></param>
+        /// <param name="bookAmount">Expected amount to buy(real get)/sell from/to book before amm</param>
+        /// <param name="bookPrice">Price limit of bookAmount part</param>
+        /// <param name="deadLine"></param>
+        /// <returns></returns>
+        public static bool RouteMarketOrderOutForIn(UInt160 tokenFrom, UInt160 tokenTo, UInt160 sender, BigInteger amountOut, BigInteger amountInMax, BigInteger bookAmount, BigInteger bookPrice, BigInteger deadLine)
+        {
+            Assert(amountOut > 0 && amountInMax > 0 && bookAmount >= 0 && bookPrice > 0, "Invalid Parameters");
+            Assert(Runtime.CheckWitness(sender), "No Authorization");
+            Assert((BigInteger)Runtime.Time <= deadLine, "Exceeded the Deadline");
+
+            // Market order
+            if (bookAmount > 0)
+            {
+                // Check pair status
+                var pairKey = GetPairKey(tokenFrom, tokenTo);
+                Assert(!BookPaused(pairKey), "Book is Paused");
+                var book = GetOrderBook(pairKey);
+                Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
+
+                // Check price limit
+                var isBuy = tokenTo == book.baseToken;
+                var price = isBuy ? amountInMax * book.quoteScale / amountOut : amountOut * book.quoteScale / amountInMax;
+                if (bookAmount > 0) Assert((isBuy && price >= bookPrice) || (!isBuy && price <= bookPrice), "BookPrice Beyond Limit");
+
+                // Deal and record consumed amountIn and satisfied amountOut
+                if (isBuy)
+                {
+                    var result = DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, false);
+                    amountOut -= bookAmount - result[0] * 997 / 1000;
+                    amountInMax -= result[1];
+                }
+                else
+                {
+                    var result = DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, false);
+                    amountInMax -= bookAmount - result[0];
+                    amountOut -= result[1];
+                }
+                Assert(amountOut >= 0, "Exceeded AmountOut");  // Should not get more than amountOut
+                if (amountOut == 0)  // No longer need further swap
+                {
+                    Assert(amountInMax >= 0, "Insufficient AmountIn");  // Should spend no more than amountInMax
+                    return true;
+                }
+            }
+
+            // Swap AMM
+            var pairContract = GetExchangePairWithAssert(tokenFrom, tokenTo);
+            var reverse = GetReserves(pairContract, tokenFrom, tokenTo);
+            var amountIn = GetAmountIn(amountOut, reverse[0], reverse[1]);
+            Assert(amountIn <= amountInMax, "Insufficient AmountIn");
+
+            if (amountOut > 0) SwapAMM(pairContract, sender, tokenFrom, tokenTo, amountIn, amountOut);
             return true;
         }
 
@@ -722,8 +794,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns>Left amount</returns>
-        public static BigInteger DealMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
+        /// <returns>Left amount and real payment</returns>
+        public static BigInteger[] DealMarketOrder(UInt160 tokenA, UInt160 tokenB, UInt160 taker, bool isBuy, BigInteger price, BigInteger amount)
         {
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
@@ -743,8 +815,8 @@ namespace FlamingoSwapOrderBook
         /// <param name="isBuy"></param>
         /// <param name="price"></param>
         /// <param name="amount"></param>
-        /// <returns>Left amount</returns>
-        public static BigInteger DealMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
+        /// <returns>Left amount and real payment</returns>
+        public static BigInteger[] DealMarketOrder(UInt160 tokenA, UInt160 tokenB, bool isBuy, BigInteger price, BigInteger amount)
         {
             // Check parameters
             Assert(price > 0 && amount > 0, "Invalid Parameters");
@@ -756,16 +828,16 @@ namespace FlamingoSwapOrderBook
             return DealMarketOrderInternal(pairKey, caller, isBuy, price, amount, true);
         }
 
-        private static BigInteger DealMarketOrderInternal(byte[] pairKey, UInt160 taker, bool isBuy, BigInteger price, BigInteger leftAmount, bool shouldRequest)
+        private static BigInteger[] DealMarketOrderInternal(byte[] pairKey, UInt160 taker, bool isBuy, BigInteger price, BigInteger leftAmount, bool shouldRequest)
         {
             // Check if can deal
             var book = GetOrderBook(pairKey);
             Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var firstID = isBuy ? book.firstSellID : book.firstBuyID;
-            if (firstID is null) return leftAmount;
+            if (firstID is null) return new BigInteger[] { leftAmount, 0 };
             var firstOrder = GetOrder(firstID);
             var canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
-            if (!canDeal) return leftAmount;
+            if (!canDeal) return new BigInteger[] { leftAmount, 0 };
 
             var me = Runtime.ExecutingScriptHash;
             var fundAddress = GetFundAddress();
@@ -874,7 +946,7 @@ namespace FlamingoSwapOrderBook
             StageFundFee(book.baseToken, baseFee);
             StageFundFee(book.quoteToken, quoteFee);
 
-            return leftAmount;
+            return new BigInteger[] { leftAmount, isBuy ? takerPayment : takerReceive };;
         }
 
         /// <summary>
