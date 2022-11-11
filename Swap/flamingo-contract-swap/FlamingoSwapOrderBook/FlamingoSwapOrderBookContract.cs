@@ -1030,7 +1030,7 @@ namespace FlamingoSwapOrderBook
             var isBuy = tokenFrom == book.quoteToken;
 
             var result = MatchOrderInternal(pairKey, isBuy, price, amountIn, !isBuy);
-            return new BigInteger[]{ result[0], result[1] * 997 / 1000 };   // 0.3% fee
+            return new BigInteger[] { result[0], result[1] * 997 / 1000 };   // 0.3% fee
         }
 
         /// <summary>
@@ -1051,7 +1051,7 @@ namespace FlamingoSwapOrderBook
             var isBuy = tokenFrom == book.quoteToken;
 
             var result = MatchOrderInternal(pairKey, isBuy, price, (amountOut * 1000 + 996) / 997, isBuy);   // 0.3% fee
-            return new BigInteger[]{ (result[0] * 997 + 999) / 1000, result[1] + 1 };
+            return isBuy ? new BigInteger[] { result[0] * 997 / 1000, result[1] + 1 } : new BigInteger[]{ (result[0] * 997 + 999) / 1000, result[1] };
         }
         #endregion
 
