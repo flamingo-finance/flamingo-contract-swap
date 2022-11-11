@@ -40,8 +40,8 @@ namespace FlamingoSwapOrderBook
 
             // Market order
             var leftAmount = amount;
-            if (isBuy) leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, true, false)[0] * 997 / 1000 : 0;
-            else leftAmount -= bookAmount > 0 ? bookAmount - DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, true, false)[0] : 0;
+            if (isBuy) leftAmount -= bookAmount > 0 ? DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, (bookAmount * 1000 + 996) / 997, true, false)[1] : 0;
+            else leftAmount -= bookAmount > 0 ? DealMarketOrderInternal(pairKey, sender, isBuy, bookPrice, bookAmount, true, false)[0] : 0;
             if (leftAmount == 0) return null;
 
             // Swap AMM
@@ -781,10 +781,10 @@ namespace FlamingoSwapOrderBook
             var book = GetOrderBook(pairKey);
             Assert(book.baseToken.IsAddress() && book.quoteToken.IsAddress(), "Invalid Trade Pair");
             var firstID = isBuy ? book.firstSellID : book.firstBuyID;
-            if (firstID is null) return new BigInteger[] { amount, 0 };
+            if (firstID is null) return new BigInteger[] { 0, 0 };
             var firstOrder = GetOrder(firstID);
             var canDeal = (isBuy && firstOrder.price <= price) || (!isBuy && firstOrder.price >= price);
-            if (!canDeal) return new BigInteger[] { amount, 0 };
+            if (!canDeal) return new BigInteger[] { 0, 0 };
 
             var me = Runtime.ExecutingScriptHash;
             var fundAddress = GetFundAddress();
