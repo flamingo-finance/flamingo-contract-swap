@@ -9,7 +9,7 @@ using Neo.SmartContract;
 
 namespace FlamingoSwapRouter
 {
-    [DisplayName("Flamingo Router")]
+    [DisplayName("FlamingoSwapRouter")]
     [ManifestExtra("Author", "Flamingo Finance")]
     [ManifestExtra("Email", "developer@flamingo.finance")]
     [ManifestExtra("Description", "This is a Flamingo Contract")]
